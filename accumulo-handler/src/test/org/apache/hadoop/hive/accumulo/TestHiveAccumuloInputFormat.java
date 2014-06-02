@@ -54,8 +54,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-public class HiveAccumuloInputFormatTest {
-  private static final Logger log = Logger.getLogger(HiveAccumuloInputFormatTest.class);
+public class TestHiveAccumuloInputFormat {
+  private static final Logger log = Logger.getLogger(TestHiveAccumuloInputFormat.class);
 
   public static final String USER = "user";
   public static final String PASS = "password";

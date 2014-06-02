@@ -5,99 +5,100 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
+import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Equal;
 import org.apache.hadoop.hive.accumulo.predicate.compare.GreaterThan;
 import org.apache.hadoop.hive.accumulo.predicate.compare.GreaterThanOrEqual;
 import org.apache.hadoop.hive.accumulo.predicate.compare.LessThan;
 import org.apache.hadoop.hive.accumulo.predicate.compare.LessThanOrEqual;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Like;
-import org.apache.hadoop.hive.accumulo.predicate.compare.LongCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.NotEqual;
 import org.junit.Before;
 import org.junit.Test;
 
-public class LongComparisonTest {
+public class TestDoubleCompare {
 
-  private LongCompare longComp;
+  private DoubleCompare doubleCompare;
 
   @Before
   public void setup() {
-    byte[] lBytes = new byte[8];
-    ByteBuffer.wrap(lBytes).putLong(10l);
-    longComp = new LongCompare();
-    longComp.init(lBytes);
+    doubleCompare = new DoubleCompare();
+    byte[] db = new byte[8];
+    ByteBuffer.wrap(db).putDouble(10.5d);
+    doubleCompare.init(db);
   }
 
-  public byte[] getBytes(long val) {
-    byte[] lonBytes = new byte[8];
-    ByteBuffer.wrap(lonBytes).putLong(val);
-    long lon = longComp.serialize(lonBytes);
-    assertEquals(lon, val);
-    return lonBytes;
+  public byte[] getBytes(double val) {
+    byte[] dBytes = new byte[8];
+    ByteBuffer.wrap(dBytes).putDouble(val);
+    BigDecimal bd = doubleCompare.serialize(dBytes);
+    assertEquals(bd.doubleValue(), val, 0);
+    return dBytes;
   }
 
   @Test
   public void equal() {
-    Equal equalObj = new Equal(longComp);
-    byte[] val = getBytes(10l);
+    Equal equalObj = new Equal(doubleCompare);
+    byte[] val = getBytes(10.5d);
     assertTrue(equalObj.accept(val));
   }
 
   @Test
   public void notEqual() {
-    NotEqual notEqualObj = new NotEqual(longComp);
-    byte[] val = getBytes(11l);
+    NotEqual notEqualObj = new NotEqual(doubleCompare);
+    byte[] val = getBytes(11.0d);
     assertTrue(notEqualObj.accept(val));
 
-    val = getBytes(10l);
+    val = getBytes(10.5d);
     assertFalse(notEqualObj.accept(val));
 
   }
 
   @Test
   public void greaterThan() {
-    GreaterThan greaterThanObj = new GreaterThan(longComp);
-    byte[] val = getBytes(11l);
+    GreaterThan greaterThanObj = new GreaterThan(doubleCompare);
+    byte[] val = getBytes(11.0d);
 
     assertTrue(greaterThanObj.accept(val));
 
-    val = getBytes(4l);
+    val = getBytes(4.5d);
     assertFalse(greaterThanObj.accept(val));
 
-    val = getBytes(10l);
+    val = getBytes(10.5d);
     assertFalse(greaterThanObj.accept(val));
   }
 
   @Test
   public void greaterThanOrEqual() {
-    GreaterThanOrEqual greaterThanOrEqualObj = new GreaterThanOrEqual(longComp);
+    GreaterThanOrEqual greaterThanOrEqualObj = new GreaterThanOrEqual(doubleCompare);
 
-    byte[] val = getBytes(11l);
+    byte[] val = getBytes(11.0d);
 
     assertTrue(greaterThanOrEqualObj.accept(val));
 
-    val = getBytes(4l);
+    val = getBytes(4.0d);
     assertFalse(greaterThanOrEqualObj.accept(val));
 
-    val = getBytes(10l);
+    val = getBytes(10.5d);
     assertTrue(greaterThanOrEqualObj.accept(val));
   }
 
   @Test
   public void lessThan() {
 
-    LessThan lessThanObj = new LessThan(longComp);
+    LessThan lessThanObj = new LessThan(doubleCompare);
 
-    byte[] val = getBytes(11l);
+    byte[] val = getBytes(11.0d);
 
     assertFalse(lessThanObj.accept(val));
 
-    val = getBytes(4l);
+    val = getBytes(4.0d);
     assertTrue(lessThanObj.accept(val));
 
-    val = getBytes(10l);
+    val = getBytes(10.5d);
     assertFalse(lessThanObj.accept(val));
 
   }
@@ -105,27 +106,27 @@ public class LongComparisonTest {
   @Test
   public void lessThanOrEqual() {
 
-    LessThanOrEqual lessThanOrEqualObj = new LessThanOrEqual(longComp);
+    LessThanOrEqual lessThanOrEqualObj = new LessThanOrEqual(doubleCompare);
 
-    byte[] val = getBytes(11l);
+    byte[] val = getBytes(11.0d);
 
     assertFalse(lessThanOrEqualObj.accept(val));
 
-    val = getBytes(4l);
+    val = getBytes(4.0d);
     assertTrue(lessThanOrEqualObj.accept(val));
 
-    val = getBytes(10l);
+    val = getBytes(10.5d);
     assertTrue(lessThanOrEqualObj.accept(val));
   }
 
   @Test
   public void like() {
     try {
-      Like likeObj = new Like(longComp);
+      Like likeObj = new Like(doubleCompare);
       assertTrue(likeObj.accept(new byte[] {}));
       fail("should not accept");
     } catch (UnsupportedOperationException e) {
-      assertTrue(e.getMessage().contains("Like not supported for " + longComp.getClass().getName()));
+      assertTrue(e.getMessage().contains("Like not supported for " + doubleCompare.getClass().getName()));
     }
   }
 
@@ -134,11 +135,10 @@ public class LongComparisonTest {
     try {
       byte[] badVal = new byte[4];
       ByteBuffer.wrap(badVal).putInt(1);
-      longComp.serialize(badVal);
+      doubleCompare.serialize(badVal);
       fail("Should fail");
     } catch (RuntimeException e) {
-      assertTrue(e.getMessage().contains(" occurred trying to build long value"));
+      assertTrue(e.getMessage().contains(" occurred trying to build double value"));
     }
   }
-
 }

@@ -19,11 +19,11 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class AccumuloSerdeTest {
+public class TestAccumuloSerde {
 
   AccumuloSerde serde = new AccumuloSerde();
 
-  private static final Logger log = Logger.getLogger(AccumuloSerdeTest.class);
+  private static final Logger log = Logger.getLogger(TestAccumuloSerde.class);
 
   @Test
   public void columnMismatch() {

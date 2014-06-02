@@ -14,7 +14,7 @@ import org.apache.hadoop.hive.accumulo.predicate.compare.StringCompare;
 import org.junit.Before;
 import org.junit.Test;
 
-public class StringCompareTest {
+public class TestStringCompare {
 
   private StringCompare strCompare;
 

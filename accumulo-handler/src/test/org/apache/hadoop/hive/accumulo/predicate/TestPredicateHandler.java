@@ -60,9 +60,9 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-public class PredicateHandlerTest {
+public class TestPredicateHandler {
   @SuppressWarnings("unused")
-  private static final Logger log = Logger.getLogger(PredicateHandlerTest.class);
+  private static final Logger log = Logger.getLogger(TestPredicateHandler.class);
 
   private AccumuloPredicateHandler handler = AccumuloPredicateHandler.getInstance();
   private JobConf conf;

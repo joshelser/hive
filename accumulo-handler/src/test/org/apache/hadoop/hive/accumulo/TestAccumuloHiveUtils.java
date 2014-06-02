@@ -13,7 +13,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AccumuloHiveUtilsTest {
+public class TestAccumuloHiveUtils {
 
   private JobConf conf = new JobConf();
 

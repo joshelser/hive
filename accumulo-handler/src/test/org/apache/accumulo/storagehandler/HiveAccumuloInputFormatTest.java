@@ -45,7 +45,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class HiveAccumuloInputFormatTest {
@@ -66,7 +66,7 @@ public class HiveAccumuloInputFormatTest {
 
     private static final Logger log = Logger.getLogger(HiveAccumuloInputFormatTest.class);
 
-    @BeforeClass
+    @Before
     public void createMockKeyValues() {
         mockInstance =  new MockInstance(MOCK_INSTANCE_NAME);
         inputformat = new HiveAccumuloTableInputFormat();

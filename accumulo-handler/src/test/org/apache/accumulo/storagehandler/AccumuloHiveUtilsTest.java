@@ -8,14 +8,14 @@ import java.util.List;
 
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.mapred.JobConf;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 public class AccumuloHiveUtilsTest {
 
     private JobConf conf = new JobConf();
 
-    @BeforeClass
+    @Before
     public void setup() {
         conf.set(serdeConstants.LIST_COLUMNS, "event_date,source,lat,lon,event_millis,id");
         conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string,double,double,long,int");

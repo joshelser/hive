@@ -397,8 +397,6 @@ public class HiveAccumuloInputFormatTest {
       log.error(e);
       fail();
     }
-    // for whatever reason, this errors unless I manually reset. mockKeyValues() ignored @BeforeTest
-    // conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf|name,cf|sid,cf|dgrs,cf|mills");
   }
 
 }

@@ -1,5 +1,6 @@
 package org.apache.accumulo.storagehandler.predicate;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -279,7 +280,7 @@ public class PredicateHandlerTest {
             AccumuloPredicateHandler.PushdownTuple tuple = new AccumuloPredicateHandler.PushdownTuple(sConditions.get(0));
             byte [] expectedVal = new byte[4];
             ByteBuffer.wrap(expectedVal).putInt(5);
-            assertEquals(tuple.getConstVal(), expectedVal);
+            assertArrayEquals(tuple.getConstVal(), expectedVal);
             assertEquals(tuple.getcOpt().getClass(), Equal.class);
             assertEquals(tuple.getpCompare().getClass(), IntCompare.class);
         } catch (Exception e) {

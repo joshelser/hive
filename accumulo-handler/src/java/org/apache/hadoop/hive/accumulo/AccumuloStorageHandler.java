@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.accumulo;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -39,9 +40,6 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   private Connector connector;
 
   private static final Logger log = Logger.getLogger(AccumuloStorageHandler.class);
-  static {
-    log.setLevel(Level.INFO);
-  }
   private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
 
   private Connector getConnector() throws MetaException {

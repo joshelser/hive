@@ -162,7 +162,7 @@ public class AccumuloHiveUtils {
   public static byte[] valueAsUTF8bytes(JobConf conf, Key k, Value v) throws IOException {
     String cf = k.getColumnFamily().toString();
     String qual = k.getColumnQualifier().toString();
-    String combined = cf + "|" + qual;
+    String combined = cf + HiveAccumuloTableInputFormat.COLON + qual;
     String type = hiveColType(accumuloToHive(combined, conf), conf);
     if (type.equals("string")) {
       return v.get();

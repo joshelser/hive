@@ -84,7 +84,7 @@ public class TestHiveAccumuloInputFormat {
     conf.set(AccumuloSerde.USER_NAME, USER);
     conf.set(AccumuloSerde.USER_PASS, PASS);
     conf.set(AccumuloSerde.ZOOKEEPERS, "localhost:2181"); // not used for mock, but required by input format.
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf|name,cf|sid,cf|dgrs,cf|mills");
+    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf:name,cf:sid,cf:dgrs,cf:mills");
     conf.set(serdeConstants.LIST_COLUMNS, "name,sid,dgrs,mills");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,double,bigint");
     try {
@@ -230,7 +230,7 @@ public class TestHiveAccumuloInputFormat {
       is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, DoubleCompare.class.getName());
       is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, GreaterThanOrEqual.class.getName());
       is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(parseDoubleBytes("55.6"))));
-      is.addOption(PrimitiveComparisonFilter.COLUMN, "cf|dgrs");
+      is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:dgrs");
       scan.addScanIterator(is);
 
       IteratorSetting is2 = new IteratorSetting(2, PrimitiveComparisonFilter.FILTER_PREFIX + 2, PrimitiveComparisonFilter.class);
@@ -238,7 +238,7 @@ public class TestHiveAccumuloInputFormat {
       is2.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, LongCompare.class.getName());
       is2.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, LessThan.class.getName());
       is2.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(parseLongBytes("778"))));
-      is2.addOption(PrimitiveComparisonFilter.COLUMN, "cf|mills");
+      is2.addOption(PrimitiveComparisonFilter.COLUMN, "cf:mills");
 
       scan.addScanIterator(is2);
 
@@ -293,7 +293,7 @@ public class TestHiveAccumuloInputFormat {
       is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, IntCompare.class.getName());
       is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, GreaterThan.class.getName());
       is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(parseIntBytes("1"))));
-      is.addOption(PrimitiveComparisonFilter.COLUMN, "cf|sid");
+      is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:sid");
       scan.addScanIterator(is);
       boolean foundMark = false;
       boolean foundDennis = false;
@@ -346,7 +346,7 @@ public class TestHiveAccumuloInputFormat {
       is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, StringCompare.class.getName());
       is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
       is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64("brian".getBytes())));
-      is.addOption(PrimitiveComparisonFilter.COLUMN, "cf|name");
+      is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:name");
       scan.addScanIterator(is);
       boolean foundName = false;
       boolean foundSid = false;
@@ -387,7 +387,7 @@ public class TestHiveAccumuloInputFormat {
   @Test
   public void getNone() {
     FileInputFormat.addInputPath(conf, new Path("unused"));
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf|f1");
+    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf:f1");
     try {
       InputSplit[] splits = inputformat.getSplits(conf, 0);
       assertEquals(splits.length, 1);

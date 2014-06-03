@@ -2,11 +2,11 @@ package org.apache.hadoop.hive.accumulo;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -49,7 +49,8 @@ import com.google.common.collect.Lists;
  */
 public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat implements org.apache.hadoop.mapred.InputFormat<Text,AccumuloHiveRow> {
 
-  private static final Pattern PIPE = Pattern.compile("[|]");
+  public static final char COLON = ':';
+
   private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
   private Instance instance;
 
@@ -116,11 +117,11 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
    */
   @Override
   public RecordReader<Text,AccumuloHiveRow> getRecordReader(InputSplit inputSplit, final JobConf jobConf, final Reporter reporter) throws IOException {
+    final String user = jobConf.get(AccumuloSerde.USER_NAME);
+    final String pass = jobConf.get(AccumuloSerde.USER_PASS);
+    final String id = jobConf.get(AccumuloSerde.INSTANCE_NAME);
+    final String zookeepers = jobConf.get(AccumuloSerde.ZOOKEEPERS);
 
-    String user = jobConf.get(AccumuloSerde.USER_NAME);
-    String pass = jobConf.get(AccumuloSerde.USER_PASS);
-    String id = jobConf.get(AccumuloSerde.INSTANCE_NAME);
-    String zookeepers = jobConf.get(AccumuloSerde.ZOOKEEPERS);
     instance = getInstance(id, zookeepers);
     AccumuloSplit as = (AccumuloSplit) inputSplit;
     org.apache.accumulo.core.client.mapreduce.RangeInputSplit ris = as.getSplit();
@@ -241,40 +242,71 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
 
   private void configure(Job job, JobConf conf, Connector connector, List<String> colQualFamPairs) throws AccumuloSecurityException, AccumuloException,
       SerDeException {
-    String instanceName = job.getConfiguration().get(AccumuloSerde.INSTANCE_NAME);
-    String zookeepers = job.getConfiguration().get(AccumuloSerde.ZOOKEEPERS);
-    String user = job.getConfiguration().get(AccumuloSerde.USER_NAME);
-    String pass = job.getConfiguration().get(AccumuloSerde.USER_PASS);
-    String tableName = job.getConfiguration().get(AccumuloSerde.TABLE_NAME);
+    // Extract Accumulo connection information from configuration
+    final String instanceName = job.getConfiguration().get(AccumuloSerde.INSTANCE_NAME);
+    final String zookeepers = job.getConfiguration().get(AccumuloSerde.ZOOKEEPERS);
+    final String user = job.getConfiguration().get(AccumuloSerde.USER_NAME);
+    final String pass = job.getConfiguration().get(AccumuloSerde.USER_PASS);
+    final String tableName = job.getConfiguration().get(AccumuloSerde.TABLE_NAME);
+
+    // Handle implementation of Instance and invoke appropriate InputFormat method
     if (instance instanceof MockInstance) {
       setMockInstance(job, instanceName);
     } else {
       setZooKeeperInstance(job, new ClientConfiguration().withInstance(instanceName).withZkHosts(zookeepers));
     }
+
+    // Set the username/passwd for the Accumulo connection
     setConnectorInfo(job, user, new PasswordToken(pass.getBytes()));
+
+    // Read from the given Accumulo table
     setInputTableName(job, tableName);
+
+    // TODO Allow configuration of the authorizations that should be used
+    // Scan with all of the user's authorizations
     setScanAuthorizations(job, connector.securityOperations().getUserAuthorizations(user));
-    List<IteratorSetting> iterators = predicateHandler.getIterators(conf); // restrict with any filters found from WHERE predicates.
-    for (IteratorSetting is : iterators)
+
+    // restrict with any filters found from WHERE predicates.
+    List<IteratorSetting> iterators = predicateHandler.getIterators(conf);
+    for (IteratorSetting is : iterators) {
       addIterator(job, is);
-    Collection<Range> ranges = predicateHandler.getRanges(conf); // restrict with any ranges found from WHERE predicates.
-    if (ranges.size() > 0)
+    }
+
+    // restrict with any ranges found from WHERE predicates.
+    Collection<Range> ranges = predicateHandler.getRanges(conf);
+    if (ranges.size() > 0) {
       setRanges(job, ranges);
+    }
+
+    // Restrict the set of columns that we want to read from the Accumulo table
     fetchColumns(job, getPairCollection(colQualFamPairs));
   }
 
-  /*
+  /**
    * Create col fam/qual pairs from pipe separated values, usually from config object. Ignores rowID.
+   * @param colFamQualPairs Pairs of colfam, colqual, delimited by {@link #COLON}
+   * @return a Set of Pairs of colfams and colquals
    */
-  private Collection<Pair<Text,Text>> getPairCollection(List<String> colQualFamPairs) {
-    List<Pair<Text,Text>> pairs = Lists.newArrayList();
+  private HashSet<Pair<Text,Text>> getPairCollection(List<String> colQualFamPairs) {
+    final HashSet<Pair<Text,Text>> pairs = new HashSet<Pair<Text,Text>>();
+
     for (String colQualFam : colQualFamPairs) {
-      String[] qualFamPieces = PIPE.split(colQualFam);
-      Text fam = new Text(qualFamPieces[0]);
-      if (qualFamPieces.length > 1) {
-        pairs.add(new Pair<Text,Text>(fam, new Text(qualFamPieces[1])));
+      // Split cf|cq
+      String[] qualFamPieces = StringUtils.split(colQualFam, COLON);
+
+      Text cf = new Text(qualFamPieces[0]);
+      Text cq;
+
+      // A null cq implies an empty column qualifier
+      if (1 == qualFamPieces.length) {
+        cq = null;
+      } else {
+        cq = new Text(qualFamPieces[1]);
       }
+
+      pairs.add(new Pair<Text,Text>(cf, cq));
     }
+
     return pairs;
   }
 }

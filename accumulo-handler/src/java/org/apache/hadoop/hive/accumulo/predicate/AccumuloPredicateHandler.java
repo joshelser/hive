@@ -7,7 +7,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Range;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveUtils;
-import org.apache.hadoop.hive.accumulo.AccumuloSerde;
+import org.apache.hadoop.hive.accumulo.AccumuloSerDe;
 import org.apache.hadoop.hive.accumulo.predicate.compare.*;
 import org.apache.hadoop.hive.ql.exec.ExprNodeConstantEvaluator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
@@ -136,7 +136,7 @@ public class AccumuloPredicateHandler {
     public List<IteratorSetting> getIterators(JobConf conf)
             throws SerDeException{
         List<IteratorSetting> itrs = Lists.newArrayList();
-        if(conf.get(AccumuloSerde.NO_ITERATOR_PUSHDOWN) != null)  {
+        if(conf.get(AccumuloSerDe.NO_ITERATOR_PUSHDOWN) != null)  {
             log.info("Iterator pushdown is disabled for this table");
             return itrs;
         }

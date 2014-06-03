@@ -56,17 +56,17 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
 
   @Override
   public InputSplit[] getSplits(JobConf jobConf, int numSplits) throws IOException {
-    String instanceName = jobConf.get(AccumuloSerde.INSTANCE_NAME);
-    String user = jobConf.get(AccumuloSerde.USER_NAME);
-    String pass = jobConf.get(AccumuloSerde.USER_PASS);
-    String zookeepers = jobConf.get(AccumuloSerde.ZOOKEEPERS);
+    String instanceName = jobConf.get(AccumuloSerDe.INSTANCE_NAME);
+    String user = jobConf.get(AccumuloSerDe.USER_NAME);
+    String pass = jobConf.get(AccumuloSerDe.USER_PASS);
+    String zookeepers = jobConf.get(AccumuloSerDe.ZOOKEEPERS);
     instance = getInstance(instanceName, zookeepers);
 
     @SuppressWarnings("deprecation")
     Job job = new Job(jobConf);
     try {
       Connector connector = instance.getConnector(user, new PasswordToken(pass.getBytes()));
-      String colMapping = jobConf.get(AccumuloSerde.COLUMN_MAPPINGS);
+      String colMapping = jobConf.get(AccumuloSerDe.COLUMN_MAPPINGS);
       List<String> colQualFamPairs = AccumuloHiveUtils.parseColumnMapping(colMapping);
       configure(job, jobConf, connector, colQualFamPairs);
       List<Integer> readColIds = ColumnProjectionUtils.getReadColumnIDs(jobConf);
@@ -117,10 +117,10 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
    */
   @Override
   public RecordReader<Text,AccumuloHiveRow> getRecordReader(InputSplit inputSplit, final JobConf jobConf, final Reporter reporter) throws IOException {
-    final String user = jobConf.get(AccumuloSerde.USER_NAME);
-    final String pass = jobConf.get(AccumuloSerde.USER_PASS);
-    final String id = jobConf.get(AccumuloSerde.INSTANCE_NAME);
-    final String zookeepers = jobConf.get(AccumuloSerde.ZOOKEEPERS);
+    final String user = jobConf.get(AccumuloSerDe.USER_NAME);
+    final String pass = jobConf.get(AccumuloSerDe.USER_PASS);
+    final String id = jobConf.get(AccumuloSerDe.INSTANCE_NAME);
+    final String zookeepers = jobConf.get(AccumuloSerDe.ZOOKEEPERS);
 
     instance = getInstance(id, zookeepers);
     AccumuloSplit as = (AccumuloSplit) inputSplit;
@@ -128,7 +128,7 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
 
     Job job = Job.getInstance(jobConf);
     try {
-      String colMapping = jobConf.get(AccumuloSerde.COLUMN_MAPPINGS);
+      String colMapping = jobConf.get(AccumuloSerDe.COLUMN_MAPPINGS);
       List<String> colQualFamPairs;
       colQualFamPairs = AccumuloHiveUtils.parseColumnMapping(colMapping);
       Connector connector = instance.getConnector(user, new PasswordToken(pass.getBytes()));
@@ -243,11 +243,11 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
   private void configure(Job job, JobConf conf, Connector connector, List<String> colQualFamPairs) throws AccumuloSecurityException, AccumuloException,
       SerDeException {
     // Extract Accumulo connection information from configuration
-    final String instanceName = job.getConfiguration().get(AccumuloSerde.INSTANCE_NAME);
-    final String zookeepers = job.getConfiguration().get(AccumuloSerde.ZOOKEEPERS);
-    final String user = job.getConfiguration().get(AccumuloSerde.USER_NAME);
-    final String pass = job.getConfiguration().get(AccumuloSerde.USER_PASS);
-    final String tableName = job.getConfiguration().get(AccumuloSerde.TABLE_NAME);
+    final String instanceName = job.getConfiguration().get(AccumuloSerDe.INSTANCE_NAME);
+    final String zookeepers = job.getConfiguration().get(AccumuloSerDe.ZOOKEEPERS);
+    final String user = job.getConfiguration().get(AccumuloSerDe.USER_NAME);
+    final String pass = job.getConfiguration().get(AccumuloSerDe.USER_PASS);
+    final String tableName = job.getConfiguration().get(AccumuloSerDe.TABLE_NAME);
 
     // Handle implementation of Instance and invoke appropriate InputFormat method
     if (instance instanceof MockInstance) {

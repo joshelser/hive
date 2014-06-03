@@ -10,7 +10,7 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveUtils;
-import org.apache.hadoop.hive.accumulo.AccumuloSerde;
+import org.apache.hadoop.hive.accumulo.AccumuloSerDe;
 import org.apache.hadoop.hive.accumulo.LazyAccumuloRow;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -19,17 +19,17 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-public class TestAccumuloSerde {
+public class TestAccumuloSerDe {
 
-  AccumuloSerde serde = new AccumuloSerde();
+  AccumuloSerDe serde = new AccumuloSerDe();
 
-  private static final Logger log = Logger.getLogger(TestAccumuloSerde.class);
+  private static final Logger log = Logger.getLogger(TestAccumuloSerDe.class);
 
   @Test
   public void columnMismatch() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3,field4");
     properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string:string:string:string");
 
@@ -38,10 +38,10 @@ public class TestAccumuloSerde {
       serde.deserialize(new Text("fail"));
       fail("Should fail. More hive columns than total Accumulo mapping");
     } catch (SerDeException e) {
-      assertTrue(e.getMessage().contains("You have more hive columns than fields mapped with " + AccumuloSerde.COLUMN_MAPPINGS));
+      assertTrue(e.getMessage().contains("You have more hive columns than fields mapped with " + AccumuloSerDe.COLUMN_MAPPINGS));
     }
 
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
     properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string:string");
     try {
@@ -49,7 +49,7 @@ public class TestAccumuloSerde {
       serde.deserialize(new Text("fail"));
       fail("Should fail, More Accumulo mapping than total hive columns.");
     } catch (SerDeException e) {
-      assertTrue(e.getMessage().contains("You have more " + AccumuloSerde.COLUMN_MAPPINGS + " fields than hive columns"));
+      assertTrue(e.getMessage().contains("You have more " + AccumuloSerDe.COLUMN_MAPPINGS + " fields than hive columns"));
     }
   }
 
@@ -57,7 +57,7 @@ public class TestAccumuloSerde {
   public void withOrWithoutRowID() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "cf:f1,rowID");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,rowID");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
 
     try {
@@ -68,7 +68,7 @@ public class TestAccumuloSerde {
 
     properties = new Properties();
     conf = new Configuration();
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "cf:f1,cf:f2");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
 
     try {
@@ -91,7 +91,7 @@ public class TestAccumuloSerde {
       fail(e.getMessage());
     }
 
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3");
     try {
       serde.initialize(conf, properties);
@@ -106,7 +106,7 @@ public class TestAccumuloSerde {
   public void withRowID() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "cf:f1,rowID,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,rowID,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3,field4");
     try {
       serde.initialize(conf, properties);
@@ -121,7 +121,7 @@ public class TestAccumuloSerde {
   public void invalidColMapping() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "cf,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field2,field3,field4");
 
     try {
@@ -145,7 +145,7 @@ public class TestAccumuloSerde {
   public void deserialize() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerde.COLUMN_MAPPINGS, "rowID,cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "rowID,cf:f1,cf:f2,cf:f3");
 
     try {
       serde.initialize(conf, properties);

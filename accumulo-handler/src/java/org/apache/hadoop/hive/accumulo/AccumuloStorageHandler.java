@@ -10,6 +10,10 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
+import org.apache.accumulo.fate.Fate;
+import org.apache.accumulo.start.Main;
+import org.apache.accumulo.trace.instrument.Tracer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
@@ -29,6 +33,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.ZooKeeper;
 
 /**
  * Create table mapping to Accumulo for Hive. Handle predicate pushdown if necessary.
@@ -60,20 +65,20 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   public void configureTableJobProperties(TableDesc desc, Map<String,String> jobProps) {
     Properties tblProperties = desc.getProperties();
-    jobProps.put(AccumuloSerde.COLUMN_MAPPINGS, tblProperties.getProperty(AccumuloSerde.COLUMN_MAPPINGS));
-    String tableName = tblProperties.getProperty(AccumuloSerde.TABLE_NAME);
-    jobProps.put(AccumuloSerde.TABLE_NAME, tableName);
-    String useIterators = tblProperties.getProperty(AccumuloSerde.NO_ITERATOR_PUSHDOWN);
+    jobProps.put(AccumuloSerDe.COLUMN_MAPPINGS, tblProperties.getProperty(AccumuloSerDe.COLUMN_MAPPINGS));
+    String tableName = tblProperties.getProperty(AccumuloSerDe.TABLE_NAME);
+    jobProps.put(AccumuloSerDe.TABLE_NAME, tableName);
+    String useIterators = tblProperties.getProperty(AccumuloSerDe.NO_ITERATOR_PUSHDOWN);
     if (useIterators != null) {
-      jobProps.put(AccumuloSerde.NO_ITERATOR_PUSHDOWN, useIterators);
+      jobProps.put(AccumuloSerDe.NO_ITERATOR_PUSHDOWN, useIterators);
     }
 
   }
 
   private String getTableName(Table table) throws MetaException {
-    String tableName = table.getSd().getSerdeInfo().getParameters().get(AccumuloSerde.TABLE_NAME);
+    String tableName = table.getSd().getSerdeInfo().getParameters().get(AccumuloSerDe.TABLE_NAME);
     if (tableName == null) {
-      throw new MetaException("Please specify " + AccumuloSerde.TABLE_NAME + " in TBLPROPERTIES");
+      throw new MetaException("Please specify " + AccumuloSerDe.TABLE_NAME + " in TBLPROPERTIES");
     }
     return tableName;
   }
@@ -91,7 +96,7 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @SuppressWarnings("deprecation")
   @Override
   public Class<? extends SerDe> getSerDeClass() {
-    return AccumuloSerde.class;
+    return AccumuloSerDe.class;
   }
 
   @Override
@@ -107,11 +112,11 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   public void configureInputJobProperties(TableDesc tableDesc, Map<String,String> properties) {
     Properties props = tableDesc.getProperties();
-    properties.put(AccumuloSerde.COLUMN_MAPPINGS, props.getProperty(AccumuloSerde.COLUMN_MAPPINGS));
-    properties.put(AccumuloSerde.TABLE_NAME, props.getProperty(AccumuloSerde.TABLE_NAME));
-    String useIterators = props.getProperty(AccumuloSerde.NO_ITERATOR_PUSHDOWN);
+    properties.put(AccumuloSerDe.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDe.COLUMN_MAPPINGS));
+    properties.put(AccumuloSerDe.TABLE_NAME, props.getProperty(AccumuloSerDe.TABLE_NAME));
+    String useIterators = props.getProperty(AccumuloSerDe.NO_ITERATOR_PUSHDOWN);
     if (useIterators != null) {
-      properties.put(AccumuloSerde.NO_ITERATOR_PUSHDOWN, useIterators);
+      properties.put(AccumuloSerDe.NO_ITERATOR_PUSHDOWN, useIterators);
     }
   }
 
@@ -129,7 +134,7 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   @SuppressWarnings("rawtypes")
   public Class<? extends OutputFormat> getOutputFormatClass() {
-    return HiveAccumuloTableOutputFormat.class;
+    return AccumuloOutputFormat.class;
   }
 
   @Override
@@ -143,9 +148,9 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
       Connector connector = getConnector();
       TableOperations tableOpts = connector.tableOperations();
       Map<String,String> serdeParams = table.getSd().getSerdeInfo().getParameters();
-      String columnMapping = serdeParams.get(AccumuloSerde.COLUMN_MAPPINGS);
+      String columnMapping = serdeParams.get(AccumuloSerDe.COLUMN_MAPPINGS);
       if (columnMapping == null)
-        throw new MetaException(AccumuloSerde.COLUMN_MAPPINGS + " missing from SERDEPROPERTIES");
+        throw new MetaException(AccumuloSerDe.COLUMN_MAPPINGS + " missing from SERDEPROPERTIES");
       if (!tableOpts.exists(tblName)) {
         if (!isExternal) {
           tableOpts.create(tblName);
@@ -201,8 +206,9 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
       try {
         if (deleteData) {
           TableOperations tblOpts = getConnector().tableOperations();
-          if (tblOpts.exists(tblName))
+          if (tblOpts.exists(tblName)) {
             tblOpts.delete(tblName);
+          }
         }
       } catch (AccumuloException e) {
         throw new MetaException(StringUtils.stringifyException(e));
@@ -225,8 +231,8 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   }
 
   @Override
-  public DecomposedPredicate decomposePredicate(JobConf conf, @SuppressWarnings("deprecation") Deserializer deserializer, ExprNodeDesc desc) {
-    if (conf.get(AccumuloSerde.NO_ITERATOR_PUSHDOWN) == null) {
+  public DecomposedPredicate decomposePredicate(JobConf conf, Deserializer deserializer, ExprNodeDesc desc) {
+    if (conf.get(AccumuloSerDe.NO_ITERATOR_PUSHDOWN) == null) {
       return predicateHandler.decompose(conf, desc);
     } else {
       log.info("Set to ignore iterator. skipping predicate handler");
@@ -236,6 +242,10 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
 
   @Override
   public void configureJobConf(TableDesc tableDesc, JobConf jobConf) {
-    // TODO Does anything need to be implemented here?
+    try {
+      Utils.addDependencyJars(jobConf, Tracer.class, Fate.class, Connector.class, Main.class, ZooKeeper.class, AccumuloStorageHandler.class);
+    } catch (IOException e) {
+      log.error("Could not add necessary Accumulo dependencies to classpath", e);
+    }
   }
 }

@@ -18,7 +18,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.hive.accumulo.AccumuloSerde;
+import org.apache.hadoop.hive.accumulo.AccumuloSerDe;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
@@ -73,7 +73,7 @@ public class TestPredicateHandler {
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,rid");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string");
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf|f1,rowID");
+    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf|f1,rowID");
   }
 
   @Test
@@ -372,7 +372,7 @@ public class TestPredicateHandler {
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,field2,rid");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,string");
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf|f1,cf|f2,rowID");
+    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf|f1,cf|f2,rowID");
 
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
@@ -397,7 +397,7 @@ public class TestPredicateHandler {
 
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    conf.setBoolean(AccumuloSerde.NO_ITERATOR_PUSHDOWN, true);
+    conf.setBoolean(AccumuloSerDe.NO_ITERATOR_PUSHDOWN, true);
     try {
       List<IteratorSetting> iterators = handler.getIterators(conf);
       assertEquals(iterators.size(), 0);
@@ -412,7 +412,7 @@ public class TestPredicateHandler {
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,field2,rid");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,string");
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf|f1,cf|f2,rowID");
+    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf|f1,cf|f2,rowID");
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();

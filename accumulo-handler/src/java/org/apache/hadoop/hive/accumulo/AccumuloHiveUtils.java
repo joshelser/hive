@@ -75,9 +75,9 @@ public class AccumuloHiveUtils {
    */
   public static int getRowIdIndex(JobConf conf) {
     int index = -1;
-    String accumuloProp = conf.get(AccumuloSerde.COLUMN_MAPPINGS);
+    String accumuloProp = conf.get(AccumuloSerDe.COLUMN_MAPPINGS);
     if (accumuloProp == null)
-      throw new IllegalArgumentException(AccumuloSerde.COLUMN_MAPPINGS + " cannot be null");
+      throw new IllegalArgumentException(AccumuloSerDe.COLUMN_MAPPINGS + " cannot be null");
     List<String> accumCols = AccumuloHiveUtils.parseColumnMapping(accumuloProp);
     for (int i = 0; i < accumCols.size(); i++) {
       if (containsRowID(accumCols.get(i))) {
@@ -95,10 +95,10 @@ public class AccumuloHiveUtils {
    * @return matching Accumulo column.
    */
   public static String hiveToAccumulo(String column, JobConf conf) {
-    String accumuloProp = conf.get(AccumuloSerde.COLUMN_MAPPINGS);
+    String accumuloProp = conf.get(AccumuloSerDe.COLUMN_MAPPINGS);
     String hiveProp = conf.get(serdeConstants.LIST_COLUMNS);
     if (accumuloProp == null)
-      throw new IllegalArgumentException(AccumuloSerde.COLUMN_MAPPINGS + " cannot be null");
+      throw new IllegalArgumentException(AccumuloSerDe.COLUMN_MAPPINGS + " cannot be null");
     List<String> accumCols = parseColumnMapping(accumuloProp);
     List<String> hiveCols = parseColumnMapping(hiveProp);
     for (int i = 0; i < hiveCols.size(); i++) {
@@ -117,10 +117,10 @@ public class AccumuloHiveUtils {
    * @return matching Hive column.
    */
   public static String accumuloToHive(String column, JobConf conf) {
-    String accumuloProp = conf.get(AccumuloSerde.COLUMN_MAPPINGS);
+    String accumuloProp = conf.get(AccumuloSerDe.COLUMN_MAPPINGS);
     String hiveProp = conf.get(serdeConstants.LIST_COLUMNS);
     if (accumuloProp == null)
-      throw new IllegalArgumentException(AccumuloSerde.COLUMN_MAPPINGS + " cannot be null");
+      throw new IllegalArgumentException(AccumuloSerDe.COLUMN_MAPPINGS + " cannot be null");
     List<String> accumCols = parseColumnMapping(accumuloProp);
     List<String> hiveCols = parseColumnMapping(hiveProp);
     for (int i = 0; i < accumCols.size(); i++) {
@@ -128,7 +128,7 @@ public class AccumuloHiveUtils {
       if (accuCol.equals(column))
         return hiveCols.get(i);
     }
-    throw new IllegalArgumentException("column " + column + " is not mapped in " + AccumuloSerde.COLUMN_MAPPINGS);
+    throw new IllegalArgumentException("column " + column + " is not mapped in " + AccumuloSerDe.COLUMN_MAPPINGS);
   }
 
   /**
@@ -188,10 +188,10 @@ public class AccumuloHiveUtils {
    */
   public static Connector getConnector(Configuration conf) throws IOException {
     try {
-      String instance = getFromConf(conf, AccumuloSerde.INSTANCE_NAME);
-      String user = getFromConf(conf, AccumuloSerde.USER_NAME);
-      String pass = getFromConf(conf, AccumuloSerde.USER_PASS);
-      String zookeepers = getFromConf(conf, AccumuloSerde.ZOOKEEPERS);
+      String instance = getFromConf(conf, AccumuloSerDe.INSTANCE_NAME);
+      String user = getFromConf(conf, AccumuloSerDe.USER_NAME);
+      String pass = getFromConf(conf, AccumuloSerDe.USER_PASS);
+      String zookeepers = getFromConf(conf, AccumuloSerDe.ZOOKEEPERS);
       ZooKeeperInstance inst = new ZooKeeperInstance(instance, zookeepers);
       return inst.getConnector(user, new PasswordToken(pass.getBytes()));
     } catch (MissingArgumentException e) {

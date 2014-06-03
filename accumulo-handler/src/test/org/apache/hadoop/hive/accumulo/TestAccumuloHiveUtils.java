@@ -7,7 +7,7 @@ import static org.junit.Assert.fail;
 import java.util.List;
 
 import org.apache.hadoop.hive.accumulo.AccumuloHiveUtils;
-import org.apache.hadoop.hive.accumulo.AccumuloSerde;
+import org.apache.hadoop.hive.accumulo.AccumuloSerDe;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
@@ -21,7 +21,7 @@ public class TestAccumuloHiveUtils {
   public void setup() {
     conf.set(serdeConstants.LIST_COLUMNS, "event_date,source,lat,lon,event_millis,id");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string,double,double,long,int");
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf|dt,cf|src,cf|lat,cf|lon,cf|dtm,rowID");
+    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf|dt,cf|src,cf|lat,cf|lon,cf|dtm,rowID");
   }
 
   @Test
@@ -29,7 +29,7 @@ public class TestAccumuloHiveUtils {
     List<String> hiveCols = AccumuloHiveUtils.parseColumnMapping(conf.get(serdeConstants.LIST_COLUMNS));
     assertEquals(hiveCols.size(), 6);
 
-    List<String> accuCols = AccumuloHiveUtils.parseColumnMapping(conf.get(AccumuloSerde.COLUMN_MAPPINGS));
+    List<String> accuCols = AccumuloHiveUtils.parseColumnMapping(conf.get(AccumuloSerDe.COLUMN_MAPPINGS));
     assertEquals(accuCols.size(), 6);
 
     List<String> types = AccumuloHiveUtils.parseColumnMapping(conf.get(serdeConstants.LIST_COLUMN_TYPES));
@@ -41,7 +41,7 @@ public class TestAccumuloHiveUtils {
     int index = AccumuloHiveUtils.getRowIdIndex(conf);
     assertEquals(index, 5);
 
-    List<String> accuCols = AccumuloHiveUtils.parseColumnMapping(conf.get(AccumuloSerde.COLUMN_MAPPINGS));
+    List<String> accuCols = AccumuloHiveUtils.parseColumnMapping(conf.get(AccumuloSerDe.COLUMN_MAPPINGS));
     assertTrue(AccumuloHiveUtils.containsRowID(accuCols.get(5)));
 
     String hiveCol = AccumuloHiveUtils.hiveColForRowID(conf);
@@ -71,7 +71,7 @@ public class TestAccumuloHiveUtils {
       AccumuloHiveUtils.accumuloToHive("blah", conf);
       fail("column blah does not exist");
     } catch (IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains("column blah is not mapped in " + AccumuloSerde.COLUMN_MAPPINGS));
+      assertTrue(e.getMessage().contains("column blah is not mapped in " + AccumuloSerDe.COLUMN_MAPPINGS));
     }
 
   }

@@ -21,7 +21,7 @@ import org.apache.log4j.Logger;
  * Deserialization from Accumulo to LazyAccumuloRow for Hive.
  * 
  */
-public class AccumuloSerde implements SerDe {
+public class AccumuloSerDe implements SerDe {
   public static final String TABLE_NAME = "accumulo.table.name";
   public static final String USER_NAME = "accumulo.user.name";
   public static final String USER_PASS = "accumulo.user.pass";
@@ -36,7 +36,7 @@ public class AccumuloSerde implements SerDe {
   private List<String> fetchCols;
   private ObjectInspector cachedObjectInspector;
 
-  private static final Logger log = Logger.getLogger(AccumuloSerde.class);
+  private static final Logger log = Logger.getLogger(AccumuloSerDe.class);
 
   public void initialize(Configuration conf, Properties properties) throws SerDeException {
     initAccumuloSerdeParameters(conf, properties);
@@ -66,7 +66,9 @@ public class AccumuloSerde implements SerDe {
     fetchCols = AccumuloHiveUtils.parseColumnMapping(colMapping);
     if (colTypeProperty == null) {
       StringBuilder builder = new StringBuilder();
-      for (String fetchCol : fetchCols) { // default to all string if no column type property.
+
+      // default to all string if no column type property.
+      for (int i = 0; i < fetchCols.size(); i++) {
         builder.append(serdeConstants.STRING_TYPE_NAME + ":");
       }
       builder.setLength(builder.length() - 1);
@@ -76,14 +78,14 @@ public class AccumuloSerde implements SerDe {
     serDeParameters = LazySimpleSerDe.initSerdeParams(conf, properties, name);
     if (fetchCols.size() != serDeParameters.getColumnNames().size()) {
       throw new SerDeException(name + ": Hive table definition has " + serDeParameters.getColumnNames().size() + " elements while " + COLUMN_MAPPINGS + " has "
-          + fetchCols.size() + " elements. " + printColumnMismatchTip(fetchCols.size(), serDeParameters.getColumnNames().size()));
+          + fetchCols.size() + " elements. " + getColumnMismatchTip(fetchCols.size(), serDeParameters.getColumnNames().size()));
     }
 
     if (log.isInfoEnabled())
       log.info("Serde initialized successfully for column mapping: " + colMapping);
   }
 
-  private String printColumnMismatchTip(int accumuloColumns, int hiveColumns) {
+  private String getColumnMismatchTip(int accumuloColumns, int hiveColumns) {
 
     if (accumuloColumns < hiveColumns) {
       return MORE_HIVE_THAN_ACCUMULO;

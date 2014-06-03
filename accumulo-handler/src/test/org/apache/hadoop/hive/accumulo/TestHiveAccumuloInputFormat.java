@@ -30,7 +30,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
-import org.apache.hadoop.hive.accumulo.AccumuloSerde;
+import org.apache.hadoop.hive.accumulo.AccumuloSerDe;
 import org.apache.hadoop.hive.accumulo.HiveAccumuloTableInputFormat;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
 import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;
@@ -79,12 +79,12 @@ public class TestHiveAccumuloInputFormat {
     mockInstance = new MockInstance(test.getMethodName());
     inputformat = new HiveAccumuloTableInputFormat();
     conf = new JobConf();
-    conf.set(AccumuloSerde.TABLE_NAME, TEST_TABLE);
-    conf.set(AccumuloSerde.INSTANCE_NAME, test.getMethodName());
-    conf.set(AccumuloSerde.USER_NAME, USER);
-    conf.set(AccumuloSerde.USER_PASS, PASS);
-    conf.set(AccumuloSerde.ZOOKEEPERS, "localhost:2181"); // not used for mock, but required by input format.
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf:name,cf:sid,cf:dgrs,cf:mills");
+    conf.set(AccumuloSerDe.TABLE_NAME, TEST_TABLE);
+    conf.set(AccumuloSerDe.INSTANCE_NAME, test.getMethodName());
+    conf.set(AccumuloSerDe.USER_NAME, USER);
+    conf.set(AccumuloSerDe.USER_PASS, PASS);
+    conf.set(AccumuloSerDe.ZOOKEEPERS, "localhost:2181"); // not used for mock, but required by input format.
+    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf:name,cf:sid,cf:dgrs,cf:mills");
     conf.set(serdeConstants.LIST_COLUMNS, "name,sid,dgrs,mills");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,double,bigint");
     try {
@@ -387,7 +387,7 @@ public class TestHiveAccumuloInputFormat {
   @Test
   public void getNone() {
     FileInputFormat.addInputPath(conf, new Path("unused"));
-    conf.set(AccumuloSerde.COLUMN_MAPPINGS, "cf:f1");
+    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1");
     try {
       InputSplit[] splits = inputformat.getSplits(conf, 0);
       assertEquals(splits.length, 1);

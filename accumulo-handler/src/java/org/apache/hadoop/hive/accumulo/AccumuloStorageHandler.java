@@ -2,7 +2,6 @@ package org.apache.hadoop.hive.accumulo;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -29,7 +28,6 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
@@ -43,7 +41,6 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
 
   private Connector getConnector() throws MetaException {
-
     if (connector == null) {
       try {
         connector = AccumuloHiveUtils.getConnector(conf);
@@ -152,7 +149,6 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
       if (!tableOpts.exists(tblName)) {
         if (!isExternal) {
           tableOpts.create(tblName);
-          tableOpts.online(tblName);
         } else {
           throw new MetaException("Accumulo table " + tblName + " doesn't exist even though declared external");
         }
@@ -168,8 +164,6 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
       throw new MetaException(StringUtils.stringifyException(e));
     } catch (AccumuloException e) {
       throw new MetaException(StringUtils.stringifyException(e));
-    } catch (TableNotFoundException e) {
-      throw new MetaException(StringUtils.stringifyException(e));
     } catch (IllegalArgumentException e) {
       log.info("Error parsing column mapping");
       throw new MetaException(StringUtils.stringifyException(e));
@@ -179,18 +173,19 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   public void rollbackCreateTable(Table table) throws MetaException {
     String tblName = getTableName(table);
-    boolean isExternal = MetaStoreUtils.isExternalTable(table);
-    try {
-      TableOperations tblOpts = getConnector().tableOperations();
-      if (!isExternal && tblOpts.exists(tblName)) {
-        tblOpts.delete(tblName);
+    if (!MetaStoreUtils.isExternalTable(table)) {
+      try {
+        TableOperations tblOpts = getConnector().tableOperations();
+        if (tblOpts.exists(tblName)) {
+          tblOpts.delete(tblName);
+        }
+      } catch (AccumuloException e) {
+        throw new MetaException(StringUtils.stringifyException(e));
+      } catch (AccumuloSecurityException e) {
+        throw new MetaException(StringUtils.stringifyException(e));
+      } catch (TableNotFoundException e) {
+        throw new MetaException(StringUtils.stringifyException(e));
       }
-    } catch (AccumuloException e) {
-      throw new MetaException(StringUtils.stringifyException(e));
-    } catch (AccumuloSecurityException e) {
-      throw new MetaException(StringUtils.stringifyException(e));
-    } catch (TableNotFoundException e) {
-      throw new MetaException(StringUtils.stringifyException(e));
     }
   }
 
@@ -202,19 +197,20 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   public void commitDropTable(Table table, boolean deleteData) throws MetaException {
     String tblName = getTableName(table);
-    boolean isExternal = MetaStoreUtils.isExternalTable(table);
-    try {
-      if (!isExternal && deleteData) {
-        TableOperations tblOpts = getConnector().tableOperations();
-        if (tblOpts.exists(tblName))
-          tblOpts.delete(tblName);
+    if (!MetaStoreUtils.isExternalTable(table)) {
+      try {
+        if (deleteData) {
+          TableOperations tblOpts = getConnector().tableOperations();
+          if (tblOpts.exists(tblName))
+            tblOpts.delete(tblName);
+        }
+      } catch (AccumuloException e) {
+        throw new MetaException(StringUtils.stringifyException(e));
+      } catch (AccumuloSecurityException e) {
+        throw new MetaException(StringUtils.stringifyException(e));
+      } catch (TableNotFoundException e) {
+        throw new MetaException(StringUtils.stringifyException(e));
       }
-    } catch (AccumuloException e) {
-      throw new MetaException(StringUtils.stringifyException(e));
-    } catch (AccumuloSecurityException e) {
-      throw new MetaException(StringUtils.stringifyException(e));
-    } catch (TableNotFoundException e) {
-      throw new MetaException(StringUtils.stringifyException(e));
     }
   }
 
@@ -240,7 +236,6 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
 
   @Override
   public void configureJobConf(TableDesc tableDesc, JobConf jobConf) {
-    // TODO Auto-generated method stub
-    
+    // TODO Does anything need to be implemented here?
   }
 }

@@ -1,15 +1,17 @@
 package org.apache.hadoop.hive.accumulo;
 
-import org.apache.commons.lang.StringUtils;
-import org.apache.hadoop.hive.serde2.lazy.*;
-import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
-import org.apache.hadoop.hive.serde2.objectinspector.StructField;
-import org.apache.log4j.Logger;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Pattern;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
+import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
+import org.apache.hadoop.hive.serde2.lazy.LazyObject;
+import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.log4j.Logger;
 
 /**
  * 
@@ -17,12 +19,11 @@ import java.util.regex.Pattern;
  * 
  */
 public class LazyAccumuloRow extends LazyStruct {
+  private static final Logger log = Logger.getLogger(LazyAccumuloRow.class);
 
   private AccumuloHiveRow row;
   private List<String> fetchCols;
   private ArrayList<Object> cachedList = new ArrayList<Object>();
-
-  private static final Logger log = Logger.getLogger(LazyAccumuloRow.class);
 
   public LazyAccumuloRow(LazySimpleStructObjectInspector inspector) {
     super(inspector);
@@ -58,7 +59,7 @@ public class LazyAccumuloRow extends LazyStruct {
   }
 
   /*
-   * split pairs by pipe.
+   * split pairs by delimiter.
    */
   private Object uncheckedGetField(int id) {
     if (!getFieldInited()[id]) {
@@ -70,6 +71,7 @@ public class LazyAccumuloRow extends LazyStruct {
         ref.setData(row.getRowId().getBytes());
       } else { // find the matching column tuple.
         String[] famQualPieces = StringUtils.split(famQualPair, HiveAccumuloTableInputFormat.COLON);
+        // Should still have the delimiter in the serialized column pair when the colqual is empty
         if (famQualPieces.length != 2)
           throw new IllegalArgumentException("Malformed famQualPair: " + famQualPair);
         byte[] val = row.getValue(famQualPieces[0], famQualPieces[1]);

@@ -225,7 +225,7 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   }
 
   @Override
-  public DecomposedPredicate decomposePredicate(JobConf conf, Deserializer deserializer, ExprNodeDesc desc) {
+  public DecomposedPredicate decomposePredicate(JobConf conf, @SuppressWarnings("deprecation") Deserializer deserializer, ExprNodeDesc desc) {
     if (conf.get(AccumuloSerde.NO_ITERATOR_PUSHDOWN) == null) {
       return predicateHandler.decompose(conf, desc);
     } else {

@@ -24,7 +24,7 @@ import org.apache.hadoop.util.StringUtils;
  */
 public class AccumuloHiveUtils {
 
-  private static final String ROWID = "rowID";
+  public static final String ROWID = ":rowID";
   private static final char COMMA = ',';
 
   public static String getFromConf(Configuration conf, String property) throws MissingArgumentException {
@@ -63,15 +63,15 @@ public class AccumuloHiveUtils {
 
   /**
    * 
-   * @return true if colName contains 'rowID', false otherwise.
+   * @return true if colName equals {@link #ROWID}, false otherwise.
    */
-  public static boolean containsRowID(String colName) {
+  public static boolean equalsRowID(String colName) {
     return colName.contains(ROWID);
   }
 
   /**
    * 
-   * @return index of rowID column in Accumulo mapping, or -1 if rowID is not mapped.
+   * @return index of {@link #ROWID} column in Accumulo mapping, or -1 if {@link #ROWID} is not mapped.
    */
   public static int getRowIdIndex(JobConf conf) {
     int index = -1;
@@ -80,7 +80,7 @@ public class AccumuloHiveUtils {
       throw new IllegalArgumentException(AccumuloSerDe.COLUMN_MAPPINGS + " cannot be null");
     List<String> accumCols = AccumuloHiveUtils.parseColumnMapping(accumuloProp);
     for (int i = 0; i < accumCols.size(); i++) {
-      if (containsRowID(accumCols.get(i))) {
+      if (equalsRowID(accumCols.get(i))) {
         return i;
       }
     }

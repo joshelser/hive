@@ -21,7 +21,7 @@ public class TestAccumuloHiveUtils {
   public void setup() {
     conf.set(serdeConstants.LIST_COLUMNS, "event_date,source,lat,lon,event_millis,id");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string,double,double,long,int");
-    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf|dt,cf|src,cf|lat,cf|lon,cf|dtm,rowID");
+    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf|dt,cf|src,cf|lat,cf|lon,cf|dtm,:rowID");
   }
 
   @Test
@@ -42,7 +42,7 @@ public class TestAccumuloHiveUtils {
     assertEquals(index, 5);
 
     List<String> accuCols = AccumuloHiveUtils.parseColumnMapping(conf.get(AccumuloSerDe.COLUMN_MAPPINGS));
-    assertTrue(AccumuloHiveUtils.containsRowID(accuCols.get(5)));
+    assertTrue(AccumuloHiveUtils.equalsRowID(accuCols.get(5)));
 
     String hiveCol = AccumuloHiveUtils.hiveColForRowID(conf);
     assertEquals(hiveCol, "id");

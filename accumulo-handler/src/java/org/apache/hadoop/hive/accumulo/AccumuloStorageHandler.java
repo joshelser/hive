@@ -121,8 +121,10 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   }
 
   @Override
-  public void configureOutputJobProperties(TableDesc tableDesc, Map<String,String> map) {
-    // TODO: implement for serialization to Accumulo
+  public void configureOutputJobProperties(TableDesc tableDesc, Map<String,String> jobProperties) {
+    Properties props = tableDesc.getProperties();
+    jobProperties.put(AccumuloSerDe.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDe.COLUMN_MAPPINGS));
+    jobProperties.put(AccumuloSerDe.TABLE_NAME, props.getProperty(AccumuloSerDe.TABLE_NAME));
   }
 
   @SuppressWarnings("rawtypes")

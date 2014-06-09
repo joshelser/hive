@@ -1,10 +1,15 @@
 package org.apache.hadoop.hive.accumulo;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMappingFactory;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -13,8 +18,8 @@ import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.Writable;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 /**
@@ -29,12 +34,17 @@ public class AccumuloSerDe implements SerDe {
   public static final String INSTANCE_NAME = "accumulo.instance.name";
   public static final String COLUMN_MAPPINGS = "accumulo.columns.mapping";
   public static final String NO_ITERATOR_PUSHDOWN = "accumulo.no.iterators";
+
   private static final String MORE_ACCUMULO_THAN_HIVE = "You have more " + COLUMN_MAPPINGS + " fields than hive columns";
   private static final String MORE_HIVE_THAN_ACCUMULO = "You have more hive columns than fields mapped with " + COLUMN_MAPPINGS;
+
   private LazySimpleSerDe.SerDeParameters serDeParameters;
   private LazyAccumuloRow cachedRow;
   private List<String> fetchCols;
   private ObjectInspector cachedObjectInspector;
+  private AccumuloRowSerializer serializer;
+  private int rowIdOffset;
+  private List<ColumnMapping> columnMappings;
 
   private static final Logger log = Logger.getLogger(AccumuloSerDe.class);
 
@@ -46,6 +56,8 @@ public class AccumuloSerDe implements SerDe {
         serDeParameters.getEscapeChar());
 
     cachedRow = new LazyAccumuloRow((LazySimpleStructObjectInspector) cachedObjectInspector);
+
+    serializer = new AccumuloRowSerializer(rowIdOffset, columnMappings);
 
     if (log.isInfoEnabled()) {
       log.info("Initialized with " + serDeParameters.getColumnNames() + " type: " + serDeParameters.getColumnTypes());
@@ -64,6 +76,9 @@ public class AccumuloSerDe implements SerDe {
     String colTypeProperty = properties.getProperty(serdeConstants.LIST_COLUMN_TYPES);
     String name = getClass().getName();
     fetchCols = AccumuloHiveUtils.parseColumnMapping(colMapping);
+    rowIdOffset = -1;
+    columnMappings = new ArrayList<ColumnMapping>(fetchCols.size());
+
     if (colTypeProperty == null) {
       StringBuilder builder = new StringBuilder();
 
@@ -79,6 +94,29 @@ public class AccumuloSerDe implements SerDe {
     if (fetchCols.size() != serDeParameters.getColumnNames().size()) {
       throw new SerDeException(name + ": Hive table definition has " + serDeParameters.getColumnNames().size() + " elements while " + COLUMN_MAPPINGS + " has "
           + fetchCols.size() + " elements. " + getColumnMismatchTip(fetchCols.size(), serDeParameters.getColumnNames().size()));
+    }
+
+    List<String> columnNames = serDeParameters.getColumnNames();
+    List<TypeInfo> columnTypes = serDeParameters.getColumnTypes();
+    
+    for (int i = 0; i < fetchCols.size(); i++) {
+      String columnMapping = fetchCols.get(i);
+
+      if (AccumuloHiveUtils.equalsRowID(columnMapping)) {
+        if (-1 != rowIdOffset) {
+          throw new IllegalArgumentException("Column mapping should only have one definition with a value of " + AccumuloHiveUtils.ROWID);
+        }
+
+        rowIdOffset = i;
+      }
+
+      // TODO actually allow for configuration of the column encoding
+      columnMappings.add(ColumnMappingFactory.get(columnNames.get(i), columnMapping, columnTypes.get(i), ColumnEncoding.STRING));
+    }
+
+    if (-1 == rowIdOffset) {
+      log.warn("No rowId mapping was provided, defaulting to the first column specified");
+      rowIdOffset = 0;
     }
 
     if (log.isInfoEnabled())
@@ -99,7 +137,11 @@ public class AccumuloSerDe implements SerDe {
   }
 
   public Writable serialize(Object o, ObjectInspector objectInspector) throws SerDeException {
-    throw new UnsupportedOperationException("Serialization to Accumulo not yet supported");
+    try {
+      return serializer.serialize(o, objectInspector);
+    } catch (IOException e) {
+      throw new SerDeException(e);
+    }
   }
 
   public Object deserialize(Writable writable) throws SerDeException {

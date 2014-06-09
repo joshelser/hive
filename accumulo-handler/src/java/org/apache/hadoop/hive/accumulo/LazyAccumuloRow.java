@@ -66,7 +66,7 @@ public class LazyAccumuloRow extends LazyStruct {
       getFieldInited()[id] = true;
       ByteArrayRef ref;
       String famQualPair = fetchCols.get(id);
-      if (AccumuloHiveUtils.containsRowID(famQualPair)) { // rowID field
+      if (AccumuloHiveUtils.equalsRowID(famQualPair)) { // rowID field
         ref = new ByteArrayRef();
         ref.setData(row.getRowId().getBytes());
       } else { // find the matching column tuple.

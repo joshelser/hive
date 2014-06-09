@@ -70,7 +70,7 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
       List<String> colQualFamPairs = AccumuloHiveUtils.parseColumnMapping(colMapping);
       configure(job, jobConf, connector, colQualFamPairs);
       List<Integer> readColIds = ColumnProjectionUtils.getReadColumnIDs(jobConf);
-      int incForRowID = AccumuloHiveUtils.containsRowID(colMapping) ? 1 : 0;
+      int incForRowID = AccumuloHiveUtils.equalsRowID(colMapping) ? 1 : 0;
       if (colQualFamPairs.size() + incForRowID < readColIds.size())
         throw new IOException("Number of colfam:qual pairs + rowkey (" + (colQualFamPairs.size() + incForRowID) + ")"
             + " numbers less than the hive table columns. (" + readColIds.size() + ")");
@@ -135,7 +135,7 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
       configure(job, jobConf, connector, colQualFamPairs);
 
       List<Integer> readColIds = ColumnProjectionUtils.getReadColumnIDs(jobConf);
-      int incForRowID = AccumuloHiveUtils.containsRowID(colMapping) ? 1 : 0; // offset by +1 if table mapping contains rowID
+      int incForRowID = AccumuloHiveUtils.equalsRowID(colMapping) ? 1 : 0; // offset by +1 if table mapping contains rowID
       if (colQualFamPairs.size() + incForRowID < readColIds.size())
         throw new IOException("Number of colfam:qual pairs + rowID (" + (colQualFamPairs.size() + incForRowID) + ")"
             + " numbers less than the hive table columns. (" + readColIds.size() + ")");

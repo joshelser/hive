@@ -8,10 +8,7 @@ import static org.junit.Assert.fail;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
-import org.apache.hadoop.hive.accumulo.AccumuloHiveUtils;
-import org.apache.hadoop.hive.accumulo.AccumuloSerDe;
-import org.apache.hadoop.hive.accumulo.LazyAccumuloRow;
+import org.apache.hadoop.hive.accumulo.columns.InvalidColumnMappingException;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazyString;
@@ -57,7 +54,7 @@ public class TestAccumuloSerDe {
   public void withOrWithoutRowID() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,rowID");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,:rowID");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
 
     try {
@@ -106,7 +103,7 @@ public class TestAccumuloSerDe {
   public void withRowID() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,rowID,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,:rowID,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3,field4");
     try {
       serde.initialize(conf, properties);
@@ -117,35 +114,27 @@ public class TestAccumuloSerDe {
     }
   }
 
-  @Test
-  public void invalidColMapping() {
+  @Test(expected = InvalidColumnMappingException.class)
+  public void invalidColMapping() throws Exception {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
     properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field2,field3,field4");
 
-    try {
-      serde.initialize(conf, properties);
-      AccumuloHiveRow row = new AccumuloHiveRow();
-      row.setRowId("r1");
-      Object obj = serde.deserialize(row);
-      assertTrue(obj instanceof LazyAccumuloRow);
-      LazyAccumuloRow lazyRow = (LazyAccumuloRow) obj;
-      lazyRow.getField(0);
-      fail("Should have throw SerdeException for Malformed famQualPair");
-    } catch (IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains("Malformed famQualPair"));
-    } catch (SerDeException e) {
-      log.error(e);
-      fail();
-    }
+    serde.initialize(conf, properties);
+    AccumuloHiveRow row = new AccumuloHiveRow();
+    row.setRowId("r1");
+    Object obj = serde.deserialize(row);
+    assertTrue(obj instanceof LazyAccumuloRow);
+    LazyAccumuloRow lazyRow = (LazyAccumuloRow) obj;
+    lazyRow.getField(0);
   }
 
   @Test
   public void deserialize() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "rowID,cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, ":rowID,cf:f1,cf:f2,cf:f3");
 
     try {
       serde.initialize(conf, properties);
@@ -158,7 +147,7 @@ public class TestAccumuloSerDe {
     try {
       properties.setProperty(serdeConstants.LIST_COLUMNS, "blah,field2,field3,field4");
       serde.initialize(conf, properties);
-      assertTrue(AccumuloHiveUtils.containsRowID("rowID"));
+      assertTrue(AccumuloHiveUtils.equalsRowID(":rowID"));
 
       AccumuloHiveRow row = new AccumuloHiveRow();
       row.setRowId("r1");

@@ -39,6 +39,8 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -48,18 +50,50 @@ import com.google.common.collect.Lists;
  * Configure input scan with proper ranges, iterators, and columns based on serde properties for Hive table.
  */
 public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat implements org.apache.hadoop.mapred.InputFormat<Text,AccumuloHiveRow> {
+  private static final Logger log = LoggerFactory.getLogger(HiveAccumuloTableInputFormat.class);
 
   public static final char COLON = ':';
 
   private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
   private Instance instance;
 
+  private boolean isEmpty(String s) {
+    return s == null || s.isEmpty();
+  }
+
+  protected void validateJobConf(JobConf jobConf) {
+    if (isEmpty(jobConf.get(AccumuloSerDe.INSTANCE_NAME))) {
+      log.error("{} was not defined or empty in Hive configuration", AccumuloSerDe.INSTANCE_NAME);
+      throw new IllegalArgumentException(AccumuloSerDe.INSTANCE_NAME + " must be defined in the Hive Configuration");
+    }
+
+    if (isEmpty(jobConf.get(AccumuloSerDe.USER_NAME))) {
+      log.error("{} was not defined or empty in Hive configuration", AccumuloSerDe.USER_NAME);
+      throw new IllegalArgumentException(AccumuloSerDe.INSTANCE_NAME + " must be defined in the Hive Configuration");
+    }
+
+    if (isEmpty(jobConf.get(AccumuloSerDe.USER_PASS))) {
+      log.error("{} was not defined or empty in Hive configuration", AccumuloSerDe.USER_PASS);
+      throw new IllegalArgumentException(AccumuloSerDe.INSTANCE_NAME + " must be defined in the Hive Configuration");
+    }
+
+    if (isEmpty(jobConf.get(AccumuloSerDe.ZOOKEEPERS))) {
+      log.error("{} was not defined or empty in Hive configuration", AccumuloSerDe.ZOOKEEPERS);
+      throw new IllegalArgumentException(AccumuloSerDe.INSTANCE_NAME + " must be defined in the Hive Configuration");
+    }
+  }
+
   @Override
   public InputSplit[] getSplits(JobConf jobConf, int numSplits) throws IOException {
+    // Verify that the required parameters are present in the configuration
+    validateJobConf(jobConf);
+
     String instanceName = jobConf.get(AccumuloSerDe.INSTANCE_NAME);
     String user = jobConf.get(AccumuloSerDe.USER_NAME);
     String pass = jobConf.get(AccumuloSerDe.USER_PASS);
     String zookeepers = jobConf.get(AccumuloSerDe.ZOOKEEPERS);
+
+    // Get the Accumulo instance object
     instance = getInstance(instanceName, zookeepers);
 
     @SuppressWarnings("deprecation")

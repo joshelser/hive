@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.accumulo.columns;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveUtils;
 import org.apache.hadoop.hive.accumulo.HiveAccumuloTableInputFormat;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 
@@ -26,6 +27,8 @@ import com.google.common.base.Preconditions;
  * A Hive column which maps to a column family and column qualifier pair in Accumulo
  */
 public class HiveColumnMapping extends ColumnMapping {
+  private static final Logger log = Logger.getLogger(HiveColumnMapping.class);
+
   protected String columnFamily, columnQualifier;
 
   public HiveColumnMapping(String columnName, String columnSpec, TypeInfo type, ColumnEncoding encoding) {
@@ -44,6 +47,7 @@ public class HiveColumnMapping extends ColumnMapping {
   protected void parse() {
     int index = mappingSpec.indexOf(HiveAccumuloTableInputFormat.COLON);
     if (-1 == index) {
+      log.error("Cannot parse '" + mappingSpec + "' as colon-separated column configuration");
       throw new InvalidColumnMappingException("Columns must be provided as cf:cq pairs");
     }
 

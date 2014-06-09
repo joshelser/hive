@@ -32,8 +32,9 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
 import org.apache.zookeeper.ZooKeeper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Create table mapping to Accumulo for Hive. Handle predicate pushdown if necessary.
@@ -42,7 +43,7 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   private Configuration conf;
   private Connector connector;
 
-  private static final Logger log = Logger.getLogger(AccumuloStorageHandler.class);
+  private static final Logger log = LoggerFactory.getLogger(AccumuloStorageHandler.class);
   private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
 
   private Connector getConnector() throws MetaException {

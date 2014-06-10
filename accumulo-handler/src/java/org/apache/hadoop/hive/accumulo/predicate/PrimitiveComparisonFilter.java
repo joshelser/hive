@@ -6,7 +6,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -16,6 +15,8 @@ import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.accumulo.HiveAccumuloTableInputFormat;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveCompare;
 import org.apache.hadoop.io.Text;
@@ -40,8 +41,7 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
   public static final String CONST_VAL = "accumulo.filter.iterator.const.val";
   public static final String COLUMN = "accumulo.filter.iterator.qual";
 
-  private String qual;
-  private String cf;
+  private HiveAccumuloColumnMapping columnMapping;
   private CompareOp compOpt;
 
   @Override
@@ -75,19 +75,17 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
   }
 
   private boolean matchQualAndFam(Key k) {
-    return k.getColumnQualifier().toString().equals(qual) && k.getColumnFamily().toString().equals(cf);
+    // TODO Horribly inefficient, use a Text to avoid repeated String generation
+    return k.getColumnQualifier().toString().equals(columnMapping.getColumnQualifier()) && k.getColumnFamily().toString().equals(columnMapping.getColumnFamily());
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     try {
       super.init(source, options, env);
-      String col = options.get(COLUMN);
-      String[] splits = StringUtils.split(col, HiveAccumuloTableInputFormat.COLON);
-      if (splits.length != 2)
-        throw new IOException("Malformed " + COLUMN + "=" + col);
-      cf = splits[0];
-      qual = splits[1];
+      String serializedColumnMapping = options.get(COLUMN);
+      // The ColumnEncoding is irrelevant at this point, just need the cf:[cq]
+      columnMapping = new HiveAccumuloColumnMapping(serializedColumnMapping, ColumnEncoding.STRING);
       Class<?> pClass = Class.forName(options.get(P_COMPARE_CLASS));
       Class<?> cClazz = Class.forName(options.get(COMPARE_OPT_CLASS));
       PrimitiveCompare pCompare = pClass.asSubclass(PrimitiveCompare.class).newInstance();

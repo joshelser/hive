@@ -21,7 +21,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
-import org.apache.hadoop.hive.accumulo.columns.HiveColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
@@ -94,12 +94,12 @@ public class AccumuloRowSerializer {
 
       // Make sure we got the right implementation of a ColumnMapping
       ColumnMapping mapping = mappings.get(i);
-      if (!(mapping instanceof HiveColumnMapping)) {
+      if (!(mapping instanceof HiveAccumuloColumnMapping)) {
         throw new IllegalArgumentException("Mapping for " + field.getFieldName() + " was not a HiveColumnMapping, but was " + mapping.getClass());
       }
 
       // We need to be able to get a colfam/colqual
-      HiveColumnMapping hiveColumnMapping = (HiveColumnMapping) mapping;
+      HiveAccumuloColumnMapping hiveColumnMapping = (HiveAccumuloColumnMapping) mapping;
 
       // Start by only serializing primitives as-is
       if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
@@ -111,7 +111,7 @@ public class AccumuloRowSerializer {
       }
 
       // Put the update in the Mutation
-      mutation.put(hiveColumnMapping.getColumnFamily().getBytes(Charsets.UTF_8), hiveColumnMapping.getColumQualifier().getBytes(Charsets.UTF_8), output.toByteArray());
+      mutation.put(hiveColumnMapping.getColumnFamily().getBytes(Charsets.UTF_8), hiveColumnMapping.getColumnQualifier().getBytes(Charsets.UTF_8), output.toByteArray());
     }
     
     return mutation;

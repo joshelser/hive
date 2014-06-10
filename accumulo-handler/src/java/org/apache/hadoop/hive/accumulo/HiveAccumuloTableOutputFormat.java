@@ -14,22 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo.columns;
+package org.apache.hadoop.hive.accumulo;
 
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import java.io.IOException;
 
-import com.google.common.base.Preconditions;
+import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.mapred.JobConf;
 
 /**
- * {@link ColumnMapping} which corresponds to the Hive column which should be used as the rowID in a {@link Mutation}
+ * 
  */
-public class HiveRowIdColumnMapping extends ColumnMapping {
+public class HiveAccumuloTableOutputFormat extends AccumuloOutputFormat {
 
-  public HiveRowIdColumnMapping(String columnSpec, ColumnEncoding encoding) {
-    super(columnSpec, encoding);
-
-    // Ensure that we have the correct identifier as the column name
-    Preconditions.checkArgument(columnSpec.equals(AccumuloHiveConstants.ROWID));
+  @Override
+  public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
+    System.out.println("");
+    super.checkOutputSpecs(ignored, job);
   }
+
 }

@@ -16,9 +16,7 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
-import org.apache.hadoop.hive.accumulo.AccumuloHiveUtils;
-import org.apache.hadoop.hive.accumulo.HiveAccumuloTableInputFormat;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
@@ -26,16 +24,16 @@ import com.google.common.base.Preconditions;
 /**
  * A Hive column which maps to a column family and column qualifier pair in Accumulo
  */
-public class HiveColumnMapping extends ColumnMapping {
-  private static final Logger log = Logger.getLogger(HiveColumnMapping.class);
+public class HiveAccumuloColumnMapping extends ColumnMapping {
+  private static final Logger log = Logger.getLogger(HiveAccumuloColumnMapping.class);
 
   protected String columnFamily, columnQualifier;
 
-  public HiveColumnMapping(String columnName, String columnSpec, TypeInfo type, ColumnEncoding encoding) {
-    super(columnName, columnSpec, type, encoding);
+  public HiveAccumuloColumnMapping(String columnSpec, ColumnEncoding encoding) {
+    super(columnSpec, encoding);
 
     // The mapping should not be the rowId, but anything else
-    Preconditions.checkArgument(!columnSpec.equals(AccumuloHiveUtils.ROWID));
+    Preconditions.checkArgument(!columnSpec.equals(AccumuloHiveConstants.ROWID));
 
     parse();
   }
@@ -45,7 +43,7 @@ public class HiveColumnMapping extends ColumnMapping {
    * and column qualifier. 
    */
   protected void parse() {
-    int index = mappingSpec.indexOf(HiveAccumuloTableInputFormat.COLON);
+    int index = mappingSpec.indexOf(AccumuloHiveConstants.COLON);
     if (-1 == index) {
       log.error("Cannot parse '" + mappingSpec + "' as colon-separated column configuration");
       throw new InvalidColumnMappingException("Columns must be provided as cf:cq pairs");
@@ -59,7 +57,16 @@ public class HiveColumnMapping extends ColumnMapping {
     return this.columnFamily;
   }
 
-  public String getColumQualifier() {
+  public String getColumnQualifier() {
     return this.columnQualifier;
+  }
+
+  public String serialize() {
+    StringBuilder sb = new StringBuilder(16);
+    sb.append(columnFamily).append(AccumuloHiveConstants.COLON);
+    if (null != columnQualifier) {
+      sb.append(columnQualifier);
+    }
+    return sb.toString();
   }
 }

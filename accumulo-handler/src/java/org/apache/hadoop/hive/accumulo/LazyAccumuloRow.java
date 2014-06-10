@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyObject;
@@ -22,16 +24,16 @@ public class LazyAccumuloRow extends LazyStruct {
   private static final Logger log = Logger.getLogger(LazyAccumuloRow.class);
 
   private AccumuloHiveRow row;
-  private List<String> fetchCols;
+  private List<ColumnMapping> columnMappings;
   private ArrayList<Object> cachedList = new ArrayList<Object>();
 
   public LazyAccumuloRow(LazySimpleStructObjectInspector inspector) {
     super(inspector);
   }
 
-  public void init(AccumuloHiveRow hiveRow, List<String> fetchCols) {
+  public void init(AccumuloHiveRow hiveRow, List<ColumnMapping> columnMappings) {
     this.row = hiveRow;
-    this.fetchCols = fetchCols;
+    this.columnMappings = columnMappings;
     setParsed(false);
 
   }
@@ -65,25 +67,31 @@ public class LazyAccumuloRow extends LazyStruct {
     if (!getFieldInited()[id]) {
       getFieldInited()[id] = true;
       ByteArrayRef ref;
-      String famQualPair = fetchCols.get(id);
-      if (AccumuloHiveUtils.equalsRowID(famQualPair)) { // rowID field
+      ColumnMapping columnMapping = columnMappings.get(id);
+
+      if (columnMapping instanceof HiveRowIdColumnMapping) {
+        // Use the rowID directly
         ref = new ByteArrayRef();
         ref.setData(row.getRowId().getBytes());
-      } else { // find the matching column tuple.
-        String[] famQualPieces = StringUtils.split(famQualPair, HiveAccumuloTableInputFormat.COLON);
-        // Should still have the delimiter in the serialized column pair when the colqual is empty
-        if (famQualPieces.length != 2)
-          throw new IllegalArgumentException("Malformed famQualPair: " + famQualPair);
-        byte[] val = row.getValue(famQualPieces[0], famQualPieces[1]);
+      } else if (columnMapping instanceof HiveAccumuloColumnMapping) {
+        HiveAccumuloColumnMapping accumuloColumnMapping = (HiveAccumuloColumnMapping) columnMapping;
+
+        // Use the colfam and colqual to get the value
+        byte[] val = row.getValue(accumuloColumnMapping.getColumnFamily(), accumuloColumnMapping.getColumnQualifier());
         if (val == null) {
           return null;
         } else {
           ref = new ByteArrayRef();
           ref.setData(val);
         }
+      } else {
+        log.error("Could not process ColumnMapping of type " + columnMapping.getClass() + " at offset " + id + " in column mapping: " + columnMapping.getMappingSpec());
+        throw new IllegalArgumentException("Cannot process ColumnMapping of type " + columnMapping.getClass());
       }
+
       getFields()[id].init(ref, 0, ref.getData().length);
     }
+
     return getFields()[id].getObject();
   }
 

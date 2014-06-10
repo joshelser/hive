@@ -14,22 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo.columns;
-
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
-
-import com.google.common.base.Preconditions;
+package org.apache.hadoop.hive.accumulo;
 
 /**
- * {@link ColumnMapping} which corresponds to the Hive column which should be used as the rowID in a {@link Mutation}
+ * 
  */
-public class HiveRowIdColumnMapping extends ColumnMapping {
-
-  public HiveRowIdColumnMapping(String columnSpec, ColumnEncoding encoding) {
-    super(columnSpec, encoding);
-
-    // Ensure that we have the correct identifier as the column name
-    Preconditions.checkArgument(columnSpec.equals(AccumuloHiveConstants.ROWID));
-  }
+public class AccumuloHiveConstants {
+  public static final String ROWID = ":rowID";
+  public static final char COLON = ':';
 }

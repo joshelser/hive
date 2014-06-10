@@ -20,8 +20,8 @@ import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
-import org.apache.hadoop.hive.ql.metadata.HiveStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
@@ -39,23 +39,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Create table mapping to Accumulo for Hive. Handle predicate pushdown if necessary.
  */
-public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook, HiveStoragePredicateHandler {
-  private Configuration conf;
-  private Connector connector;
-
+public class AccumuloStorageHandler extends DefaultStorageHandler implements HiveMetaHook, HiveStoragePredicateHandler {
   private static final Logger log = LoggerFactory.getLogger(AccumuloStorageHandler.class);
-  private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
 
-  private Connector getConnector() throws MetaException {
-    if (connector == null) {
-      try {
-        connector = AccumuloHiveUtils.getConnector(conf);
-      } catch (IOException e) {
-        throw new MetaException(StringUtils.stringifyException(e));
-      }
-    }
-    return connector;
-  }
+  private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
+  private AccumuloConnectionParameters connectionParams;
+  private Configuration conf;
 
   /**
    * 
@@ -66,20 +55,20 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   public void configureTableJobProperties(TableDesc desc, Map<String,String> jobProps) {
     Properties tblProperties = desc.getProperties();
-    jobProps.put(AccumuloSerDe.COLUMN_MAPPINGS, tblProperties.getProperty(AccumuloSerDe.COLUMN_MAPPINGS));
-    String tableName = tblProperties.getProperty(AccumuloSerDe.TABLE_NAME);
-    jobProps.put(AccumuloSerDe.TABLE_NAME, tableName);
-    String useIterators = tblProperties.getProperty(AccumuloSerDe.NO_ITERATOR_PUSHDOWN);
+    jobProps.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, tblProperties.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    String tableName = tblProperties.getProperty(AccumuloSerDeParameters.TABLE_NAME);
+    jobProps.put(AccumuloSerDeParameters.TABLE_NAME, tableName);
+    String useIterators = tblProperties.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
-      jobProps.put(AccumuloSerDe.NO_ITERATOR_PUSHDOWN, useIterators);
+      jobProps.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
     }
 
   }
 
   private String getTableName(Table table) throws MetaException {
-    String tableName = table.getSd().getSerdeInfo().getParameters().get(AccumuloSerDe.TABLE_NAME);
+    String tableName = table.getSd().getSerdeInfo().getParameters().get(AccumuloSerDeParameters.TABLE_NAME);
     if (tableName == null) {
-      throw new MetaException("Please specify " + AccumuloSerDe.TABLE_NAME + " in TBLPROPERTIES");
+      throw new MetaException("Must specify the Accumulo table name using " + AccumuloSerDeParameters.TABLE_NAME + " in TBLPROPERTIES");
     }
     return tableName;
   }
@@ -92,6 +81,7 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   public void setConf(Configuration conf) {
     this.conf = conf;
+    connectionParams = new AccumuloConnectionParameters(conf);
   }
 
   @SuppressWarnings("deprecation")
@@ -113,19 +103,19 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
   @Override
   public void configureInputJobProperties(TableDesc tableDesc, Map<String,String> properties) {
     Properties props = tableDesc.getProperties();
-    properties.put(AccumuloSerDe.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDe.COLUMN_MAPPINGS));
-    properties.put(AccumuloSerDe.TABLE_NAME, props.getProperty(AccumuloSerDe.TABLE_NAME));
-    String useIterators = props.getProperty(AccumuloSerDe.NO_ITERATOR_PUSHDOWN);
+    properties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    properties.put(AccumuloSerDeParameters.TABLE_NAME, props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+    String useIterators = props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
-      properties.put(AccumuloSerDe.NO_ITERATOR_PUSHDOWN, useIterators);
+      properties.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
     }
   }
 
   @Override
   public void configureOutputJobProperties(TableDesc tableDesc, Map<String,String> jobProperties) {
     Properties props = tableDesc.getProperties();
-    jobProperties.put(AccumuloSerDe.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDe.COLUMN_MAPPINGS));
-    jobProperties.put(AccumuloSerDe.TABLE_NAME, props.getProperty(AccumuloSerDe.TABLE_NAME));
+    jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    jobProperties.put(AccumuloSerDeParameters.TABLE_NAME, props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
   }
 
   @SuppressWarnings("rawtypes")
@@ -146,14 +136,19 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
     if (table.getSd().getLocation() != null) {
       throw new MetaException("Location can't be specified for Accumulo");
     }
+
+    Map<String,String> serdeParams = table.getSd().getSerdeInfo().getParameters();
+    String columnMapping = serdeParams.get(AccumuloSerDeParameters.COLUMN_MAPPINGS);
+    if (columnMapping == null) {
+      throw new MetaException(AccumuloSerDeParameters.COLUMN_MAPPINGS + " missing from SERDEPROPERTIES");
+    }
+
     try {
       String tblName = getTableName(table);
-      Connector connector = getConnector();
+      Connector connector = connectionParams.getConnector();
       TableOperations tableOpts = connector.tableOperations();
-      Map<String,String> serdeParams = table.getSd().getSerdeInfo().getParameters();
-      String columnMapping = serdeParams.get(AccumuloSerDe.COLUMN_MAPPINGS);
-      if (columnMapping == null)
-        throw new MetaException(AccumuloSerDe.COLUMN_MAPPINGS + " missing from SERDEPROPERTIES");
+
+      // Attempt to create the table, taking EXTERNAL into consideration
       if (!tableOpts.exists(tblName)) {
         if (!isExternal) {
           tableOpts.create(tblName);
@@ -162,10 +157,9 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
         }
       } else {
         if (!isExternal) {
-          throw new MetaException("Table " + tblName + " already exists. Use CREATE EXTERNAL TABLE to register with Hive.");
+          throw new MetaException("Table " + tblName + " already exists in Accumulo. Use CREATE EXTERNAL TABLE to register with Hive.");
         }
       }
-
     } catch (AccumuloSecurityException e) {
       throw new MetaException(StringUtils.stringifyException(e));
     } catch (TableExistsException e) {
@@ -183,7 +177,7 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
     String tblName = getTableName(table);
     if (!MetaStoreUtils.isExternalTable(table)) {
       try {
-        TableOperations tblOpts = getConnector().tableOperations();
+        TableOperations tblOpts = connectionParams.getConnector().tableOperations();
         if (tblOpts.exists(tblName)) {
           tblOpts.delete(tblName);
         }
@@ -208,7 +202,7 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
     if (!MetaStoreUtils.isExternalTable(table)) {
       try {
         if (deleteData) {
-          TableOperations tblOpts = getConnector().tableOperations();
+          TableOperations tblOpts = connectionParams.getConnector().tableOperations();
           if (tblOpts.exists(tblName)) {
             tblOpts.delete(tblName);
           }
@@ -235,10 +229,15 @@ public class AccumuloStorageHandler implements HiveStorageHandler, HiveMetaHook,
 
   @Override
   public DecomposedPredicate decomposePredicate(JobConf conf, Deserializer deserializer, ExprNodeDesc desc) {
-    if (conf.get(AccumuloSerDe.NO_ITERATOR_PUSHDOWN) == null) {
-      return predicateHandler.decompose(conf, desc);
+    if (!(deserializer instanceof AccumuloSerDe)) {
+      throw new RuntimeException("Expected an AccumuloSerDe but got " + deserializer.getClass().getName());
+    }
+
+    AccumuloSerDe serDe = (AccumuloSerDe) deserializer;
+    if (serDe.getIteratorPushdown()) {
+      return predicateHandler.decompose(serDe.getParams(), desc);
     } else {
-      log.info("Set to ignore iterator. skipping predicate handler");
+      log.info("Set to ignore Accumulo iterator pushdown, skipping predicate handler.");
       return null;
     }
   }

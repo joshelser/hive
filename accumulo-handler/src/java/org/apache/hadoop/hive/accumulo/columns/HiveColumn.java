@@ -16,20 +16,41 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 import com.google.common.base.Preconditions;
 
 /**
- * {@link ColumnMapping} which corresponds to the Hive column which should be used as the rowID in a {@link Mutation}
+ * 
  */
-public class HiveRowIdColumnMapping extends ColumnMapping {
+public class HiveColumn {
 
-  public HiveRowIdColumnMapping(String columnSpec, ColumnEncoding encoding) {
-    super(columnSpec, encoding);
 
-    // Ensure that we have the correct identifier as the column name
-    Preconditions.checkArgument(columnSpec.equals(AccumuloHiveConstants.ROWID));
+  // The name of this column in the Hive schema
+  protected final String columnName;
+
+  // The Hive type of this column
+  protected final TypeInfo columnType;
+
+  public HiveColumn(String columnName, TypeInfo columnType) {
+    Preconditions.checkNotNull(columnName);
+    Preconditions.checkNotNull(columnType);
+
+    this.columnName = columnName;
+    this.columnType = columnType;
+  }
+
+  /**
+   * Get the name of the Hive column
+   */
+  public String getColumnName() {
+    return columnName;
+  }
+
+  /**
+   * The Hive type of this column
+   */
+  public TypeInfo getColumnType() {
+    return columnType;
   }
 }

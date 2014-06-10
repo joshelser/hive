@@ -16,8 +16,7 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
-import org.apache.hadoop.hive.accumulo.AccumuloHiveUtils;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.accumulo.AccumuloSerDeParameters;
 
 import com.google.common.base.Preconditions;
 
@@ -28,18 +27,16 @@ public class ColumnMappingFactory {
 
   /**
    * Generate the proper instance of a ColumnMapping
-   * @param columnName Name of the Hive column
    * @param columnSpec Specification for mapping this column to Accumulo
-   * @param type The Type of the column
    * @param encoding The manner in which the value should be encoded to Accumulo
    */
-  public static ColumnMapping get(String columnName, String columnSpec, TypeInfo type, ColumnEncoding encoding) {
+  public static ColumnMapping get(String columnSpec, ColumnEncoding encoding) {
     Preconditions.checkNotNull(columnSpec);
 
-    if (AccumuloHiveUtils.equalsRowID(columnSpec)) {
-      return new HiveRowIdColumnMapping(columnName, columnSpec, type, encoding);
+    if (AccumuloSerDeParameters.ROWID.equals(columnSpec)) {
+      return new HiveRowIdColumnMapping(columnSpec, encoding);
     } else {
-      return new HiveColumnMapping(columnName, columnSpec, type, encoding);
+      return new HiveAccumuloColumnMapping(columnSpec, encoding);
     }
   }
 }

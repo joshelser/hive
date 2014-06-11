@@ -69,4 +69,9 @@ public class HiveAccumuloColumnMapping extends ColumnMapping {
     }
     return sb.toString();
   }
+
+  @Override
+  public String toString() {
+    return "[ColumnMapping, " + columnFamily + ":" + columnQualifier + ", encoding " + encoding + "]";
+  }
 }

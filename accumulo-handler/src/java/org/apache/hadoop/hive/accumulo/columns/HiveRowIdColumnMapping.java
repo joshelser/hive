@@ -32,4 +32,9 @@ public class HiveRowIdColumnMapping extends ColumnMapping {
     // Ensure that we have the correct identifier as the column name
     Preconditions.checkArgument(columnSpec.equals(AccumuloHiveConstants.ROWID));
   }
+
+  @Override
+  public String toString() {
+    return "[RowIDMapping, " + this.mappingSpec + ", encoding " + encoding + "]";
+  }
 }

@@ -109,20 +109,16 @@ public class ColumnMapper {
   public ColumnMapping getColumnMappingForHiveColumn(List<String> hiveColumns, String hiveColumnName) {
     Preconditions.checkNotNull(hiveColumns);
     Preconditions.checkNotNull(hiveColumnName);
-    Preconditions.checkArgument(columnMappings.size() == hiveColumns.size(), "Expected equal number of column mappings and Hive columns");
+    Preconditions.checkArgument(columnMappings.size() <= hiveColumns.size(), "Expected equal number of column mappings and Hive columns, " + columnMappings + ", " + hiveColumns);
 
     int hiveColumnOffset = 0;
-    for (; hiveColumnOffset < hiveColumns.size(); hiveColumnOffset++) {
+    for (; hiveColumnOffset < hiveColumns.size() && hiveColumnOffset < columnMappings.size(); hiveColumnOffset++) {
       if (hiveColumns.get(hiveColumnOffset).equals(hiveColumnName)) {
-        break;
+        return columnMappings.get(hiveColumnOffset);
       }
     }
 
-    if (hiveColumnOffset == hiveColumns.size()) {
-      log.error("Could not find offset for Hive column with name '" + hiveColumnName + "' with columns " + hiveColumns);
-      throw new IllegalArgumentException("Could not find offset for Hive column with name " + hiveColumnName);
-    }
-
-    return columnMappings.get(hiveColumnOffset);
+    log.error("Could not find offset for Hive column with name '" + hiveColumnName + "' with columns " + hiveColumns);
+    throw new IllegalArgumentException("Could not find offset for Hive column with name " + hiveColumnName);
   }
 }

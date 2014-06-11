@@ -1,10 +1,13 @@
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.serde;
 
 import java.io.IOException;
 import java.util.Properties;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
+import org.apache.hadoop.hive.accumulo.AccumuloRowSerializer;
+import org.apache.hadoop.hive.accumulo.LazyAccumuloRow;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;

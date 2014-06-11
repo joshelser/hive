@@ -1,5 +1,6 @@
 package org.apache.hadoop.hive.accumulo;
 
+import org.apache.hadoop.hive.accumulo.serde.AccumuloTableParameters;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;

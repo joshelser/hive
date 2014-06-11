@@ -17,6 +17,7 @@
 package org.apache.hadoop.hive.accumulo;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
 import org.junit.Test;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.serde;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
@@ -38,10 +39,6 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   public static final String COLUMN_MAPPINGS = "accumulo.columns.mapping";
   public static final String ITERATOR_PUSHDOWN_KEY = "accumulo.iterator.pushdown";
   public static final boolean ITERATOR_PUSHDOWN_DEFAULT = true;
-
-  private static final char COMMA = ',';
-  private static final String MORE_ACCUMULO_THAN_HIVE = "You have more " + COLUMN_MAPPINGS + " fields than hive columns";
-  private static final String MORE_HIVE_THAN_ACCUMULO = "You have more hive columns than fields mapped with " + COLUMN_MAPPINGS;
 
   protected final ColumnMapper columnMapper;
 
@@ -64,17 +61,10 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
       tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, columnMapper.toTypesString());
     }
 
-    if (columnMapper.size() != lazySerDeParameters.getColumnNames().size()) {
-      throw new SerDeException(serdeName + ": Hive table definition has " + lazySerDeParameters.getColumnNames().size() + " elements while " + COLUMN_MAPPINGS
-          + " has " + columnMapper.size() + " elements. " + getColumnMismatchTip(columnMapper.size(), lazySerDeParameters.getColumnNames().size()));
-    }
-  }
-
-  protected String getColumnMismatchTip(int accumuloColumns, int hiveColumns) {
-    if (accumuloColumns < hiveColumns) {
-      return MORE_HIVE_THAN_ACCUMULO;
-    } else {
-      return MORE_ACCUMULO_THAN_HIVE;
+    if (columnMapper.size() < lazySerDeParameters.getColumnNames().size()) {
+      throw new TooManyHiveColumnsException("You have more " + COLUMN_MAPPINGS + " fields than hive columns");
+    } else if (columnMapper.size() > lazySerDeParameters.getColumnNames().size()) {
+      throw new TooManyAccumuloColumnsException("You have more hive columns than fields mapped with " + COLUMN_MAPPINGS);
     }
   }
 
@@ -95,7 +85,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   }
 
   public String getColumnMappingValue() {
-    return getConf().get(COLUMN_MAPPINGS);
+    return tableProperties.getProperty(COLUMN_MAPPINGS);
   }
 
   public HiveRowIdColumnMapping getRowIdColumnMapping() {

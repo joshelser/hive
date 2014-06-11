@@ -146,7 +146,7 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
     }
 
     // Set the username/passwd for the Accumulo connection
-    setConnectorInfo(job, accumuloParams.getAccumuloUserName(), new PasswordToken(accumuloParams.getAccumuloUserName()));
+    setConnectorInfo(job, accumuloParams.getAccumuloUserName(), new PasswordToken(accumuloParams.getAccumuloPassword()));
 
     // Read from the given Accumulo table
     setInputTableName(job, accumuloParams.getAccumuloTableName());

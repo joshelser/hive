@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.accumulo;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyInteger;
@@ -30,6 +31,8 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.base.Joiner;
 
 /**
  * 
@@ -55,8 +58,9 @@ public class TestLazyAccumuloRow {
     hiveRow.add("personal", "height", "72".getBytes());
 
     List<String> fetchedCols = Arrays.asList("personal:given_name", "personal:surname", "personal:age", "personal:weight", "personal:height");
+    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols));
 
-    lazyRow.init(hiveRow, fetchedCols);
+    lazyRow.init(hiveRow, columnMapper.getColumnMappings());
 
     Object o = lazyRow.getField(0);
     Assert.assertEquals(LazyString.class, o.getClass());

@@ -1,6 +1,6 @@
 package org.apache.hadoop.hive.accumulo;
 
-import org.apache.hadoop.hive.accumulo.serde.AccumuloTableParameters;
+import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.mapred.JobConf;
 import org.junit.Before;
@@ -13,7 +13,7 @@ public class TestAccumuloHiveUtils {
   public void setup() {
     conf.set(serdeConstants.LIST_COLUMNS, "event_date,source,lat,lon,event_millis,id");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string,double,double,long,int");
-    conf.set(AccumuloTableParameters.COLUMN_MAPPINGS, "cf:dt,cf:src,cf:lat,cf:lon,cf:dtm,:rowID");
+    conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:dt,cf:src,cf:lat,cf:lon,cf:dtm,:rowID");
   }
 
 //  @Test

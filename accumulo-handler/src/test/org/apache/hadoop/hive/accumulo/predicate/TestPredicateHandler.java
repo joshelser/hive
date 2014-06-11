@@ -18,8 +18,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
-import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Equal;
@@ -33,6 +32,7 @@ import org.apache.hadoop.hive.accumulo.predicate.compare.NotEqual;
 import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.StringCompare;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
+import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
@@ -66,6 +66,7 @@ public class TestPredicateHandler {
 
   private AccumuloPredicateHandler handler = AccumuloPredicateHandler.getInstance();
   private JobConf conf;
+  private ColumnMapper columnMapper;
 
   @Before
   public void setup() {
@@ -73,7 +74,10 @@ public class TestPredicateHandler {
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,rid");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string");
-    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,:rowID");
+
+    String columnMappingStr = "cf:f1,:rowID";
+    conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr);
   }
 
   @Test
@@ -107,7 +111,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      Collection<Range> ranges = handler.getRanges(conf);
+      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
       assertEquals(ranges.size(), 1);
       Range range = ranges.iterator().next();
       assertTrue(range.isStartKeyInclusive());
@@ -132,7 +136,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      Collection<Range> ranges = handler.getRanges(conf);
+      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
       assertEquals(ranges.size(), 1);
       Range range = ranges.iterator().next();
       assertTrue(range.isStartKeyInclusive());
@@ -159,7 +163,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      Collection<Range> ranges = handler.getRanges(conf);
+      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
       assertEquals(ranges.size(), 1);
       Range range = ranges.iterator().next();
       assertTrue(range.isStartKeyInclusive());
@@ -185,7 +189,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      Collection<Range> ranges = handler.getRanges(conf);
+      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
       assertEquals(ranges.size(), 1);
       Range range = ranges.iterator().next();
       assertTrue(range.isStartKeyInclusive());
@@ -212,7 +216,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      Collection<Range> ranges = handler.getRanges(conf);
+      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
       assertEquals(ranges.size(), 1);
       Range range = ranges.iterator().next();
       assertTrue(range.isStartKeyInclusive());
@@ -253,7 +257,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      Collection<Range> ranges = handler.getRanges(conf);
+      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
       assertEquals(ranges.size(), 2);
       Iterator<Range> itr = ranges.iterator();
       Range range1 = itr.next();
@@ -359,7 +363,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      List<IteratorSetting> iterators = handler.getIterators(conf);
+      List<IteratorSetting> iterators = handler.getIterators(conf, columnMapper);
       assertEquals(iterators.size(), 0);
     } catch (SerDeException e) {
       StringUtils.stringifyException(e);
@@ -372,7 +376,10 @@ public class TestPredicateHandler {
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,field2,rid");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,string");
-    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2,:rowID");
+
+    String columnMappingStr = "cf:f1,cf:f2,:rowID";
+    conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr);
 
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
@@ -397,9 +404,9 @@ public class TestPredicateHandler {
 
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    conf.setBoolean(AccumuloSerDe.NO_ITERATOR_PUSHDOWN, true);
+    conf.setBoolean(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, false);
     try {
-      List<IteratorSetting> iterators = handler.getIterators(conf);
+      List<IteratorSetting> iterators = handler.getIterators(conf, columnMapper);
       assertEquals(iterators.size(), 0);
     } catch (Exception e) {
       fail(StringUtils.stringifyException(e));
@@ -412,7 +419,10 @@ public class TestPredicateHandler {
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,field2,rid");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,string");
-    conf.set(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2,:rowID");
+    String columnMappingStr = "cf:f1,cf:f2,:rowID";
+    conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr);
+
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
@@ -437,7 +447,7 @@ public class TestPredicateHandler {
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
     try {
-      List<IteratorSetting> iterators = handler.getIterators(conf);
+      List<IteratorSetting> iterators = handler.getIterators(conf, columnMapper);
       assertEquals(iterators.size(), 2);
       IteratorSetting is1 = iterators.get(0);
       IteratorSetting is2 = iterators.get(1);

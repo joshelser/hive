@@ -152,8 +152,4 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
     throw new NoSuchElementException("Could not find Hive column type for " + hiveColumn);
   }
-
-
-
-
 }

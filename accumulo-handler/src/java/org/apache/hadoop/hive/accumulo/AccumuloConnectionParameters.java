@@ -21,6 +21,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
+import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.hadoop.conf.Configuration;
 
@@ -36,7 +37,10 @@ public class AccumuloConnectionParameters {
   public static final String INSTANCE_NAME = "accumulo.instance.name";
   public static final String TABLE_NAME = "accumulo.table.name";
 
+  public static final String USE_MOCK_INSTANCE = "accumulo.mock.instance";
+
   protected Configuration conf;
+  protected boolean useMockInstance = false;
 
   public AccumuloConnectionParameters(Configuration conf) {
     Preconditions.checkNotNull(conf);
@@ -67,12 +71,19 @@ public class AccumuloConnectionParameters {
     return conf.get(TABLE_NAME);
   }
 
-  public ZooKeeperInstance getInstance() {
+  public boolean useMockInstance() {
+    return conf.getBoolean(USE_MOCK_INSTANCE, false);
+  }
+
+  public Instance getInstance() {
+    if (useMockInstance()) {
+      return new MockInstance(getAccumuloInstanceName());
+    }
     return new ZooKeeperInstance(getAccumuloInstanceName(), getZooKeepers());
   }
 
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
-    ZooKeeperInstance inst = getInstance();
+    Instance inst = getInstance();
     return getConnector(inst);
   }
 

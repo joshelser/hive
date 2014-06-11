@@ -16,7 +16,7 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
-import org.apache.hadoop.hive.accumulo.AccumuloSerDeParameters;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 
 import com.google.common.base.Preconditions;
 
@@ -33,7 +33,7 @@ public class ColumnMappingFactory {
   public static ColumnMapping get(String columnSpec, ColumnEncoding encoding) {
     Preconditions.checkNotNull(columnSpec);
 
-    if (AccumuloSerDeParameters.ROWID.equals(columnSpec)) {
+    if (AccumuloHiveConstants.ROWID.equals(columnSpec)) {
       return new HiveRowIdColumnMapping(columnSpec, encoding);
     } else {
       return new HiveAccumuloColumnMapping(columnSpec, encoding);

@@ -27,9 +27,14 @@ import java.util.SortedMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
+import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.util.StringUtils;
@@ -40,12 +45,17 @@ import com.google.common.collect.Lists;
  * 
  */
 public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveRow> {
-  private AccumuloTableParameters tableParams;
+  private Configuration conf;
+  private AccumuloConnectionParameters params;
+  private ColumnMapper columnMapper;
   private org.apache.hadoop.mapreduce.RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader;
   private int iteratorCount;
 
-  public HiveAccumuloRecordReader(AccumuloTableParameters tableParams, org.apache.hadoop.mapreduce.RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
-    this.tableParams = tableParams;
+  public HiveAccumuloRecordReader(Configuration conf, AccumuloConnectionParameters params, ColumnMapper columnMapper,
+      org.apache.hadoop.mapreduce.RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
+    this.conf = conf;
+    this.params = params;
+    this.columnMapper = columnMapper;
     this.recordReader = recordReader;
     this.iteratorCount = iteratorCount;
   }
@@ -135,7 +145,7 @@ public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveR
 
     // Find the column mapping for this Key (cf:cq)
     int desiredMappingOffset = -1;
-    List<ColumnMapping> columnMappings = tableParams.getColumnMappings();
+    List<ColumnMapping> columnMappings = columnMapper.getColumnMappings();
     for (int i = 0; i < columnMappings.size(); i++) {
       ColumnMapping mapping = columnMappings.get(i);
 
@@ -164,27 +174,30 @@ public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveR
       throw new IOException("Could not determine type for key");
     }
 
-    List<String> hiveColumnTypes = tableParams.getHiveColumnTypes();
+    String[] hiveColumnTypes = conf.getStrings(serdeConstants.LIST_COLUMN_TYPES);
+    if (null == hiveColumnTypes) {
+      throw new IllegalArgumentException("Hive columns must not be null in configuration");
+    }
 
-    if (desiredMappingOffset >= hiveColumnTypes.size()) {
+    if (desiredMappingOffset >= hiveColumnTypes.length) {
       throw new IOException("Tried to access Hive column type at offset " + desiredMappingOffset + " but Hive column types were " + hiveColumnTypes);
     }
 
-    String hiveColumnType = hiveColumnTypes.get(desiredMappingOffset);
+    String hiveColumnType = hiveColumnTypes[desiredMappingOffset];
 
-    if (hiveColumnType.equals("string")) {
+    if (serdeConstants.STRING_TYPE_NAME.equals(hiveColumnType)) {
       return v.get();
-    } else if (hiveColumnType.equals("int")) {
+    } else if (serdeConstants.INT_TYPE_NAME.equals(hiveColumnType)) {
       int val = ByteBuffer.wrap(v.get()).asIntBuffer().get();
       return String.valueOf(val).getBytes();
-    } else if (hiveColumnType.equals("double")) {
+    } else if (serdeConstants.DOUBLE_TYPE_NAME.equals(hiveColumnType)) {
       double val = ByteBuffer.wrap(v.get()).asDoubleBuffer().get();
       return String.valueOf(val).getBytes();
-    } else if (hiveColumnType.equals("bigint")) {
+    } else if (serdeConstants.BIGINT_TYPE_NAME.equals(hiveColumnType)) {
       long val = ByteBuffer.wrap(v.get()).asLongBuffer().get();
       return String.valueOf(val).getBytes();
-    } else {
-      throw new IOException("Unsupported type: " + hiveColumnType + " currently only string,int,long,double supported");
     }
+
+    throw new IOException("Unsupported type: " + hiveColumnType + " currently only primitive string, int, bigint, and double types supported");
   }
 }

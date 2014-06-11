@@ -2,6 +2,7 @@ package org.apache.hadoop.hive.accumulo.predicate;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -11,8 +12,8 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Range;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.accumulo.AccumuloTableParameters;
-import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
+import org.apache.hadoop.hive.accumulo.AccumuloSerDeParameters;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;
@@ -43,6 +44,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPNotEqual;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.io.DoubleWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -135,15 +137,23 @@ public class AccumuloPredicateHandler {
    * Loop through search conditions and build ranges for predicates involving rowID column, if any.
    * 
    */
-  public Collection<Range> getRanges(AccumuloTableParameters tableParams) throws SerDeException {
+  public Collection<Range> getRanges(Configuration conf, ColumnMapper columnMapper) throws SerDeException {
     List<Range> ranges = Lists.newArrayList();
-    if (!tableParams.isRowIdDefined()) {
+    if (!columnMapper.hasRowIdMapping()) {
       return ranges;
     }
 
-    String hiveRowIdColumnName = tableParams.getRowIdHiveColumnName();
+    int rowIdOffset = columnMapper.getRowIdOffset();
+    String[] hiveColumnNamesArr = conf.getStrings(serdeConstants.LIST_COLUMNS);
 
-    for (IndexSearchCondition sc : getSearchConditions(tableParams)) {
+    if (null == hiveColumnNamesArr) {
+      throw new IllegalArgumentException("Could not find Hive columns in configuration");
+    }
+
+    // Already verified that we should have the rowId mapping
+    String hiveRowIdColumnName = hiveColumnNamesArr[rowIdOffset];
+
+    for (IndexSearchCondition sc : getSearchConditions(conf)) {
       if (hiveRowIdColumnName.equals(sc.getColumnDesc().getColumn()))
         ranges.add(toRange(sc));
     }
@@ -154,22 +164,38 @@ public class AccumuloPredicateHandler {
    * Loop through search conditions and build iterator settings for predicates involving columns other than rowID, if any.
    * 
    * @param conf
-   *          JobConf
+   *          Configuration
    * @throws SerDeException
    */
-  public List<IteratorSetting> getIterators(AccumuloTableParameters tableParams) throws SerDeException {
+  public List<IteratorSetting> getIterators(Configuration conf, ColumnMapper columnMapper) throws SerDeException {
     List<IteratorSetting> itrs = Lists.newArrayList();
-    if (!tableParams.getIteratorPushdown()) {
+    boolean shouldPushdown = conf.getBoolean(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, AccumuloSerDeParameters.ITERATOR_PUSHDOWN_DEFAULT);
+    if (!shouldPushdown) {
       log.info("Iterator pushdown is disabled for this table");
       return itrs;
     }
 
-    final String hiveRowIdColumnName = tableParams.getRowIdHiveColumnName();
-    final Configuration conf = tableParams.getConf();
-    for (IndexSearchCondition sc : getSearchConditions(tableParams)) {
+    int rowIdOffset = columnMapper.getRowIdOffset();
+    String[] hiveColumnNamesArr = conf.getStrings(serdeConstants.LIST_COLUMNS);
+
+    if (null == hiveColumnNamesArr) {
+      throw new IllegalArgumentException("Could not find Hive columns in configuration");
+    }
+
+    String hiveRowIdColumnName = null;
+    
+    if (rowIdOffset >= 0 && rowIdOffset < hiveColumnNamesArr.length) {
+      hiveRowIdColumnName = hiveColumnNamesArr[rowIdOffset];
+    }
+
+    List<String> hiveColumnNames = Arrays.asList(hiveColumnNamesArr);
+
+    for (IndexSearchCondition sc : getSearchConditions(conf)) {
       String col = sc.getColumnDesc().getColumn();
-      if (hiveRowIdColumnName == null || !hiveRowIdColumnName.equals(col))
-        itrs.add(toSetting(tableParams, col, sc));
+      if (hiveRowIdColumnName == null || !hiveRowIdColumnName.equals(col)) {
+        HiveAccumuloColumnMapping mapping = (HiveAccumuloColumnMapping) columnMapper.getColumnMappingForHiveColumn(hiveColumnNames, col);
+        itrs.add(toSetting(mapping, sc));
+      }
     }
     if (log.isInfoEnabled())
       log.info("num iterators = " + itrs.size());
@@ -206,26 +232,16 @@ public class AccumuloPredicateHandler {
   /**
    * Create an IteratorSetting for the right qualifier, constant, CompareOpt, and PrimitiveCompare type.
    * 
-   * @param conf
-   *          JobConf.
-   * @param hiveCol
-   *          to lookup matching accumulo qualifier
+   * @param accumuloColumnMapping
+   *          ColumnMapping to filter
    * @param sc
    *          IndexSearchCondition
    * @return IteratorSetting
    * @throws SerDeException
    */
-  public IteratorSetting toSetting(AccumuloTableParameters tableParams, String hiveCol, IndexSearchCondition sc) throws SerDeException {
+  public IteratorSetting toSetting(HiveAccumuloColumnMapping accumuloColumnMapping, IndexSearchCondition sc) throws SerDeException {
     iteratorCount++;
     IteratorSetting is = new IteratorSetting(iteratorCount, PrimitiveComparisonFilter.FILTER_PREFIX + iteratorCount, PrimitiveComparisonFilter.class);
-
-    ColumnMapping columnMapping = tableParams.getColumnMappingForHiveColumn(hiveCol);
-
-    if (!(columnMapping instanceof HiveAccumuloColumnMapping)) {
-      throw new IllegalStateException("Expected HiveAccumuloColumnMapping, but got " + columnMapping.getClass());
-    }
-
-    HiveAccumuloColumnMapping accumuloColumnMapping = (HiveAccumuloColumnMapping) columnMapping;
 
     PushdownTuple tuple = new PushdownTuple(sc);
     is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, tuple.getpCompare().getClass().getName());
@@ -239,17 +255,16 @@ public class AccumuloPredicateHandler {
   /**
    * 
    * @param conf
-   *          JobConf
+   *          Configuration
    * @return list of IndexSearchConditions from the filter expression.
    */
-  public List<IndexSearchCondition> getSearchConditions(AccumuloTableParameters tableParams) {
-    final Configuration conf = tableParams.getConf();
+  public List<IndexSearchCondition> getSearchConditions(Configuration conf) {
     final List<IndexSearchCondition> sConditions = Lists.newArrayList();
     String filteredExprSerialized = conf.get(TableScanDesc.FILTER_EXPR_CONF_STR);
     if (filteredExprSerialized == null)
       return sConditions;
     ExprNodeDesc filterExpr = Utilities.deserializeExpression(filteredExprSerialized);
-    IndexPredicateAnalyzer analyzer = newAnalyzer(tableParams);
+    IndexPredicateAnalyzer analyzer = newAnalyzer(conf);
     ExprNodeDesc residual = analyzer.analyzePredicate(filterExpr, sConditions);
     if (residual != null)
       throw new RuntimeException("Unexpected residual predicate: " + residual.getExprString());
@@ -259,14 +274,14 @@ public class AccumuloPredicateHandler {
   /**
    * 
    * 
-   * @param tableParams
-   *          Accumulo parameters
+   * @param conf
+   *          Configuration
    * @param desc
    *          predicate expression node.
    * @return DecomposedPredicate containing translated search conditions the analyzer can support.
    */
-  public DecomposedPredicate decompose(AccumuloTableParameters tableParams, ExprNodeDesc desc) {
-    IndexPredicateAnalyzer analyzer = newAnalyzer(tableParams);
+  public DecomposedPredicate decompose(Configuration conf, ExprNodeDesc desc) {
+    IndexPredicateAnalyzer analyzer = newAnalyzer(conf);
     List<IndexSearchCondition> sConditions = new ArrayList<IndexSearchCondition>();
     ExprNodeDesc residualPredicate = analyzer.analyzePredicate(desc, sConditions);
 
@@ -285,16 +300,18 @@ public class AccumuloPredicateHandler {
   /*
    * Build an analyzer that allows comparison opts from compareOpts map, and all columns from table definition.
    */
-  private IndexPredicateAnalyzer newAnalyzer(AccumuloTableParameters tableParams) {
+  private IndexPredicateAnalyzer newAnalyzer(Configuration conf) {
     IndexPredicateAnalyzer analyzer = new IndexPredicateAnalyzer();
     analyzer.clearAllowedColumnNames();
     for (String op : cOpKeyset()) {
       analyzer.addComparisonOp(op);
     }
 
-    List<String> hiveCols = tableParams.getHiveColumnNames();
-    for (String col : hiveCols)
+    String[] hiveColumnNames = conf.getStrings(serdeConstants.LIST_COLUMNS);
+    for (String col : hiveColumnNames) {
       analyzer.allowColumnName(col);
+    }
+
     return analyzer;
   }
 

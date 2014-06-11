@@ -21,6 +21,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
@@ -49,22 +50,21 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
   private static final Logger log = LoggerFactory.getLogger(HiveAccumuloTableInputFormat.class);
 
   private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
-  private Instance instance;
-  private AccumuloTableParameters tableParams;
 
   @Override
   public InputSplit[] getSplits(JobConf jobConf, int numSplits) throws IOException {
-    tableParams = new AccumuloTableParameters(jobConf);
-    instance = tableParams.getInstance();
+    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(jobConf);
+    Instance instance = accumuloParams.getInstance();
+    ColumnMapper columnMapper = new ColumnMapper(jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
 
     @SuppressWarnings("deprecation")
     Job job = new Job(jobConf);
     try {
-      Connector connector = tableParams.getConnector(instance);
-      List<ColumnMapping> columnMappings = tableParams.getColumnMappings();
+      Connector connector = accumuloParams.getConnector(instance);
+      List<ColumnMapping> columnMappings = columnMapper.getColumnMappings();
 
       // Set the relevant information in the Configuration for the AccumuloInputFormat
-      configure(job, jobConf, connector, columnMappings);
+      configure(job, jobConf, instance, connector, accumuloParams, columnMapper);
 
       int numColumns = columnMappings.size();
 
@@ -104,16 +104,17 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
    */
   @Override
   public RecordReader<Text,AccumuloHiveRow> getRecordReader(InputSplit inputSplit, final JobConf jobConf, final Reporter reporter) throws IOException {
-    tableParams = new AccumuloTableParameters(jobConf);
-    instance = tableParams.getInstance();
+    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(jobConf);
+    Instance instance = accumuloParams.getInstance();
+    ColumnMapper columnMapper = new ColumnMapper(jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+
     AccumuloSplit as = (AccumuloSplit) inputSplit;
     org.apache.accumulo.core.client.mapreduce.RangeInputSplit ris = as.getSplit();
 
     Job job = Job.getInstance(jobConf);
     try {
-      List<ColumnMapping> columnMappings = tableParams.getColumnMappings();
-      Connector connector = tableParams.getConnector(instance);
-      configure(job, jobConf, connector, columnMappings);
+      Connector connector = accumuloParams.getConnector(instance);
+      configure(job, jobConf, instance, connector, accumuloParams, columnMapper);
 
       // for use to initialize final record reader.
       TaskAttemptContext tac = ShimLoader.getHadoopShims().newTaskAttemptContext(job.getConfiguration(), reporter);
@@ -121,7 +122,7 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
       recordReader.initialize(ris, tac);
       final int itrCount = getIterators(job).size();
 
-      return new HiveAccumuloRecordReader(tableParams, recordReader, itrCount);
+      return new HiveAccumuloRecordReader(jobConf, accumuloParams, columnMapper, recordReader, itrCount);
     } catch (AccumuloException e) {
       throw new IOException(StringUtils.stringifyException(e));
     } catch (AccumuloSecurityException e) {
@@ -133,8 +134,8 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
     }
   }
 
-  private void configure(Job job, JobConf conf, Connector connector, List<ColumnMapping> columnMappings) throws AccumuloSecurityException, AccumuloException,
-      SerDeException {
+  private void configure(Job job, JobConf conf, Instance instance, Connector connector, AccumuloConnectionParameters accumuloParams, ColumnMapper columnMapper)
+      throws AccumuloSecurityException, AccumuloException, SerDeException {
 
     // Handle implementation of Instance and invoke appropriate InputFormat method
     if (instance instanceof MockInstance) {
@@ -144,29 +145,29 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
     }
 
     // Set the username/passwd for the Accumulo connection
-    setConnectorInfo(job, tableParams.getAccumuloUserName(), new PasswordToken(tableParams.getAccumuloUserName()));
+    setConnectorInfo(job, accumuloParams.getAccumuloUserName(), new PasswordToken(accumuloParams.getAccumuloUserName()));
 
     // Read from the given Accumulo table
-    setInputTableName(job, tableParams.getAccumuloTableName());
+    setInputTableName(job, accumuloParams.getAccumuloTableName());
 
     // TODO Allow configuration of the authorizations that should be used
     // Scan with all of the user's authorizations
-    setScanAuthorizations(job, connector.securityOperations().getUserAuthorizations(tableParams.getAccumuloUserName()));
+    setScanAuthorizations(job, connector.securityOperations().getUserAuthorizations(accumuloParams.getAccumuloUserName()));
 
     // restrict with any filters found from WHERE predicates.
-    List<IteratorSetting> iterators = predicateHandler.getIterators(tableParams);
+    List<IteratorSetting> iterators = predicateHandler.getIterators(conf, columnMapper);
     for (IteratorSetting is : iterators) {
       addIterator(job, is);
     }
 
     // restrict with any ranges found from WHERE predicates.
-    Collection<Range> ranges = predicateHandler.getRanges(tableParams);
+    Collection<Range> ranges = predicateHandler.getRanges(conf, columnMapper);
     if (ranges.size() > 0) {
       setRanges(job, ranges);
     }
 
     // Restrict the set of columns that we want to read from the Accumulo table
-    fetchColumns(job, getPairCollection(columnMappings));
+    fetchColumns(job, getPairCollection(columnMapper.getColumnMappings()));
   }
 
   /**

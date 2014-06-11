@@ -235,7 +235,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
 
     AccumuloSerDe serDe = (AccumuloSerDe) deserializer;
     if (serDe.getIteratorPushdown()) {
-      return predicateHandler.decompose(serDe.getParams(), desc);
+      return predicateHandler.decompose(conf, desc);
     } else {
       log.info("Set to ignore Accumulo iterator pushdown, skipping predicate handler.");
       return null;

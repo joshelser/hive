@@ -16,21 +16,34 @@
  */
 package org.apache.hadoop.hive.accumulo;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 /**
  * 
  */
-public class AccumuloSerDeParameters extends AccumuloTableParameters {
+public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
+  public static final String COLUMN_MAPPINGS = "accumulo.columns.mapping";
+  public static final String ITERATOR_PUSHDOWN_KEY = "accumulo.iterator.pushdown";
+  public static final boolean ITERATOR_PUSHDOWN_DEFAULT = true;
 
+  private static final char COMMA = ',';
   private static final String MORE_ACCUMULO_THAN_HIVE = "You have more " + COLUMN_MAPPINGS + " fields than hive columns";
   private static final String MORE_HIVE_THAN_ACCUMULO = "You have more hive columns than fields mapped with " + COLUMN_MAPPINGS;
+
+  protected final ColumnMapper columnMapper;
 
   private Properties tableProperties;
   private String serdeName;
@@ -42,34 +55,18 @@ public class AccumuloSerDeParameters extends AccumuloTableParameters {
     this.tableProperties = tableProperties;
     this.serdeName = serdeName;
 
-    init(conf, tableProperties, serdeName);
-  }
-
-  /**
-   * Initialize the internal state necessary for the SerDe
-   * @param conf Configuration object
-   * @param tableProperties Hive table properties
-   * @param serdeName Name of the SerDe implementation
-   * @throws SerDeException
-   */
-  protected void init(Configuration conf, Properties tableProperties, String serdeName) throws SerDeException {
     lazySerDeParameters = LazySimpleSerDe.initSerdeParams(conf, tableProperties, serdeName);
 
-    // Default to STRING types if no types are provided
-    if (null == getColumnTypeValue()) {
-      StringBuilder builder = new StringBuilder();
+    columnMapper = new ColumnMapper(getColumnMappingValue());
 
-      // default to all string if no column type property.
-      for (int i = 0; i < columnMappings.size(); i++) {
-        builder.append(serdeConstants.STRING_TYPE_NAME + ":");
-      }
-      builder.setLength(builder.length() - 1);
-      tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, builder.toString());
+    // Generate types for column mapping
+    if (null == getColumnTypeValue()) {
+      tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, columnMapper.toTypesString());
     }
 
-    if (columnMappings.size() != lazySerDeParameters.getColumnNames().size()) {
+    if (columnMapper.size() != lazySerDeParameters.getColumnNames().size()) {
       throw new SerDeException(serdeName + ": Hive table definition has " + lazySerDeParameters.getColumnNames().size() + " elements while " + COLUMN_MAPPINGS
-          + " has " + columnMappings.size() + " elements. " + getColumnMismatchTip(columnMappings.size(), lazySerDeParameters.getColumnNames().size()));
+          + " has " + columnMapper.size() + " elements. " + getColumnMismatchTip(columnMapper.size(), lazySerDeParameters.getColumnNames().size()));
     }
   }
 
@@ -88,6 +85,7 @@ public class AccumuloSerDeParameters extends AccumuloTableParameters {
   public Properties getTableProperties() {
     return tableProperties;
   }
+
   public String getColumnTypeValue() {
     return tableProperties.getProperty(serdeConstants.LIST_COLUMN_TYPES);
   }
@@ -95,4 +93,77 @@ public class AccumuloSerDeParameters extends AccumuloTableParameters {
   public String getSerDeName() {
     return serdeName;
   }
+
+  public String getColumnMappingValue() {
+    return getConf().get(COLUMN_MAPPINGS);
+  }
+
+  public HiveRowIdColumnMapping getRowIdColumnMapping() {
+    return columnMapper.getRowIdMapping();
+  }
+
+  public boolean getIteratorPushdown() {
+    return conf.getBoolean(ITERATOR_PUSHDOWN_KEY, ITERATOR_PUSHDOWN_DEFAULT);
+  }
+
+  public List<String> getHiveColumnNames() {
+    return Collections.unmodifiableList(lazySerDeParameters.getColumnNames());
+  }
+
+  public List<TypeInfo> getHiveColumnTypes() {
+    return Collections.unmodifiableList(lazySerDeParameters.getColumnTypes());
+  }
+
+  public int getRowIdOffset() {
+    return columnMapper.getRowIdOffset();
+  }
+
+  public List<ColumnMapping> getColumnMappings() {
+    return columnMapper.getColumnMappings();
+  }
+
+  public String getRowIdHiveColumnName() {
+    int rowIdOffset = columnMapper.getRowIdOffset();
+    if (-1 == rowIdOffset) {
+      return null;
+    }
+
+    List<String> hiveColumnNames = lazySerDeParameters.getColumnNames();
+    if (0 > rowIdOffset || hiveColumnNames.size() <= rowIdOffset) {
+      throw new IllegalStateException("Tried to find rowID offset at position " + rowIdOffset + " from Hive columns " + hiveColumnNames);
+    }
+
+    return hiveColumnNames.get(rowIdOffset);
+  }
+
+  public ColumnMapping getColumnMappingForHiveColumn(String hiveColumn) {
+    List<String> hiveColumnNames = lazySerDeParameters.getColumnNames();
+
+    for (int offset = 0; offset < hiveColumnNames.size() && offset < columnMapper.size(); offset++) {
+      String hiveColumnName = hiveColumnNames.get(offset);
+      if (hiveColumn.equals(hiveColumnName)) {
+        return columnMapper.get(offset);
+      }
+    }
+
+    throw new NoSuchElementException("Could not find column mapping for Hive column " + hiveColumn);
+  }
+
+  public TypeInfo getTypeForHiveColumn(String hiveColumn) {
+    List<String> hiveColumnNames = lazySerDeParameters.getColumnNames();
+    List<TypeInfo> hiveColumnTypes = lazySerDeParameters.getColumnTypes();
+
+    for (int i = 0; i < hiveColumnNames.size() && i < hiveColumnTypes.size(); i++) {
+      String columnName = hiveColumnNames.get(i);
+      if (hiveColumn.equals(columnName)) {
+        return hiveColumnTypes.get(i);
+      }
+    }
+
+    throw new NoSuchElementException("Could not find Hive column type for " + hiveColumn);
+  }
+
+
+
+
 }

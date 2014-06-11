@@ -68,6 +68,7 @@ public class AccumuloSerDe implements SerDe {
     }
 
     cachedRow.init((AccumuloHiveRow) writable, accumuloSerDeParameters.getColumnMappings());
+
     return cachedRow;
   }
 

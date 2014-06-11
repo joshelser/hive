@@ -24,6 +24,8 @@ import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.hadoop.conf.Configuration;
 
+import com.google.common.base.Preconditions;
+
 /**
  * 
  */
@@ -32,10 +34,12 @@ public class AccumuloConnectionParameters {
   public static final String USER_PASS = "accumulo.user.pass";
   public static final String ZOOKEEPERS = "accumulo.zookeepers";
   public static final String INSTANCE_NAME = "accumulo.instance.name";
+  public static final String TABLE_NAME = "accumulo.table.name";
 
   protected Configuration conf;
 
   public AccumuloConnectionParameters(Configuration conf) {
+    Preconditions.checkNotNull(conf);
     this.conf = conf;
   }
 
@@ -57,6 +61,10 @@ public class AccumuloConnectionParameters {
 
   public String getZooKeepers() {
     return conf.get(ZOOKEEPERS);
+  }
+
+  public String getAccumuloTableName() {
+    return conf.get(TABLE_NAME);
   }
 
   public ZooKeeperInstance getInstance() {

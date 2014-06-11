@@ -26,7 +26,7 @@ public class TestAccumuloSerDe {
   public void columnMismatch() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f3");
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, "cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3,field4");
     properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string:string:string:string");
 
@@ -35,10 +35,10 @@ public class TestAccumuloSerDe {
       serde.deserialize(new Text("fail"));
       fail("Should fail. More hive columns than total Accumulo mapping");
     } catch (SerDeException e) {
-      assertTrue(e.getMessage().contains("You have more hive columns than fields mapped with " + AccumuloSerDe.COLUMN_MAPPINGS));
+      assertTrue(e.getMessage().contains("You have more hive columns than fields mapped with " + AccumuloTableParameters.COLUMN_MAPPINGS));
     }
 
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
     properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string:string");
     try {
@@ -46,7 +46,7 @@ public class TestAccumuloSerDe {
       serde.deserialize(new Text("fail"));
       fail("Should fail, More Accumulo mapping than total hive columns.");
     } catch (SerDeException e) {
-      assertTrue(e.getMessage().contains("You have more " + AccumuloSerDe.COLUMN_MAPPINGS + " fields than hive columns"));
+      assertTrue(e.getMessage().contains("You have more " + AccumuloTableParameters.COLUMN_MAPPINGS + " fields than hive columns"));
     }
   }
 
@@ -54,7 +54,7 @@ public class TestAccumuloSerDe {
   public void withOrWithoutRowID() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,:rowID");
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, "cf:f1,:rowID");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
 
     try {
@@ -65,7 +65,7 @@ public class TestAccumuloSerDe {
 
     properties = new Properties();
     conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2");
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, "cf:f1,cf:f2");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
 
     try {
@@ -75,35 +75,30 @@ public class TestAccumuloSerDe {
     }
   }
 
-  @Test
-  public void initialize() {
+  @Test(expected = IllegalArgumentException.class)
+  public void emptyConfiguration() throws SerDeException {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    try {
-      serde.initialize(conf, properties);
-      fail("Missing columnMapping. Should have failed");
-    } catch (IllegalArgumentException e) {
-      assertTrue(e.getMessage().contains("null columnMapping not allowed."));
-    } catch (SerDeException e) {
-      fail(e.getMessage());
-    }
+    serde.initialize(conf, properties);
+  }
 
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
+  @Test
+  public void simpleColumnMapping() throws SerDeException {
+    Properties properties = new Properties();
+    Configuration conf = new Configuration();
+
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3");
-    try {
-      serde.initialize(conf, properties);
-      assertNotNull(serde.getCachedRow());
-    } catch (SerDeException e) {
-      log.error(e);
-      fail();
-    }
+
+    serde.initialize(conf, properties);
+    assertNotNull(serde.getCachedRow());
   }
 
   @Test
   public void withRowID() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf:f1,:rowID,cf:f2,cf:f3");
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, "cf:f1,:rowID,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3,field4");
     try {
       serde.initialize(conf, properties);
@@ -118,7 +113,7 @@ public class TestAccumuloSerDe {
   public void invalidColMapping() throws Exception {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, "cf,cf:f2,cf:f3");
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, "cf,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field2,field3,field4");
 
     serde.initialize(conf, properties);
@@ -134,7 +129,7 @@ public class TestAccumuloSerDe {
   public void deserialize() {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
-    properties.setProperty(AccumuloSerDe.COLUMN_MAPPINGS, ":rowID,cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloTableParameters.COLUMN_MAPPINGS, ":rowID,cf:f1,cf:f2,cf:f3");
 
     try {
       serde.initialize(conf, properties);
@@ -147,7 +142,7 @@ public class TestAccumuloSerDe {
     try {
       properties.setProperty(serdeConstants.LIST_COLUMNS, "blah,field2,field3,field4");
       serde.initialize(conf, properties);
-      assertTrue(AccumuloHiveUtils.equalsRowID(":rowID"));
+      assertEquals(AccumuloHiveConstants.ROWID, ":rowID");
 
       AccumuloHiveRow row = new AccumuloHiveRow();
       row.setRowId("r1");

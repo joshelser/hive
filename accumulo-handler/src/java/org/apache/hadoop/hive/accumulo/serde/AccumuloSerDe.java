@@ -57,6 +57,7 @@ public class AccumuloSerDe implements SerDe {
     return Mutation.class;
   }
 
+  @Override
   public Writable serialize(Object o, ObjectInspector objectInspector) throws SerDeException {
     try {
       return serializer.serialize(o, objectInspector);
@@ -65,6 +66,7 @@ public class AccumuloSerDe implements SerDe {
     }
   }
 
+  @Override
   public Object deserialize(Writable writable) throws SerDeException {
     if (!(writable instanceof AccumuloHiveRow)) {
       throw new SerDeException(getClass().getName() + " : " + "Expected AccumuloHiveRow. Got " + writable.getClass().getName());

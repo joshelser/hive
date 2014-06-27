@@ -67,9 +67,11 @@ public class AccumuloRowSerializer {
     // Reset the buffer
     output.reset();
 
+    // The "row"
     // Start by only serializing primitives as-is
-    if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
-      LazyUtils.writePrimitive(output, value, (PrimitiveObjectInspector) objInspector);
+    if (fieldObjectInspector.getCategory() == ObjectInspector.Category.PRIMITIVE) {
+      // TODO Allow configuration of escaped characters
+      LazyUtils.writePrimitiveUTF8(output, value, (PrimitiveObjectInspector) fieldObjectInspector, false, (byte) '\'', new boolean[128]);
     } else {
       // Or serializing complex types as json
       String asJson = SerDeUtils.getJSONString(value, objInspector);
@@ -78,6 +80,7 @@ public class AccumuloRowSerializer {
 
     byte[] data = output.toByteArray();
 
+    // Each column in the row
     Mutation mutation = new Mutation(data);
     for (int i = 0; i < fields.size(); i++) {
       if (rowIdOffset == i) {
@@ -103,7 +106,8 @@ public class AccumuloRowSerializer {
 
       // Start by only serializing primitives as-is
       if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
-        LazyUtils.writePrimitive(output, value, (PrimitiveObjectInspector) objInspector);
+        // TODO Allow configuration of escaped characters
+        LazyUtils.writePrimitiveUTF8(output, value, (PrimitiveObjectInspector) fieldObjectInspector, false, (byte) '\'', new boolean[128]);
       } else {
         // Or serializing complex types as json
         String asJson = SerDeUtils.getJSONString(value, objInspector);

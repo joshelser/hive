@@ -93,6 +93,12 @@ public class AccumuloRowSerializer {
       // Get the relevant information for this column
       field = fields.get(i);
       value = columnValues.get(i);
+
+      // Despite having a fixed schema from Hive, we have sparse columns in Accumulo
+      if (null == value) {
+        continue;
+      }
+
       fieldObjectInspector = field.getFieldObjectInspector();
 
       // Make sure we got the right implementation of a ColumnMapping

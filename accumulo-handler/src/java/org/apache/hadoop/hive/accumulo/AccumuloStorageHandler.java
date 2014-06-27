@@ -10,7 +10,6 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.fate.Fate;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.trace.instrument.Tracer;
@@ -64,7 +63,6 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     if (useIterators != null) {
       jobProps.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
     }
-
   }
 
   private String getTableName(Table table) throws MetaException {
@@ -116,6 +114,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void configureOutputJobProperties(TableDesc tableDesc, Map<String,String> jobProperties) {
     Properties props = tableDesc.getProperties();
+    // Adding these job properties will make them available to the OutputFormat in checkOutputSpecs
     jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
     jobProperties.put(AccumuloSerDeParameters.TABLE_NAME, props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
   }
@@ -129,7 +128,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   @SuppressWarnings("rawtypes")
   public Class<? extends OutputFormat> getOutputFormatClass() {
-    return AccumuloOutputFormat.class;
+    return HiveAccumuloTableOutputFormat.class;
   }
 
   @Override

@@ -43,7 +43,8 @@ public class AccumuloConnectionParameters {
   protected boolean useMockInstance = false;
 
   public AccumuloConnectionParameters(Configuration conf) {
-    Preconditions.checkNotNull(conf);
+    // TableDesc#getDeserializer will ultimately instantiate the AccumuloSerDe with a null Configuration
+    // We have to accept this and just fail late if data is attempted to be pulled from the Configuration
     this.conf = conf;
   }
 
@@ -52,26 +53,32 @@ public class AccumuloConnectionParameters {
   }
 
   public String getAccumuloUserName() {
+    Preconditions.checkNotNull(conf);
     return conf.get(USER_NAME);
   }
 
   public String getAccumuloPassword() { 
+    Preconditions.checkNotNull(conf);
     return conf.get(USER_PASS);
   }
 
   public String getAccumuloInstanceName() {
+    Preconditions.checkNotNull(conf);
     return conf.get(INSTANCE_NAME);
   }
 
   public String getZooKeepers() {
+    Preconditions.checkNotNull(conf);
     return conf.get(ZOOKEEPERS);
   }
 
   public String getAccumuloTableName() {
+    Preconditions.checkNotNull(conf);
     return conf.get(TABLE_NAME);
   }
 
   public boolean useMockInstance() {
+    Preconditions.checkNotNull(conf);
     return conf.getBoolean(USE_MOCK_INSTANCE, false);
   }
 

@@ -185,6 +185,7 @@ public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveR
 
     String hiveColumnType = hiveColumnTypes[desiredMappingOffset];
 
+    // TODO this needs to be encapsulated in something that properly handles the Hive types
     if (serdeConstants.STRING_TYPE_NAME.equals(hiveColumnType)) {
       return v.get();
     } else if (serdeConstants.INT_TYPE_NAME.equals(hiveColumnType)) {

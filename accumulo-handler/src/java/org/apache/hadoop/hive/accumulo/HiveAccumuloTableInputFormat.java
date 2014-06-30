@@ -123,7 +123,7 @@ public class HiveAccumuloTableInputFormat extends AccumuloRowInputFormat impleme
       recordReader.initialize(ris, tac);
       final int itrCount = getIterators(job).size();
 
-      return new HiveAccumuloRecordReader(jobConf, accumuloParams, columnMapper, recordReader, itrCount);
+      return new HiveAccumuloRecordReader(jobConf, columnMapper, recordReader, itrCount);
     } catch (AccumuloException e) {
       throw new IOException(StringUtils.stringifyException(e));
     } catch (AccumuloSecurityException e) {

@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 
+import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.PeekingIterator;
@@ -32,29 +33,28 @@ import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
+import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
 import org.apache.hadoop.hive.serde.serdeConstants;
-import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.util.StringUtils;
 
 import com.google.common.collect.Lists;
 
 /**
- * 
+ * Translate the {@link Key} {@link Value} pairs from {@link AccumuloInputFormat}
+ * to a {@link Writable} for consumption by the {@link AccumuloSerDe}.
  */
 public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveRow> {
   private Configuration conf;
-  private AccumuloConnectionParameters params;
   private ColumnMapper columnMapper;
   private org.apache.hadoop.mapreduce.RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader;
   private int iteratorCount;
 
-  public HiveAccumuloRecordReader(Configuration conf, AccumuloConnectionParameters params, ColumnMapper columnMapper,
+  public HiveAccumuloRecordReader(Configuration conf, ColumnMapper columnMapper,
       org.apache.hadoop.mapreduce.RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
     this.conf = conf;
-    this.params = params;
     this.columnMapper = columnMapper;
     this.recordReader = recordReader;
     this.iteratorCount = iteratorCount;

@@ -10,6 +10,8 @@ import java.util.List;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.io.Writable;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Holds column tuples for rowID. Each tuple contains column family label, qualifier label, and byte
  * array value.
@@ -131,6 +133,10 @@ public class AccumuloHiveRow implements Writable {
   }
 
   public void add(String cf, String qual, byte[] val) {
+    Preconditions.checkNotNull(cf);
+    Preconditions.checkNotNull(qual);
+    Preconditions.checkNotNull(val);
+
     tuples.add(new ColumnTuple(cf, qual, val));
   }
 

@@ -183,7 +183,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void rollbackCreateTable(Table table) throws MetaException {
     String tblName = getTableName(table);
-    if (!MetaStoreUtils.isExternalTable(table)) {
+    if (!isExternalTable(table)) {
       try {
         TableOperations tblOpts = connectionParams.getConnector().tableOperations();
         if (tblOpts.exists(tblName)) {

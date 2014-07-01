@@ -66,10 +66,12 @@ public class TestAccumuloStorageHandler {
 
     Assert.assertEquals(2, jobProperties.size());
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS), jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
 
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.TABLE_NAME));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME), jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME),
+        jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
   }
 
   @Test
@@ -88,13 +90,16 @@ public class TestAccumuloStorageHandler {
 
     Assert.assertEquals(3, jobProperties.size());
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS), jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
 
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.TABLE_NAME));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME), jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME),
+        jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
 
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY), jobProperties.get(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY),
+        jobProperties.get(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -143,13 +148,16 @@ public class TestAccumuloStorageHandler {
 
     Assert.assertEquals(3, jobProperties.size());
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS), jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
 
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.TABLE_NAME));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME), jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME),
+        jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
 
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY), jobProperties.get(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY),
+        jobProperties.get(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
   }
 
   @Test
@@ -162,7 +170,8 @@ public class TestAccumuloStorageHandler {
     Map<String,String> params = new HashMap<String,String>();
     params.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq");
 
-    AccumuloConnectionParameters connectionParams = Mockito.mock(AccumuloConnectionParameters.class);
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
     AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
     StorageDescriptor sd = Mockito.mock(StorageDescriptor.class);
     Table table = Mockito.mock(Table.class);
@@ -185,7 +194,7 @@ public class TestAccumuloStorageHandler {
 
     // Return mocked SerDeInfo
     Mockito.when(sd.getSerdeInfo()).thenReturn(serDeInfo);
-   
+
     // Custom parameters
     Mockito.when(serDeInfo.getParameters()).thenReturn(params);
 
@@ -196,7 +205,8 @@ public class TestAccumuloStorageHandler {
 
     storageHandler.preCreateTable(table);
 
-    Assert.assertTrue("Table does not exist when we expect it to", conn.tableOperations().exists(tableName));
+    Assert.assertTrue("Table does not exist when we expect it to",
+        conn.tableOperations().exists(tableName));
   }
 
   @Test(expected = MetaException.class)
@@ -208,7 +218,8 @@ public class TestAccumuloStorageHandler {
     // Empty parameters are sent, no COLUMN_MAPPING
     Map<String,String> params = new HashMap<String,String>();
 
-    AccumuloConnectionParameters connectionParams = Mockito.mock(AccumuloConnectionParameters.class);
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
     AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
     StorageDescriptor sd = Mockito.mock(StorageDescriptor.class);
     Table table = Mockito.mock(Table.class);
@@ -231,7 +242,7 @@ public class TestAccumuloStorageHandler {
 
     // Return mocked SerDeInfo
     Mockito.when(sd.getSerdeInfo()).thenReturn(serDeInfo);
-   
+
     // Custom parameters
     Mockito.when(serDeInfo.getParameters()).thenReturn(params);
 
@@ -253,7 +264,8 @@ public class TestAccumuloStorageHandler {
     Map<String,String> params = new HashMap<String,String>();
     params.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq");
 
-    AccumuloConnectionParameters connectionParams = Mockito.mock(AccumuloConnectionParameters.class);
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
     AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
     StorageDescriptor sd = Mockito.mock(StorageDescriptor.class);
     Table table = Mockito.mock(Table.class);
@@ -276,7 +288,7 @@ public class TestAccumuloStorageHandler {
 
     // Return mocked SerDeInfo
     Mockito.when(sd.getSerdeInfo()).thenReturn(serDeInfo);
-   
+
     // Custom parameters
     Mockito.when(serDeInfo.getParameters()).thenReturn(params);
 
@@ -298,7 +310,8 @@ public class TestAccumuloStorageHandler {
     Map<String,String> params = new HashMap<String,String>();
     params.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq");
 
-    AccumuloConnectionParameters connectionParams = Mockito.mock(AccumuloConnectionParameters.class);
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
     AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
     StorageDescriptor sd = Mockito.mock(StorageDescriptor.class);
     Table table = Mockito.mock(Table.class);
@@ -321,7 +334,7 @@ public class TestAccumuloStorageHandler {
 
     // Return mocked SerDeInfo
     Mockito.when(sd.getSerdeInfo()).thenReturn(serDeInfo);
-   
+
     // Custom parameters
     Mockito.when(serDeInfo.getParameters()).thenReturn(params);
 
@@ -346,7 +359,8 @@ public class TestAccumuloStorageHandler {
     Map<String,String> params = new HashMap<String,String>();
     params.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq");
 
-    AccumuloConnectionParameters connectionParams = Mockito.mock(AccumuloConnectionParameters.class);
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
     AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
     StorageDescriptor sd = Mockito.mock(StorageDescriptor.class);
     Table table = Mockito.mock(Table.class);
@@ -369,7 +383,7 @@ public class TestAccumuloStorageHandler {
 
     // Return mocked SerDeInfo
     Mockito.when(sd.getSerdeInfo()).thenReturn(serDeInfo);
-   
+
     // Custom parameters
     Mockito.when(serDeInfo.getParameters()).thenReturn(params);
 
@@ -379,5 +393,99 @@ public class TestAccumuloStorageHandler {
     storageHandler.connectionParams = connectionParams;
 
     storageHandler.preCreateTable(table);
+  }
+
+  @Test()
+  public void testRollbackCreateTableOnNonExistentTable() throws Exception {
+    MockInstance inst = new MockInstance(test.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
+    String tableName = "table";
+
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
+    Table table = Mockito.mock(Table.class);
+
+    // Call the real preCreateTable method
+    Mockito.doCallRealMethod().when(storageHandler).rollbackCreateTable(table);
+
+    // Return our known table name
+    Mockito.when(storageHandler.getTableName(table)).thenReturn(tableName);
+
+    // Is not an EXTERNAL table
+    Mockito.when(storageHandler.isExternalTable(table)).thenReturn(false);
+
+    // Return the MockInstance's Connector
+    Mockito.when(connectionParams.getConnector()).thenReturn(conn);
+
+    storageHandler.connectionParams = connectionParams;
+
+    storageHandler.rollbackCreateTable(table);
+  }
+
+  @Test()
+  public void testRollbackCreateTableDeletesExistentTable() throws Exception {
+    MockInstance inst = new MockInstance(test.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
+    String tableName = "table";
+
+    // Create the table
+    conn.tableOperations().create(tableName);
+
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
+    Table table = Mockito.mock(Table.class);
+
+    // Call the real preCreateTable method
+    Mockito.doCallRealMethod().when(storageHandler).rollbackCreateTable(table);
+
+    // Return our known table name
+    Mockito.when(storageHandler.getTableName(table)).thenReturn(tableName);
+
+    // Is not an EXTERNAL table
+    Mockito.when(storageHandler.isExternalTable(table)).thenReturn(false);
+
+    // Return the MockInstance's Connector
+    Mockito.when(connectionParams.getConnector()).thenReturn(conn);
+
+    storageHandler.connectionParams = connectionParams;
+
+    storageHandler.rollbackCreateTable(table);
+
+    Assert.assertFalse(conn.tableOperations().exists(tableName));
+  }
+
+  @Test()
+  public void testRollbackCreateTableDoesntDeleteExternalExistentTable() throws Exception {
+    MockInstance inst = new MockInstance(test.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
+    String tableName = "table";
+
+    // Create the table
+    conn.tableOperations().create(tableName);
+
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
+    Table table = Mockito.mock(Table.class);
+
+    // Call the real preCreateTable method
+    Mockito.doCallRealMethod().when(storageHandler).rollbackCreateTable(table);
+
+    // Return our known table name
+    Mockito.when(storageHandler.getTableName(table)).thenReturn(tableName);
+
+    // Is not an EXTERNAL table
+    Mockito.when(storageHandler.isExternalTable(table)).thenReturn(true);
+
+    // Return the MockInstance's Connector
+    Mockito.when(connectionParams.getConnector()).thenReturn(conn);
+
+    storageHandler.connectionParams = connectionParams;
+
+    storageHandler.rollbackCreateTable(table);
+
+    Assert.assertTrue(conn.tableOperations().exists(tableName));
   }
 }

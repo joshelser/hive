@@ -45,9 +45,9 @@ import org.slf4j.LoggerFactory;
 public class AccumuloStorageHandler extends DefaultStorageHandler implements HiveMetaHook, HiveStoragePredicateHandler {
   private static final Logger log = LoggerFactory.getLogger(AccumuloStorageHandler.class);
 
-  private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
-  private AccumuloConnectionParameters connectionParams;
-  private Configuration conf;
+  protected AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
+  protected AccumuloConnectionParameters connectionParams;
+  protected Configuration conf;
 
   /**
    * 
@@ -67,7 +67,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     }
   }
 
-  private String getTableName(Table table) throws MetaException {
+  protected String getTableName(Table table) throws MetaException {
     String tableName = table.getSd().getSerdeInfo().getParameters().get(AccumuloSerDeParameters.TABLE_NAME);
     if (tableName == null) {
       throw new MetaException("Must specify the Accumulo table name using " + AccumuloSerDeParameters.TABLE_NAME + " in TBLPROPERTIES");
@@ -139,7 +139,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
 
   @Override
   public void preCreateTable(Table table) throws MetaException {
-    boolean isExternal = MetaStoreUtils.isExternalTable(table);
+    boolean isExternal = isExternalTable(table);
     if (table.getSd().getLocation() != null) {
       throw new MetaException("Location can't be specified for Accumulo");
     }
@@ -173,10 +173,11 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
       throw new MetaException(StringUtils.stringifyException(e));
     } catch (AccumuloException e) {
       throw new MetaException(StringUtils.stringifyException(e));
-    } catch (IllegalArgumentException e) {
-      log.info("Error parsing column mapping");
-      throw new MetaException(StringUtils.stringifyException(e));
     }
+  }
+
+  protected boolean isExternalTable(Table table) {
+    return MetaStoreUtils.isExternalTable(table);
   }
 
   @Override

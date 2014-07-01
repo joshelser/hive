@@ -42,7 +42,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Create table mapping to Accumulo for Hive. Handle predicate pushdown if necessary.
  */
-public class AccumuloStorageHandler extends DefaultStorageHandler implements HiveMetaHook, HiveStoragePredicateHandler {
+public class AccumuloStorageHandler extends DefaultStorageHandler implements HiveMetaHook,
+    HiveStoragePredicateHandler {
   private static final Logger log = LoggerFactory.getLogger(AccumuloStorageHandler.class);
 
   protected AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
@@ -58,7 +59,8 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void configureTableJobProperties(TableDesc desc, Map<String,String> jobProps) {
     Properties tblProperties = desc.getProperties();
-    jobProps.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, tblProperties.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    jobProps.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+        tblProperties.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
     String tableName = tblProperties.getProperty(AccumuloSerDeParameters.TABLE_NAME);
     jobProps.put(AccumuloSerDeParameters.TABLE_NAME, tableName);
     String useIterators = tblProperties.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
@@ -68,9 +70,11 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   }
 
   protected String getTableName(Table table) throws MetaException {
-    String tableName = table.getSd().getSerdeInfo().getParameters().get(AccumuloSerDeParameters.TABLE_NAME);
+    String tableName = table.getSd().getSerdeInfo().getParameters()
+        .get(AccumuloSerDeParameters.TABLE_NAME);
     if (tableName == null) {
-      throw new MetaException("Must specify the Accumulo table name using " + AccumuloSerDeParameters.TABLE_NAME + " in TBLPROPERTIES");
+      throw new MetaException("Must specify the Accumulo table name using "
+          + AccumuloSerDeParameters.TABLE_NAME + " in TBLPROPERTIES");
     }
     return tableName;
   }
@@ -105,12 +109,15 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void configureInputJobProperties(TableDesc tableDesc, Map<String,String> properties) {
     Properties props = tableDesc.getProperties();
-    properties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    properties.put(AccumuloSerDeParameters.TABLE_NAME, props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+    properties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+        props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    properties.put(AccumuloSerDeParameters.TABLE_NAME,
+        props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
     String useIterators = props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
       if (!useIterators.equalsIgnoreCase("true") && !useIterators.equalsIgnoreCase("false")) {
-        throw new IllegalArgumentException("Expected value of true or false for " + AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
+        throw new IllegalArgumentException("Expected value of true or false for "
+            + AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
       }
 
       properties.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
@@ -121,8 +128,10 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   public void configureOutputJobProperties(TableDesc tableDesc, Map<String,String> jobProperties) {
     Properties props = tableDesc.getProperties();
     // Adding these job properties will make them available to the OutputFormat in checkOutputSpecs
-    jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS, props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    jobProperties.put(AccumuloSerDeParameters.TABLE_NAME, props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+    jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+        props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
+        props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
   }
 
   @SuppressWarnings("rawtypes")
@@ -147,7 +156,8 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     Map<String,String> serdeParams = table.getSd().getSerdeInfo().getParameters();
     String columnMapping = serdeParams.get(AccumuloSerDeParameters.COLUMN_MAPPINGS);
     if (columnMapping == null) {
-      throw new MetaException(AccumuloSerDeParameters.COLUMN_MAPPINGS + " missing from SERDEPROPERTIES");
+      throw new MetaException(AccumuloSerDeParameters.COLUMN_MAPPINGS
+          + " missing from SERDEPROPERTIES");
     }
 
     try {
@@ -160,11 +170,13 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
         if (!isExternal) {
           tableOpts.create(tblName);
         } else {
-          throw new MetaException("Accumulo table " + tblName + " doesn't exist even though declared external");
+          throw new MetaException("Accumulo table " + tblName
+              + " doesn't exist even though declared external");
         }
       } else {
         if (!isExternal) {
-          throw new MetaException("Table " + tblName + " already exists in Accumulo. Use CREATE EXTERNAL TABLE to register with Hive.");
+          throw new MetaException("Table " + tblName
+              + " already exists in Accumulo. Use CREATE EXTERNAL TABLE to register with Hive.");
         }
       }
     } catch (AccumuloSecurityException e) {
@@ -182,21 +194,8 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
 
   @Override
   public void rollbackCreateTable(Table table) throws MetaException {
-    String tblName = getTableName(table);
-    if (!isExternalTable(table)) {
-      try {
-        TableOperations tblOpts = connectionParams.getConnector().tableOperations();
-        if (tblOpts.exists(tblName)) {
-          tblOpts.delete(tblName);
-        }
-      } catch (AccumuloException e) {
-        throw new MetaException(StringUtils.stringifyException(e));
-      } catch (AccumuloSecurityException e) {
-        throw new MetaException(StringUtils.stringifyException(e));
-      } catch (TableNotFoundException e) {
-        throw new MetaException(StringUtils.stringifyException(e));
-      }
-    }
+    // Same as commitDropTable where we always delete the data (accumulo table)
+    commitDropTable(table, true);
   }
 
   @Override
@@ -207,7 +206,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void commitDropTable(Table table, boolean deleteData) throws MetaException {
     String tblName = getTableName(table);
-    if (!MetaStoreUtils.isExternalTable(table)) {
+    if (!isExternalTable(table)) {
       try {
         if (deleteData) {
           TableOperations tblOpts = connectionParams.getConnector().tableOperations();
@@ -236,9 +235,11 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   }
 
   @Override
-  public DecomposedPredicate decomposePredicate(JobConf conf, Deserializer deserializer, ExprNodeDesc desc) {
+  public DecomposedPredicate decomposePredicate(JobConf conf, Deserializer deserializer,
+      ExprNodeDesc desc) {
     if (!(deserializer instanceof AccumuloSerDe)) {
-      throw new RuntimeException("Expected an AccumuloSerDe but got " + deserializer.getClass().getName());
+      throw new RuntimeException("Expected an AccumuloSerDe but got "
+          + deserializer.getClass().getName());
     }
 
     AccumuloSerDe serDe = (AccumuloSerDe) deserializer;
@@ -253,7 +254,8 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void configureJobConf(TableDesc tableDesc, JobConf jobConf) {
     try {
-      Utils.addDependencyJars(jobConf, Tracer.class, Fate.class, Connector.class, Main.class, ZooKeeper.class, AccumuloStorageHandler.class);
+      Utils.addDependencyJars(jobConf, Tracer.class, Fate.class, Connector.class, Main.class,
+          ZooKeeper.class, AccumuloStorageHandler.class);
     } catch (IOException e) {
       log.error("Could not add necessary Accumulo dependencies to classpath", e);
     }

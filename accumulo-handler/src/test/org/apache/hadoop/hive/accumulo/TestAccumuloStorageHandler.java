@@ -439,6 +439,7 @@ public class TestAccumuloStorageHandler {
 
     // Call the real preCreateTable method
     Mockito.doCallRealMethod().when(storageHandler).rollbackCreateTable(table);
+    Mockito.doCallRealMethod().when(storageHandler).commitDropTable(table, true);
 
     // Return our known table name
     Mockito.when(storageHandler.getTableName(table)).thenReturn(tableName);
@@ -472,12 +473,46 @@ public class TestAccumuloStorageHandler {
 
     // Call the real preCreateTable method
     Mockito.doCallRealMethod().when(storageHandler).rollbackCreateTable(table);
+    Mockito.doCallRealMethod().when(storageHandler).commitDropTable(table, true);
 
     // Return our known table name
     Mockito.when(storageHandler.getTableName(table)).thenReturn(tableName);
 
     // Is not an EXTERNAL table
     Mockito.when(storageHandler.isExternalTable(table)).thenReturn(true);
+
+    // Return the MockInstance's Connector
+    Mockito.when(connectionParams.getConnector()).thenReturn(conn);
+
+    storageHandler.connectionParams = connectionParams;
+
+    storageHandler.rollbackCreateTable(table);
+
+    Assert.assertTrue(conn.tableOperations().exists(tableName));
+  }
+
+  @Test
+  public void testDropTableWithoutDeleteLeavesTableIntact() throws Exception {
+    MockInstance inst = new MockInstance(test.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    AccumuloStorageHandler storageHandler = Mockito.mock(AccumuloStorageHandler.class);
+    String tableName = "table";
+
+    // Create the table
+    conn.tableOperations().create(tableName);
+
+    AccumuloConnectionParameters connectionParams = Mockito
+        .mock(AccumuloConnectionParameters.class);
+    Table table = Mockito.mock(Table.class);
+
+    // Call the real preCreateTable method
+    Mockito.doCallRealMethod().when(storageHandler).commitDropTable(table, false);
+
+    // Return our known table name
+    Mockito.when(storageHandler.getTableName(table)).thenReturn(tableName);
+
+    // Is not an EXTERNAL table
+    Mockito.when(storageHandler.isExternalTable(table)).thenReturn(false);
 
     // Return the MockInstance's Connector
     Mockito.when(connectionParams.getConnector()).thenReturn(conn);

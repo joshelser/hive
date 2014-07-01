@@ -53,8 +53,9 @@ public class HiveAccumuloTableInputFormat implements
     org.apache.hadoop.mapred.InputFormat<Text,AccumuloHiveRow> {
   private static final Logger log = LoggerFactory.getLogger(HiveAccumuloTableInputFormat.class);
 
-  private AccumuloRowInputFormat accumuloInputFormat = new AccumuloRowInputFormat();
-  private AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
+  // Visibile for testing
+  protected AccumuloRowInputFormat accumuloInputFormat = new AccumuloRowInputFormat();
+  protected AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
 
   @Override
   public InputSplit[] getSplits(JobConf jobConf, int numSplits) throws IOException {

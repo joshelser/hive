@@ -4,23 +4,19 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -29,6 +25,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
+import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
 import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Equal;
@@ -45,16 +43,13 @@ import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
-import org.apache.hadoop.util.StringUtils;
-import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.mockito.Mockito;
 
 public class TestHiveAccumuloInputFormat {
-  private static final Logger log = Logger.getLogger(TestHiveAccumuloInputFormat.class);
-
   public static final String USER = "user";
   public static final String PASS = "password";
   public static final String TEST_TABLE = "table1";
@@ -142,7 +137,7 @@ public class TestHiveAccumuloInputFormat {
   }
 
   @Test
-  public void hiveAccumuloRecord() throws Exception {
+  public void testHiveAccumuloRecord() throws Exception {
     FileInputFormat.addInputPath(conf, new Path("unused"));
     InputSplit[] splits = inputformat.getSplits(conf, 0);
     assertEquals(splits.length, 1);
@@ -166,7 +161,7 @@ public class TestHiveAccumuloInputFormat {
   }
 
   @Test
-  public void getOnlyName() throws Exception {
+  public void testGetOnlyName() throws Exception {
     FileInputFormat.addInputPath(conf, new Path("unused"));
 
     InputSplit[] splits = inputformat.getSplits(conf, 0);
@@ -195,7 +190,7 @@ public class TestHiveAccumuloInputFormat {
   }
 
   @Test
-  public void degreesAndMillis() throws Exception {
+  public void testDegreesAndMillis() throws Exception {
     Connector con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
     Scanner scan = con.createScanner(TEST_TABLE, new Authorizations("blah"));
     IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
@@ -248,7 +243,7 @@ public class TestHiveAccumuloInputFormat {
   }
 
   @Test
-  public void greaterThan1Sid() throws Exception {
+  public void testGreaterThan1Sid() throws Exception {
     Connector con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
     Scanner scan = con.createScanner(TEST_TABLE, new Authorizations("blah"));
     IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
@@ -291,7 +286,7 @@ public class TestHiveAccumuloInputFormat {
   }
 
   @Test
-  public void nameEqualBrian() throws Exception {
+  public void testNameEqualBrian() throws Exception {
     Connector con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
     Scanner scan = con.createScanner(TEST_TABLE, new Authorizations("blah"));
     IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
@@ -328,7 +323,7 @@ public class TestHiveAccumuloInputFormat {
   }
 
   @Test
-  public void getNone() throws Exception {
+  public void testGetNone() throws Exception {
     FileInputFormat.addInputPath(conf, new Path("unused"));
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1");
     InputSplit[] splits = inputformat.getSplits(conf, 0);
@@ -340,4 +335,33 @@ public class TestHiveAccumuloInputFormat {
     assertFalse(reader.next(rowId, row));
   }
 
+  @Test
+  public void testIteratorNotInSplitsCompensation() throws Exception {
+    FileInputFormat.addInputPath(conf, new Path("unused"));
+    InputSplit[] splits = inputformat.getSplits(conf, 0);
+
+    assertEquals(1, splits.length);
+    InputSplit split = splits[0];
+
+    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
+
+    is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, StringCompare.class.getName());
+    is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
+    is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(new byte[]{'0'})));
+    is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:cq");
+
+    // Mock out the predicate handler because it's just easier
+    AccumuloPredicateHandler predicateHandler = Mockito.mock(AccumuloPredicateHandler.class);
+    Mockito.when(predicateHandler.getIterators(Mockito.any(JobConf.class), Mockito.any(ColumnMapper.class))).thenReturn(Arrays.asList(is));
+
+    // Set it on our inputformat
+    inputformat.predicateHandler = predicateHandler;
+
+    inputformat.getRecordReader(split, conf, null);
+
+    // The code should account for the bug and update the iterators on the split
+    List<IteratorSetting> settingsOnSplit = ((HiveAccumuloSplit) split).getSplit().getIterators();
+    assertEquals(1, settingsOnSplit.size());
+    assertEquals(is, settingsOnSplit.get(0));
+  }
 }

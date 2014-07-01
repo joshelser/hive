@@ -364,6 +364,11 @@
         <version>${commons-exec.version}</version>
       </dependency>
       <dependency>
+        <groupId>org.apache.accumulo</groupId>
+        <artifactId>accumulo-core</artifactId>
+        <version>${accumulo.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.activemq</groupId>
         <artifactId>activemq-core</artifactId>
         <version>${activemq.version}</version>

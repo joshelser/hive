@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -16,10 +17,12 @@ import org.apache.accumulo.core.client.mapred.AccumuloInputFormat;
 import org.apache.accumulo.core.client.mapred.AccumuloRowInputFormat;
 import org.apache.accumulo.core.client.mapred.RangeInputSplit;
 import org.apache.accumulo.core.client.mock.MockInstance;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.fs.Path;
@@ -32,13 +35,13 @@ import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.JobContext;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +89,7 @@ public class HiveAccumuloTableInputFormat implements
             + " numbers less than the hive table columns. (" + readColIds.size() + ")");
 
       // get splits from Accumulo
-      InputSplit[] splits = accumuloInputFormat.getSplits(jobConf, numSplits); 
+      InputSplit[] splits = accumuloInputFormat.getSplits(jobConf, numSplits);
 
       HiveAccumuloSplit[] hiveSplits = new HiveAccumuloSplit[splits.length];
       for (int i = 0; i < splits.length; i++) {
@@ -147,56 +150,111 @@ public class HiveAccumuloTableInputFormat implements
     }
   }
 
-  private void configure(JobConf conf, Instance instance, Connector connector,
+  /**
+   * Configure the underlying AccumuloInputFormat
+   * 
+   * @param conf
+   *          Job configuration
+   * @param instance
+   *          Accumulo instance
+   * @param connector
+   *          Accumulo connector
+   * @param accumuloParams
+   *          Connection information to the Accumulo instance
+   * @param columnMapper
+   *          Configuration of Hive to Accumulo columns
+   * @param iterators
+   *          Any iterators to be configured server-side
+   * @param ranges
+   *          Accumulo ranges on for the query
+   * @throws AccumuloSecurityException
+   * @throws AccumuloException
+   * @throws SerDeException
+   */
+  protected void configure(JobConf conf, Instance instance, Connector connector,
       AccumuloConnectionParameters accumuloParams, ColumnMapper columnMapper,
       List<IteratorSetting> iterators, Collection<Range> ranges) throws AccumuloSecurityException,
       AccumuloException, SerDeException {
 
     // Handle implementation of Instance and invoke appropriate InputFormat method
     if (instance instanceof MockInstance) {
-      AccumuloInputFormat.setMockInstance(conf, instance.getInstanceName());
+      setMockInstance(conf, instance.getInstanceName());
     } else {
-      AccumuloInputFormat.setZooKeeperInstance(
-          conf,
-          new ClientConfiguration().withInstance(instance.getInstanceName()).withZkHosts(
-              instance.getZooKeepers()));
+      setZooKeeperInstance(conf, instance.getInstanceName(), instance.getZooKeepers());
     }
 
     // Set the username/passwd for the Accumulo connection
-    AccumuloInputFormat.setConnectorInfo(conf, accumuloParams.getAccumuloUserName(),
+    setConnectorInfo(conf, accumuloParams.getAccumuloUserName(),
         new PasswordToken(accumuloParams.getAccumuloPassword()));
 
     // Read from the given Accumulo table
-    AccumuloInputFormat.setInputTableName(conf, accumuloParams.getAccumuloTableName());
+    setInputTableName(conf, accumuloParams.getAccumuloTableName());
 
     // TODO Allow configuration of the authorizations that should be used
     // Scan with all of the user's authorizations
-    AccumuloInputFormat.setScanAuthorizations(conf, connector.securityOperations()
+    setScanAuthorizations(conf, connector.securityOperations()
         .getUserAuthorizations(accumuloParams.getAccumuloUserName()));
 
     // restrict with any filters found from WHERE predicates.
-    for (IteratorSetting is : iterators) {
-      AccumuloInputFormat.addIterator(conf, is);
-    }
+    addIterators(conf, iterators);
 
     // restrict with any ranges found from WHERE predicates.
     if (ranges.size() > 0) {
-      AccumuloInputFormat.setRanges(conf, ranges);
+      setRanges(conf, ranges);
     }
 
     // Restrict the set of columns that we want to read from the Accumulo table
-    AccumuloInputFormat.fetchColumns(conf, getPairCollection(columnMapper.getColumnMappings()));
+    fetchColumns(conf, getPairCollection(columnMapper.getColumnMappings()));
+  }
+
+  // Wrap the static AccumuloInputFormat methods with methods that we can
+  // verify were correctly called via Mockito
+
+  protected void setMockInstance(JobConf conf, String instanceName) {
+    AccumuloInputFormat.setMockInstance(conf, instanceName);
+  }
+
+  protected void setZooKeeperInstance(JobConf conf, String instanceName, String zkHosts) {
+    AccumuloInputFormat.setZooKeeperInstance(conf,
+        new ClientConfiguration().withInstance(instanceName).withZkHosts(zkHosts));
+  }
+
+  protected void setConnectorInfo(JobConf conf, String user, AuthenticationToken token)
+      throws AccumuloSecurityException {
+    AccumuloInputFormat.setConnectorInfo(conf, user, token);
+  }
+
+  protected void setInputTableName(JobConf conf, String tableName) {
+    AccumuloInputFormat.setInputTableName(conf, tableName);
+  }
+
+  protected void setScanAuthorizations(JobConf conf, Authorizations auths) {
+    AccumuloInputFormat.setScanAuthorizations(conf, auths);
+  }
+
+  protected void addIterators(JobConf conf, List<IteratorSetting> iterators) {
+    for (IteratorSetting is : iterators) {
+      AccumuloInputFormat.addIterator(conf, is);
+    }
+  }
+
+  protected void setRanges(JobConf conf, Collection<Range> ranges) {
+    AccumuloInputFormat.setRanges(conf, ranges);
+  }
+
+  protected void fetchColumns(JobConf conf, Set<Pair<Text,Text>> cfCqPairs) {
+    AccumuloInputFormat.fetchColumns(conf, cfCqPairs);
   }
 
   /**
    * Create col fam/qual pairs from pipe separated values, usually from config object. Ignores
    * rowID.
    * 
-   * @param colFamQualPairs
-   *          Pairs of colfam, colqual, delimited by {@link #COLON}
+   * @param columnMappings
+   *          The list of ColumnMappings for the given query
    * @return a Set of Pairs of colfams and colquals
    */
-  private HashSet<Pair<Text,Text>> getPairCollection(List<ColumnMapping> columnMappings) {
+  protected HashSet<Pair<Text,Text>> getPairCollection(List<ColumnMapping> columnMappings) {
     final HashSet<Pair<Text,Text>> pairs = new HashSet<Pair<Text,Text>>();
 
     for (ColumnMapping columnMapping : columnMappings) {

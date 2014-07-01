@@ -6,9 +6,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -17,15 +21,22 @@ import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ZooKeeperInstance;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
 import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;
@@ -49,7 +60,7 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.Mockito;
 
-public class TestHiveAccumuloInputFormat {
+public class TestHiveAccumuloTableInputFormat {
   public static final String USER = "user";
   public static final String PASS = "password";
   public static final String TEST_TABLE = "table1";
@@ -61,6 +72,7 @@ public class TestHiveAccumuloInputFormat {
   private static final Text MILLIS = new Text("mills");
 
   private Instance mockInstance;
+  private Connector con;
   private HiveAccumuloTableInputFormat inputformat;
   private JobConf conf;
 
@@ -68,7 +80,7 @@ public class TestHiveAccumuloInputFormat {
   public TestName test = new TestName();
 
   @Before
-  public void createMockKeyValues() throws Exception { 
+  public void createMockKeyValues() throws Exception {
     // Make a MockInstance here, by setting the instance name to be the same as this mock instance
     // we can "trick" the InputFormat into using a MockInstance
     mockInstance = new MockInstance(test.getMethodName());
@@ -79,12 +91,13 @@ public class TestHiveAccumuloInputFormat {
     conf.set(AccumuloSerDeParameters.INSTANCE_NAME, test.getMethodName());
     conf.set(AccumuloSerDeParameters.USER_NAME, USER);
     conf.set(AccumuloSerDeParameters.USER_PASS, PASS);
-    conf.set(AccumuloSerDeParameters.ZOOKEEPERS, "localhost:2181"); // not used for mock, but required by input format.
+    conf.set(AccumuloSerDeParameters.ZOOKEEPERS, "localhost:2181"); // not used for mock, but
+                                                                    // required by input format.
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:name,cf:sid,cf:dgrs,cf:mills");
     conf.set(serdeConstants.LIST_COLUMNS, "name,sid,dgrs,mills");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,double,bigint");
 
-    Connector con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
+    con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
     con.tableOperations().create(TEST_TABLE);
     con.securityOperations().changeUserAuthorizations(USER, new Authorizations("blah"));
     BatchWriterConfig writerConf = new BatchWriterConfig();
@@ -193,19 +206,23 @@ public class TestHiveAccumuloInputFormat {
   public void testDegreesAndMillis() throws Exception {
     Connector con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
     Scanner scan = con.createScanner(TEST_TABLE, new Authorizations("blah"));
-    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
+    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1,
+        PrimitiveComparisonFilter.class);
 
     is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, DoubleCompare.class.getName());
     is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, GreaterThanOrEqual.class.getName());
-    is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(parseDoubleBytes("55.6"))));
+    is.addOption(PrimitiveComparisonFilter.CONST_VAL,
+        new String(Base64.encodeBase64(parseDoubleBytes("55.6"))));
     is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:dgrs");
     scan.addScanIterator(is);
 
-    IteratorSetting is2 = new IteratorSetting(2, PrimitiveComparisonFilter.FILTER_PREFIX + 2, PrimitiveComparisonFilter.class);
+    IteratorSetting is2 = new IteratorSetting(2, PrimitiveComparisonFilter.FILTER_PREFIX + 2,
+        PrimitiveComparisonFilter.class);
 
     is2.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, LongCompare.class.getName());
     is2.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, LessThan.class.getName());
-    is2.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(parseLongBytes("778"))));
+    is2.addOption(PrimitiveComparisonFilter.CONST_VAL,
+        new String(Base64.encodeBase64(parseLongBytes("778"))));
     is2.addOption(PrimitiveComparisonFilter.COLUMN, "cf:mills");
 
     scan.addScanIterator(is2);
@@ -219,7 +236,8 @@ public class TestHiveAccumuloInputFormat {
       boolean foundMillis = false;
       SortedMap<Key,Value> items = PrimitiveComparisonFilter.decodeRow(kv.getKey(), kv.getValue());
       for (Map.Entry<Key,Value> item : items.entrySet()) {
-        SortedMap<Key,Value> nestedItems = PrimitiveComparisonFilter.decodeRow(item.getKey(), item.getValue());
+        SortedMap<Key,Value> nestedItems = PrimitiveComparisonFilter.decodeRow(item.getKey(),
+            item.getValue());
         for (Map.Entry<Key,Value> nested : nestedItems.entrySet()) {
           if (nested.getKey().getRow().toString().equals("r3")) {
             foundDennis = true;
@@ -246,11 +264,13 @@ public class TestHiveAccumuloInputFormat {
   public void testGreaterThan1Sid() throws Exception {
     Connector con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
     Scanner scan = con.createScanner(TEST_TABLE, new Authorizations("blah"));
-    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
+    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1,
+        PrimitiveComparisonFilter.class);
 
     is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, IntCompare.class.getName());
     is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, GreaterThan.class.getName());
-    is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(parseIntBytes("1"))));
+    is.addOption(PrimitiveComparisonFilter.CONST_VAL,
+        new String(Base64.encodeBase64(parseIntBytes("1"))));
     is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:sid");
     scan.addScanIterator(is);
     boolean foundMark = false;
@@ -289,11 +309,13 @@ public class TestHiveAccumuloInputFormat {
   public void testNameEqualBrian() throws Exception {
     Connector con = mockInstance.getConnector(USER, new PasswordToken(PASS.getBytes()));
     Scanner scan = con.createScanner(TEST_TABLE, new Authorizations("blah"));
-    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
+    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1,
+        PrimitiveComparisonFilter.class);
 
     is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, StringCompare.class.getName());
     is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
-    is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64("brian".getBytes())));
+    is.addOption(PrimitiveComparisonFilter.CONST_VAL,
+        new String(Base64.encodeBase64("brian".getBytes())));
     is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:name");
     scan.addScanIterator(is);
     boolean foundName = false;
@@ -343,16 +365,20 @@ public class TestHiveAccumuloInputFormat {
     assertEquals(1, splits.length);
     InputSplit split = splits[0];
 
-    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1, PrimitiveComparisonFilter.class);
+    IteratorSetting is = new IteratorSetting(1, PrimitiveComparisonFilter.FILTER_PREFIX + 1,
+        PrimitiveComparisonFilter.class);
 
     is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, StringCompare.class.getName());
     is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
-    is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(new byte[]{'0'})));
+    is.addOption(PrimitiveComparisonFilter.CONST_VAL,
+        new String(Base64.encodeBase64(new byte[] {'0'})));
     is.addOption(PrimitiveComparisonFilter.COLUMN, "cf:cq");
 
     // Mock out the predicate handler because it's just easier
     AccumuloPredicateHandler predicateHandler = Mockito.mock(AccumuloPredicateHandler.class);
-    Mockito.when(predicateHandler.getIterators(Mockito.any(JobConf.class), Mockito.any(ColumnMapper.class))).thenReturn(Arrays.asList(is));
+    Mockito.when(
+        predicateHandler.getIterators(Mockito.any(JobConf.class), Mockito.any(ColumnMapper.class)))
+        .thenReturn(Arrays.asList(is));
 
     // Set it on our inputformat
     inputformat.predicateHandler = predicateHandler;
@@ -363,5 +389,146 @@ public class TestHiveAccumuloInputFormat {
     List<IteratorSetting> settingsOnSplit = ((HiveAccumuloSplit) split).getSplit().getIterators();
     assertEquals(1, settingsOnSplit.size());
     assertEquals(is, settingsOnSplit.get(0));
+  }
+
+  @Test
+  public void testColumnMappingsToPairs() {
+    List<ColumnMapping> mappings = new ArrayList<ColumnMapping>();
+    Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
+
+    // Row ID
+    mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
+
+    // Some cf:cq
+    mappings.add(new HiveAccumuloColumnMapping("person:name", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("person:age", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("person:height", ColumnEncoding.STRING));
+
+    // Bare cf
+    mappings.add(new HiveAccumuloColumnMapping("city:", ColumnEncoding.STRING));
+
+    columns.add(new Pair<Text,Text>(new Text("person"), new Text("name")));
+    columns.add(new Pair<Text,Text>(new Text("person"), new Text("age")));
+    columns.add(new Pair<Text,Text>(new Text("person"), new Text("height")));
+    // Null qualifier would mean all qualifiers in that family, want an empty qualifier
+    columns.add(new Pair<Text,Text>(new Text("city"), new Text("")));
+
+    assertEquals(columns, inputformat.getPairCollection(mappings));
+  }
+
+  @Test
+  public void testConfigureMockAccumuloInputFormat() throws Exception {
+    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    List<IteratorSetting> iterators = Collections.emptyList();
+    Set<Range> ranges = Collections.singleton(new Range());
+
+    HiveAccumuloTableInputFormat mockInputFormat = Mockito.mock(HiveAccumuloTableInputFormat.class);
+
+    // Call out to the real configure method
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .configure(conf, mockInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Also compute the correct cf:cq pairs so we can assert the right argument was passed
+    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+
+    mockInputFormat.configure(conf, mockInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Verify that the correct methods are invoked on AccumuloInputFormat
+    Mockito.verify(mockInputFormat).setMockInstance(conf, mockInstance.getInstanceName());
+    Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
+    Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).addIterators(conf, iterators);
+    Mockito.verify(mockInputFormat).setRanges(conf, ranges);
+    Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
+  }
+
+  @Test
+  public void testConfigureAccumuloInputFormat() throws Exception {
+    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    List<IteratorSetting> iterators = Collections.emptyList();
+    Set<Range> ranges = Collections.singleton(new Range());
+    String instanceName = "realInstance";
+    String zookeepers = "host1:2181,host2:2181,host3:2181";
+
+    ZooKeeperInstance zkInstance = Mockito.mock(ZooKeeperInstance.class);
+    HiveAccumuloTableInputFormat mockInputFormat = Mockito.mock(HiveAccumuloTableInputFormat.class);
+
+    // Stub out the ZKI mock
+    Mockito.when(zkInstance.getInstanceName()).thenReturn(instanceName);
+    Mockito.when(zkInstance.getZooKeepers()).thenReturn(zookeepers);
+
+    // Call out to the real configure method
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Also compute the correct cf:cq pairs so we can assert the right argument was passed
+    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Verify that the correct methods are invoked on AccumuloInputFormat
+    Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
+    Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
+    Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).addIterators(conf, iterators);
+    Mockito.verify(mockInputFormat).setRanges(conf, ranges);
+    Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
+  }
+
+  @Test
+  public void testConfigureAccumuloInputFormatWithIterators() throws Exception {
+    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    List<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
+    Set<Range> ranges = Collections.singleton(new Range());
+    String instanceName = "realInstance";
+    String zookeepers = "host1:2181,host2:2181,host3:2181";
+
+    IteratorSetting cfg = new IteratorSetting(50, PrimitiveComparisonFilter.class);
+    cfg.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, StringCompare.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.CONST_VAL, "dave");
+    cfg.addOption(PrimitiveComparisonFilter.COLUMN, "person:name");
+    iterators.add(cfg);
+
+    cfg = new IteratorSetting(50, PrimitiveComparisonFilter.class);
+    cfg.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, IntCompare.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.CONST_VAL, "50");
+    cfg.addOption(PrimitiveComparisonFilter.COLUMN, "person:age");
+    iterators.add(cfg);
+
+
+    ZooKeeperInstance zkInstance = Mockito.mock(ZooKeeperInstance.class);
+    HiveAccumuloTableInputFormat mockInputFormat = Mockito.mock(HiveAccumuloTableInputFormat.class);
+
+    // Stub out the ZKI mock
+    Mockito.when(zkInstance.getInstanceName()).thenReturn(instanceName);
+    Mockito.when(zkInstance.getZooKeepers()).thenReturn(zookeepers);
+
+    // Call out to the real configure method
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Also compute the correct cf:cq pairs so we can assert the right argument was passed
+    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Verify that the correct methods are invoked on AccumuloInputFormat
+    Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
+    Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
+    Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).addIterators(conf, iterators);
+    Mockito.verify(mockInputFormat).setRanges(conf, ranges);
+    Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
   }
 }

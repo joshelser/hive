@@ -109,6 +109,10 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     properties.put(AccumuloSerDeParameters.TABLE_NAME, props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
     String useIterators = props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
+      if (!useIterators.equalsIgnoreCase("true") && !useIterators.equalsIgnoreCase("false")) {
+        throw new IllegalArgumentException("Expected value of true or false for " + AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
+      }
+
       properties.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
     }
   }

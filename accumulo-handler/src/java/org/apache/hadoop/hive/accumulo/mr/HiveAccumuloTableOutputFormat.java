@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.mr;
 
 import java.io.IOException;
 
@@ -24,6 +24,7 @@ import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.mapred.JobConf;
 

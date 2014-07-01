@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.mr;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -32,11 +32,16 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.accumulo.mr.HiveAccumuloSplit;
+import org.apache.hadoop.hive.accumulo.mr.HiveAccumuloTableInputFormat;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
 import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;

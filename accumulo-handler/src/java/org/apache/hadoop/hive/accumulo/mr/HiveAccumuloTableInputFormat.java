@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.mr;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -26,6 +26,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;

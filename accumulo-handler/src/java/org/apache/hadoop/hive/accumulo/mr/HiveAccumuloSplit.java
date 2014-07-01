@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.mr;
 
 import java.io.DataInput;
 import java.io.DataOutput;

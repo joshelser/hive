@@ -38,7 +38,6 @@ import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.RecordReader;
-import org.apache.hadoop.util.StringUtils;
 
 import com.google.common.collect.Lists;
 
@@ -49,11 +48,11 @@ import com.google.common.collect.Lists;
 public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveRow> {
   private Configuration conf;
   private ColumnMapper columnMapper;
-  private org.apache.hadoop.mapreduce.RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader;
+  private RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader;
   private int iteratorCount;
 
   public HiveAccumuloRecordReader(Configuration conf, ColumnMapper columnMapper,
-      org.apache.hadoop.mapreduce.RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
+      RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
     this.conf = conf;
     this.columnMapper = columnMapper;
     this.recordReader = recordReader;
@@ -82,50 +81,39 @@ public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveR
 
   @Override
   public float getProgress() throws IOException {
-    float progress = 0.0F;
-
-    try {
-      progress = recordReader.getProgress();
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
-
-    return progress;
+    return recordReader.getProgress();
   }
 
   @Override
   public boolean next(Text rowKey, AccumuloHiveRow row) throws IOException {
-    boolean next;
-    try {
-      next = recordReader.nextKeyValue();
-      Text key = recordReader.getCurrentKey();
-      PeekingIterator<Map.Entry<Key,Value>> iter = recordReader.getCurrentValue();
-      if (next) {
-        row.clear();
-        row.setRowId(key.toString());
-        List<Key> keys = Lists.newArrayList();
-        List<Value> values = Lists.newArrayList();
-        while (iter.hasNext()) { // collect key/values for this row.
-          Map.Entry<Key,Value> kv = iter.next();
-          keys.add(kv.getKey());
-          values.add(kv.getValue());
+    Text key = recordReader.createKey();
+    PeekingIterator<Map.Entry<Key,Value>> iter = recordReader.createValue();
+    if (recordReader.next(key, iter)) {
+      row.clear();
+      row.setRowId(key.toString());
+      List<Key> keys = Lists.newArrayList();
+      List<Value> values = Lists.newArrayList();
+      while (iter.hasNext()) { // collect key/values for this row.
+        Map.Entry<Key,Value> kv = iter.next();
+        keys.add(kv.getKey());
+        values.add(kv.getValue());
 
-        }
-        if (iteratorCount == 0) { // no encoded values, we can push directly to row.
-          pushToValue(keys, values, row);
-        } else {
-          for (int i = 0; i < iteratorCount; i++) { // each iterator creates a level of encoding.
-            SortedMap<Key,Value> decoded = PrimitiveComparisonFilter.decodeRow(keys.get(0), values.get(0));
-            keys = Lists.newArrayList(decoded.keySet());
-            values = Lists.newArrayList(decoded.values());
-          }
-          pushToValue(keys, values, row); // after decoding we can push to value.
-        }
       }
-    } catch (InterruptedException e) {
-      throw new IOException(StringUtils.stringifyException(e));
+      if (iteratorCount == 0) { // no encoded values, we can push directly to row.
+        pushToValue(keys, values, row);
+      } else {
+        for (int i = 0; i < iteratorCount; i++) { // each iterator creates a level of encoding.
+          SortedMap<Key,Value> decoded = PrimitiveComparisonFilter.decodeRow(keys.get(0), values.get(0));
+          keys = Lists.newArrayList(decoded.keySet());
+          values = Lists.newArrayList(decoded.values());
+        }
+        pushToValue(keys, values, row); // after decoding we can push to value.
+      }
+
+      return true;
+    } else {
+      return false;
     }
-    return next;
   }
 
   // flatten key/value pairs into row object for use in Serde.

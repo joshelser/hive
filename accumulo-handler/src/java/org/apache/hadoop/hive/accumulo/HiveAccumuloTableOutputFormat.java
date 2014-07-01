@@ -21,6 +21,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
@@ -35,32 +36,59 @@ public class HiveAccumuloTableOutputFormat extends AccumuloOutputFormat {
 
   @Override
   public void checkOutputSpecs(FileSystem ignored, JobConf job) throws IOException {
+    configureAccumuloOutputFormat(job);
+
+    super.checkOutputSpecs(ignored, job);
+  }
+
+  protected void configureAccumuloOutputFormat(JobConf job) throws IOException {
     AccumuloConnectionParameters cnxnParams = new AccumuloConnectionParameters(job);
 
     final String tableName = job.get(AccumuloSerDeParameters.TABLE_NAME);
 
     // Make sure we actually go the table name
-    Preconditions.checkNotNull(tableName, "Expected Accumulo table name to be provided in job configuration");
+    Preconditions.checkNotNull(tableName,
+        "Expected Accumulo table name to be provided in job configuration");
 
     // Set the necessary Accumulo information
     try {
       // Username/passwd for Accumulo
-      AccumuloOutputFormat.setConnectorInfo(job, cnxnParams.getAccumuloUserName(),
+      setAccumuloConnectorInfo(job, cnxnParams.getAccumuloUserName(),
           new PasswordToken(cnxnParams.getAccumuloPassword()));
 
-      // Accumulo instance name with ZK quorum 
-      AccumuloOutputFormat.setZooKeeperInstance(job, ClientConfiguration.loadDefault()
-          .withInstance(cnxnParams.getAccumuloInstanceName())
-          .withZkHosts(cnxnParams.getZooKeepers()));
+      if (cnxnParams.useMockInstance()) {
+        setAccumuloMockInstance(job, cnxnParams.getAccumuloInstanceName());
+      } else {
+        // Accumulo instance name with ZK quorum
+        setAccumuloZooKeeperInstance(job, cnxnParams.getAccumuloInstanceName(), cnxnParams.getZooKeepers());
+      }
 
       // Set the table where we're writing this data
-      AccumuloOutputFormat.setDefaultTableName(job, tableName);
+      setDefaultAccumuloTableName(job, tableName);
     } catch (AccumuloSecurityException e) {
       log.error("Could not connect to Accumulo with provided credentials", e);
       throw new IOException(e);
     }
-
-    super.checkOutputSpecs(ignored, job);
   }
 
+  // Non-static methods to wrap the static AccumuloOutputFormat methods to enable testing
+
+  protected void setAccumuloConnectorInfo(JobConf conf, String username, AuthenticationToken token)
+      throws AccumuloSecurityException {
+    AccumuloOutputFormat.setConnectorInfo(conf, username, token);
+  }
+
+  protected void setAccumuloZooKeeperInstance(JobConf conf, String instanceName, String zookeepers) {
+    AccumuloOutputFormat.setZooKeeperInstance(conf,
+        ClientConfiguration.loadDefault().withInstance(instanceName)
+            .withZkHosts(zookeepers));
+  }
+
+  protected void setAccumuloMockInstance(JobConf conf, String instanceName) {
+    AccumuloOutputFormat.setMockInstance(conf, instanceName);
+  }
+
+  protected void setDefaultAccumuloTableName(JobConf conf, String tableName) {
+    AccumuloOutputFormat.setDefaultTableName(conf, tableName);
+  }
 }

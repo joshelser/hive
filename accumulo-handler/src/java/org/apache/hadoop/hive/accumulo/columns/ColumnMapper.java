@@ -37,10 +37,20 @@ public class ColumnMapper {
   private int rowIdOffset;
   private HiveRowIdColumnMapping rowIdMapping = null;
 
+  /**
+   * Create a mapping from Hive columns (rowID and column) to Accumulo columns (column family and
+   * qualifier). The ordering of the {@link ColumnMapping}s is important as it aligns with the
+   * ordering of the columns for the Hive table schema.
+   * 
+   * @param serializedColumnMappings
+   *          Comma-separated list of designators that map to Accumulo columns whose offsets
+   *          correspond to the Hive table schema
+   */
   public ColumnMapper(String serializedColumnMappings) {
     Preconditions.checkNotNull(serializedColumnMappings);
 
-    String[] parsedColumnMappingValue = StringUtils.split(serializedColumnMappings, AccumuloHiveConstants.COMMA);
+    String[] parsedColumnMappingValue = StringUtils.split(serializedColumnMappings,
+        AccumuloHiveConstants.COMMA);
     columnMappings = new ArrayList<ColumnMapping>(parsedColumnMappingValue.length);
     rowIdOffset = -1;
 
@@ -48,11 +58,14 @@ public class ColumnMapper {
       String columnMappingStr = parsedColumnMappingValue[i];
 
       // TODO actually allow for configuration of the column encoding
-      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr, ColumnEncoding.STRING);
+      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr,
+          ColumnEncoding.STRING);
 
       if (columnMapping instanceof HiveRowIdColumnMapping) {
         if (-1 != rowIdOffset) {
-          throw new IllegalArgumentException("Column mapping should only have one definition with a value of " + AccumuloHiveConstants.ROWID);
+          throw new IllegalArgumentException(
+              "Column mapping should only have one definition with a value of "
+                  + AccumuloHiveConstants.ROWID);
         }
 
         rowIdOffset = i;
@@ -87,19 +100,23 @@ public class ColumnMapper {
     return rowIdOffset;
   }
 
-  public String toTypesString() {
+  public String getTypesString() {
     StringBuilder sb = new StringBuilder();
     for (ColumnMapping columnMapping : columnMappings) {
       if (sb.length() > 0) {
-        sb.append(":");
+        sb.append(AccumuloHiveConstants.COLON);
       }
+
+      // TODO Handle map<x,y>
       if (columnMapping instanceof HiveRowIdColumnMapping) {
+        // the rowID column is a string
         sb.append(serdeConstants.STRING_TYPE_NAME);
       } else if (columnMapping instanceof HiveAccumuloColumnMapping) {
-        //HiveAccumuloColumnMapping accumuloColumnMapping = (HiveAccumuloColumnMapping) columnMapping;
+        // a normal column is also a string
         sb.append(serdeConstants.STRING_TYPE_NAME);
       } else {
-        throw new IllegalArgumentException("Cannot process ColumnMapping of type " + columnMapping.getClass().getName());
+        throw new IllegalArgumentException("Cannot process ColumnMapping of type "
+            + columnMapping.getClass().getName());
       }
     }
 
@@ -109,7 +126,9 @@ public class ColumnMapper {
   public ColumnMapping getColumnMappingForHiveColumn(List<String> hiveColumns, String hiveColumnName) {
     Preconditions.checkNotNull(hiveColumns);
     Preconditions.checkNotNull(hiveColumnName);
-    Preconditions.checkArgument(columnMappings.size() <= hiveColumns.size(), "Expected equal number of column mappings and Hive columns, " + columnMappings + ", " + hiveColumns);
+    Preconditions.checkArgument(columnMappings.size() <= hiveColumns.size(),
+        "Expected equal number of column mappings and Hive columns, " + columnMappings + ", "
+            + hiveColumns);
 
     int hiveColumnOffset = 0;
     for (; hiveColumnOffset < hiveColumns.size() && hiveColumnOffset < columnMappings.size(); hiveColumnOffset++) {
@@ -118,7 +137,9 @@ public class ColumnMapper {
       }
     }
 
-    log.error("Could not find offset for Hive column with name '" + hiveColumnName + "' with columns " + hiveColumns);
-    throw new IllegalArgumentException("Could not find offset for Hive column with name " + hiveColumnName);
+    log.error("Could not find offset for Hive column with name '" + hiveColumnName
+        + "' with columns " + hiveColumns);
+    throw new IllegalArgumentException("Could not find offset for Hive column with name "
+        + hiveColumnName);
   }
 }

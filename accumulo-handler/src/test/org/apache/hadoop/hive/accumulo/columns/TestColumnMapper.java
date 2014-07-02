@@ -16,9 +16,17 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
-import static org.junit.Assert.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.List;
 
+import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.util.StringUtils;
+import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.base.Joiner;
 
 /**
  * 
@@ -26,8 +34,66 @@ import org.junit.Test;
 public class TestColumnMapper {
 
   @Test
-  public void test() {
-    fail("Not yet implemented");
+  public void testNormalMapping() {
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings));
+
+    List<ColumnMapping> mappings = mapper.getColumnMappings();
+
+    Assert.assertEquals(rawMappings.size(), mappings.size());
+    Assert.assertEquals(mappings.size(), mapper.size());
+
+    // Compare the Mapper get at offset method to the list of mappings
+    Iterator<String> rawIter = rawMappings.iterator();
+    Iterator<ColumnMapping> iter = mappings.iterator();
+    for (int i = 0; i < mappings.size() && iter.hasNext(); i++) {
+      String rawMapping = rawIter.next();
+      ColumnMapping mapping = iter.next();
+      ColumnMapping mappingByOffset = mapper.get(i);
+
+      Assert.assertEquals(mapping, mappingByOffset);
+
+      // Ensure that we get the right concrete ColumnMapping
+      if (AccumuloHiveConstants.ROWID.equals(rawMapping)) {
+        Assert.assertEquals(HiveRowIdColumnMapping.class, mapping.getClass());
+      } else {
+        Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
+      }
+    }
+
+    Assert.assertEquals(0, mapper.getRowIdOffset());
+    Assert.assertTrue(mapper.hasRowIdMapping());
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testMultipleRowIDsFails() {
+    new ColumnMapper(AccumuloHiveConstants.ROWID + AccumuloHiveConstants.COMMA + AccumuloHiveConstants.ROWID);
+  }
+
+  @Test
+  public void testGetMappingFromHiveColumn() {
+    List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3");
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings));
+
+    for (int i = 0; i < hiveColumns.size(); i++) {
+      String hiveColumn = hiveColumns.get(i), accumuloMapping = rawMappings.get(i);
+      ColumnMapping mapping = mapper.getColumnMappingForHiveColumn(hiveColumns, hiveColumn);
+
+      Assert.assertEquals(accumuloMapping, mapping.getMappingSpec());
+    }
+  }
+
+  @Test
+  public void testGetTypesString() {
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings));
+
+    String typeString = mapper.getTypesString();
+    String[] types = StringUtils.split(typeString, AccumuloHiveConstants.COLON);
+    Assert.assertEquals(rawMappings.size(), types.length);
+    for (String type : types) {
+      Assert.assertEquals(serdeConstants.STRING_TYPE_NAME, type);
+    }
+  }
 }

@@ -58,7 +58,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
     // Generate types for column mapping
     if (null == getColumnTypeValue()) {
-      tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, columnMapper.toTypesString());
+      tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, columnMapper.getTypesString());
     }
 
     if (columnMapper.size() < lazySerDeParameters.getColumnNames().size()) {

@@ -16,7 +16,6 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 /**
@@ -24,9 +23,9 @@ import org.junit.Test;
  */
 public class TestHiveRowIdColumnMapping {
 
-  @Test
-  public void test() {
-    Assert.fail("Not yet implemnted");
+  @Test(expected = IllegalArgumentException.class)
+  public void testNonRowIdMappingFails() {
+    new HiveRowIdColumnMapping("foo", ColumnEncoding.STRING);
   }
 
 }

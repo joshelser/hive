@@ -13,10 +13,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
-import org.apache.hadoop.hive.accumulo.mr.HiveAccumuloTableInputFormat;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveCompare;
 import org.apache.hadoop.io.Text;
@@ -41,6 +39,7 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
   public static final String CONST_VAL = "accumulo.filter.iterator.const.val";
   public static final String COLUMN = "accumulo.filter.iterator.qual";
 
+  private Text cfHolder, cqHolder, columnMappingFamily, columnMappingQualifier;
   private HiveAccumuloColumnMapping columnMapping;
   private CompareOp compOpt;
 
@@ -75,17 +74,23 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
   }
 
   private boolean matchQualAndFam(Key k) {
-    // TODO Horribly inefficient, use a Text to avoid repeated String generation
-    return k.getColumnQualifier().toString().equals(columnMapping.getColumnQualifier()) && k.getColumnFamily().toString().equals(columnMapping.getColumnFamily());
+    k.getColumnFamily(cfHolder);
+    k.getColumnQualifier(cqHolder);
+    return cfHolder.equals(columnMappingFamily) && cqHolder.equals(columnMappingQualifier);
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
+    String serializedColumnMapping = options.get(COLUMN);
+    // The ColumnEncoding is irrelevant at this point, just need the cf:[cq]
+    columnMapping = new HiveAccumuloColumnMapping(serializedColumnMapping, ColumnEncoding.STRING);
+    columnMappingFamily = new Text(columnMapping.getColumnFamily());
+    columnMappingQualifier = new Text(columnMapping.getColumnQualifier());
+    cfHolder = new Text();
+    cqHolder = new Text();
+
     try {
-      super.init(source, options, env);
-      String serializedColumnMapping = options.get(COLUMN);
-      // The ColumnEncoding is irrelevant at this point, just need the cf:[cq]
-      columnMapping = new HiveAccumuloColumnMapping(serializedColumnMapping, ColumnEncoding.STRING);
       Class<?> pClass = Class.forName(options.get(P_COMPARE_CLASS));
       Class<?> cClazz = Class.forName(options.get(COMPARE_OPT_CLASS));
       PrimitiveCompare pCompare = pClass.asSubclass(PrimitiveCompare.class).newInstance();

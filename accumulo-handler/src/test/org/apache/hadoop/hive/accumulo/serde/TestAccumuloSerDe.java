@@ -1,4 +1,4 @@
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.serde;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -8,6 +8,9 @@ import static org.junit.Assert.fail;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
+import org.apache.hadoop.hive.accumulo.LazyAccumuloRow;
 import org.apache.hadoop.hive.accumulo.columns.InvalidColumnMappingException;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;

@@ -49,9 +49,11 @@ public class AccumuloRowSerializer {
     this.mappings = mappings;
   }
 
-  public Writable serialize(Object obj, ObjectInspector objInspector) throws SerDeException, IOException {
+  public Writable serialize(Object obj, ObjectInspector objInspector) throws SerDeException,
+      IOException {
     if (objInspector.getCategory() != ObjectInspector.Category.STRUCT) {
-      throw new SerDeException(getClass().toString() + " can only serialize struct types, but we got: " + objInspector.getTypeName());
+      throw new SerDeException(getClass().toString()
+          + " can only serialize struct types, but we got: " + objInspector.getTypeName());
     }
 
     // Prepare the field ObjectInspectors
@@ -62,33 +64,20 @@ public class AccumuloRowSerializer {
     StructField field = fields.get(rowIdOffset);
     Object value = columnValues.get(rowIdOffset);
 
+    // The ObjectInspector for the row ID
     ObjectInspector fieldObjectInspector = field.getFieldObjectInspector();
 
-    // Reset the buffer
-    output.reset();
+    // Serialize the row component
+    byte[] data = getSerializedValue(objInspector, fieldObjectInspector, value, output);
 
-    // The "row"
-    // Start by only serializing primitives as-is
-    if (fieldObjectInspector.getCategory() == ObjectInspector.Category.PRIMITIVE) {
-      // TODO Allow configuration of escaped characters
-      LazyUtils.writePrimitiveUTF8(output, value, (PrimitiveObjectInspector) fieldObjectInspector, false, (byte) '\'', new boolean[128]);
-    } else {
-      // Or serializing complex types as json
-      String asJson = SerDeUtils.getJSONString(value, objInspector);
-      LazyUtils.writePrimitive(output, asJson, PrimitiveObjectInspectorFactory.javaStringObjectInspector);
-    }
-
-    byte[] data = output.toByteArray();
+    // Set that as the row id in the mutation
+    Mutation mutation = new Mutation(data);
 
     // Each column in the row
-    Mutation mutation = new Mutation(data);
     for (int i = 0; i < fields.size(); i++) {
       if (rowIdOffset == i) {
         continue;
       }
-
-      // Reset the buffer we're going to use
-      output.reset();
 
       // Get the relevant information for this column
       field = fields.get(i);
@@ -99,31 +88,69 @@ public class AccumuloRowSerializer {
         continue;
       }
 
+      // The ObjectInspector for the current column
       fieldObjectInspector = field.getFieldObjectInspector();
 
       // Make sure we got the right implementation of a ColumnMapping
       ColumnMapping mapping = mappings.get(i);
       if (!(mapping instanceof HiveAccumuloColumnMapping)) {
-        throw new IllegalArgumentException("Mapping for " + field.getFieldName() + " was not a HiveColumnMapping, but was " + mapping.getClass());
+        throw new IllegalArgumentException("Mapping for " + field.getFieldName()
+            + " was not a HiveColumnMapping, but was " + mapping.getClass());
       }
 
       // We need to be able to get a colfam/colqual
       HiveAccumuloColumnMapping hiveColumnMapping = (HiveAccumuloColumnMapping) mapping;
 
-      // Start by only serializing primitives as-is
-      if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
-        // TODO Allow configuration of escaped characters
-        LazyUtils.writePrimitiveUTF8(output, value, (PrimitiveObjectInspector) fieldObjectInspector, false, (byte) '\'', new boolean[128]);
-      } else {
-        // Or serializing complex types as json
-        String asJson = SerDeUtils.getJSONString(value, objInspector);
-        LazyUtils.writePrimitive(output, asJson, PrimitiveObjectInspectorFactory.javaStringObjectInspector);
-      }
+      // Get the serialized value for the column
+      byte[] serializedValue = getSerializedValue(objInspector, fieldObjectInspector, value, output);
 
-      // Put the update in the Mutation
-      mutation.put(hiveColumnMapping.getColumnFamily().getBytes(Charsets.UTF_8), hiveColumnMapping.getColumnQualifier().getBytes(Charsets.UTF_8), output.toByteArray());
+      // Put it all in the Mutation
+      mutation.put(hiveColumnMapping.getColumnFamily().getBytes(Charsets.UTF_8), hiveColumnMapping
+          .getColumnQualifier().getBytes(Charsets.UTF_8), serializedValue);
     }
-    
+
     return mutation;
+  }
+
+  /**
+   * Compute the serialized value from the given element and object inspectors. Based on the Hive
+   * types, represented through the ObjectInspectors for the whole object and column within the
+   * object, serialize the object appropriately.
+   * 
+   * @param objectInspector
+   *          ObjectInspector for the larger object being serialized
+   * @param fieldObjectInspector
+   *          ObjectInspector for the column value being serialized
+   * @param value
+   *          The Object itself being serialized
+   * @param output
+   *          A temporary buffer to reduce object creation
+   * @return The serialized bytes from the provided value.
+   * @throws IOException
+   *           An error occurred when performing IO to serialize the data
+   */
+  protected byte[] getSerializedValue(ObjectInspector objectInspector,
+      ObjectInspector fieldObjectInspector, Object value, ByteStream.Output output)
+      throws IOException {
+    // Reset the buffer we're going to use
+    output.reset();
+
+    // Start by only serializing primitives as-is
+    if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
+      // TODO Allow configuration of escaped characters
+      writeString(output, value, (PrimitiveObjectInspector) fieldObjectInspector);
+    } else {
+      // Or serializing complex types as json
+      String asJson = SerDeUtils.getJSONString(value, objectInspector);
+      LazyUtils.writePrimitive(output, asJson,
+          PrimitiveObjectInspectorFactory.javaStringObjectInspector);
+    }
+
+    return output.toByteArray();
+  }
+
+  protected void writeString(ByteStream.Output output, Object value,
+      PrimitiveObjectInspector inspector) throws IOException {
+    LazyUtils.writePrimitiveUTF8(output, value, inspector, false, (byte) '\'', new boolean[128]);
   }
 }

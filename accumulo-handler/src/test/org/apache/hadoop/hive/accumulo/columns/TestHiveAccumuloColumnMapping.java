@@ -40,14 +40,22 @@ public class TestHiveAccumuloColumnMapping {
   }
 
   @Test
-  public void testEscapedColumnMapping() {
-    String cf = "c\\:f", cq = "cq1:cq2";
+  public void testEscapedColumnFamily() {
+    String cf = "c" + '\\' + ":f", cq = "cq1:cq2";
     HiveAccumuloColumnMapping mapping = new HiveAccumuloColumnMapping(cf + ":" + cq, ColumnEncoding.STRING);
 
     // The getter should remove the escape character for us
     Assert.assertEquals("c:f", mapping.getColumnFamily());
-    // The raw value should still be there
-    Assert.assertEquals(cf, mapping.columnFamily);
     Assert.assertEquals(cq, mapping.getColumnQualifier());
+  }
+
+  @Test
+  public void testEscapedColumnFamilyAndQualifier() {
+    String cf = "c" + '\\' + ":f", cq = "cq1\\:cq2";
+    HiveAccumuloColumnMapping mapping = new HiveAccumuloColumnMapping(cf + ":" + cq, ColumnEncoding.STRING);
+
+    // The getter should remove the escape character for us
+    Assert.assertEquals("c:f", mapping.getColumnFamily());
+    Assert.assertEquals("cq1:cq2", mapping.getColumnQualifier());
   }
 }

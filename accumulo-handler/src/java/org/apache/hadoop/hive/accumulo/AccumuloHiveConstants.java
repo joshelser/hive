@@ -21,5 +21,8 @@ package org.apache.hadoop.hive.accumulo;
  */
 public class AccumuloHiveConstants {
   public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',';
+  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
+  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
+  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
+      + Character.toString(ESCAPE) + Character.toString(COLON);
 }

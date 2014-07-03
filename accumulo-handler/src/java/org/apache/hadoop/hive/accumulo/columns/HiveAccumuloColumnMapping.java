@@ -43,14 +43,50 @@ public class HiveAccumuloColumnMapping extends ColumnMapping {
    * and column qualifier. 
    */
   protected void parse() {
-    int index = mappingSpec.indexOf(AccumuloHiveConstants.COLON);
-    if (-1 == index) {
-      log.error("Cannot parse '" + mappingSpec + "' as colon-separated column configuration");
-      throw new InvalidColumnMappingException("Columns must be provided as cf:cq pairs");
+    int index = 0;
+
+    while (true) {
+      if (index >= mappingSpec.length()) {
+        log.error("Cannot parse '" + mappingSpec + "' as colon-separated column configuration");
+        throw new InvalidColumnMappingException("Columns must be provided as colon-separated family and qualifier pairs");
+      }
+  
+      index = mappingSpec.indexOf(AccumuloHiveConstants.COLON, index);
+      
+      if (-1 == index) {
+        log.error("Cannot parse '" + mappingSpec + "' as colon-separated column configuration");
+        throw new InvalidColumnMappingException("Columns must be provided as colon-separated family and qualifier pairs");
+      }
+  
+      // Check for an escape character before the colon
+      if (index - 1 > 0) {
+        char testChar = mappingSpec.charAt(index - 1);
+        if (AccumuloHiveConstants.ESCAPE == testChar) {
+          // this colon is escaped, search again after it
+          index++;
+          continue;
+        }
+
+        // If the previous character isn't an escape characters, it's the separator
+      }
+
+      // Can't be escaped, it is the separator
+      break;
     }
 
     columnFamily = mappingSpec.substring(0, index);
+
+    // Check for the escaped colon to remove before doing the expensive regex replace
+    if (-1 != columnFamily.indexOf(AccumuloHiveConstants.ESCAPED_COLON)) {
+      columnFamily = columnFamily.replaceAll(AccumuloHiveConstants.ESCAPED_COLON_REGEX, Character.toString(AccumuloHiveConstants.COLON));
+    }
+
     columnQualifier = mappingSpec.substring(index + 1);
+
+    // Check for the escaped colon to remove before doing the expensive regex replace
+    if (-1 != columnQualifier.indexOf(AccumuloHiveConstants.ESCAPED_COLON)) {
+      columnQualifier = columnQualifier.replaceAll(AccumuloHiveConstants.ESCAPED_COLON_REGEX, Character.toString(AccumuloHiveConstants.COLON));
+    }
   }
 
   public String getColumnFamily() {

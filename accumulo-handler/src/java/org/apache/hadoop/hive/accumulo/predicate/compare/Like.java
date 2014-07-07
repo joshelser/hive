@@ -2,27 +2,27 @@ package org.apache.hadoop.hive.accumulo.predicate.compare;
 
 /**
  *
- * Wraps call to like over {@link PrimitiveCompare} instance. Currently only supported by StringCompare.
+ * Wraps call to like over {@link PrimitiveComparison} instance. Currently only supported by StringCompare.
  *
  * Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}
  */
 public class Like implements CompareOp {
 
-    PrimitiveCompare comp;
+    PrimitiveComparison comp;
 
     public Like(){}
 
-    public Like(PrimitiveCompare comp) {
+    public Like(PrimitiveComparison comp) {
         this.comp = comp;
     }
 
     @Override
-    public void setPrimitiveCompare(PrimitiveCompare comp) {
+    public void setPrimitiveCompare(PrimitiveComparison comp) {
        this.comp = comp;
     }
 
     @Override
-    public PrimitiveCompare getPrimitiveCompare() {
+    public PrimitiveComparison getPrimitiveCompare() {
         return comp;
     }
 

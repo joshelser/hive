@@ -1,6 +1,5 @@
 package org.apache.hadoop.hive.accumulo.predicate;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,14 +24,12 @@ import org.apache.hadoop.hive.accumulo.predicate.compare.LessThanOrEqual;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Like;
 import org.apache.hadoop.hive.accumulo.predicate.compare.LongCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.NotEqual;
-import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveCompare;
+import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveComparison;
 import org.apache.hadoop.hive.accumulo.predicate.compare.StringCompare;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
-import org.apache.hadoop.hive.ql.exec.ExprNodeConstantEvaluator;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
-import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler.DecomposedPredicate;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
@@ -46,12 +43,7 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPNotEqual;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.io.DoubleWritable;
-import org.apache.hadoop.io.IntWritable;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.io.Writable;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -68,7 +60,7 @@ public class AccumuloPredicateHandler {
 
   private static AccumuloPredicateHandler handler = new AccumuloPredicateHandler();
   private static Map<String,Class<? extends CompareOp>> compareOps = Maps.newHashMap();
-  private static Map<String,Class<? extends PrimitiveCompare>> pComparisons = Maps.newHashMap();
+  private static Map<String,Class<? extends PrimitiveComparison>> pComparisons = Maps.newHashMap();
   private static int iteratorCount = 0;
 
   private static final Logger log = Logger.getLogger(AccumuloPredicateHandler.class);
@@ -113,10 +105,29 @@ public class AccumuloPredicateHandler {
    *          GenericUDF classname to lookup matching CompareOpt
    * @return Class<? extends CompareOpt/>
    */
-  public Class<? extends CompareOp> getCompareOp(String udfType) throws NoSuchCompareOpException {
+  public Class<? extends CompareOp> getCompareOpClass(String udfType)
+      throws NoSuchCompareOpException {
     if (!compareOps.containsKey(udfType))
       throw new NoSuchCompareOpException("Null compare op for specified key: " + udfType);
     return compareOps.get(udfType);
+  }
+
+  public CompareOp getCompareOp(String udfType, IndexSearchCondition sc)
+      throws NoSuchCompareOpException, SerDeException {
+    Class<? extends CompareOp> clz = getCompareOpClass(udfType);
+
+    try {
+      return clz.newInstance();
+    } catch (ClassCastException e) {
+      throw new SerDeException("Column type mismatch in WHERE clause "
+          + sc.getComparisonExpr().getExprString() + " found type "
+          + sc.getConstantDesc().getTypeString() + " instead of "
+          + sc.getColumnDesc().getTypeString());
+    } catch (IllegalAccessException e) {
+      throw new SerDeException("Could not instantiate class for WHERE clause", e);
+    } catch (InstantiationException e) {
+      throw new SerDeException("Could not instantiate class for WHERE clause", e);
+    }
   }
 
   /**
@@ -125,10 +136,30 @@ public class AccumuloPredicateHandler {
    *          String hive column lookup matching PrimitiveCompare
    * @return Class<? extends ></?>
    */
-  public Class<? extends PrimitiveCompare> getPrimitiveComparison(String type) {
+  public Class<? extends PrimitiveComparison> getPrimitiveComparisonClass(String type)
+      throws NoSuchPrimitiveComparisonException {
     if (!pComparisons.containsKey(type))
-      throw new RuntimeException("Null primitive comparison for specified key: " + type);
+      throw new NoSuchPrimitiveComparisonException("Null primitive comparison for specified key: "
+          + type);
     return pComparisons.get(type);
+  }
+
+  public PrimitiveComparison getPrimitiveComparison(String type, IndexSearchCondition sc)
+      throws NoSuchPrimitiveComparisonException, SerDeException {
+    Class<? extends PrimitiveComparison> clz = getPrimitiveComparisonClass(type);
+
+    try {
+      return clz.newInstance();
+    } catch (ClassCastException e) {
+      throw new SerDeException("Column type mismatch in WHERE clause "
+          + sc.getComparisonExpr().getExprString() + " found type "
+          + sc.getConstantDesc().getTypeString() + " instead of "
+          + sc.getColumnDesc().getTypeString());
+    } catch (IllegalAccessException e) {
+      throw new SerDeException("Could not instantiate class for WHERE clause", e);
+    } catch (InstantiationException e) {
+      throw new SerDeException("Could not instantiate class for WHERE clause", e);
+    }
   }
 
   private AccumuloPredicateHandler() {}
@@ -137,7 +168,8 @@ public class AccumuloPredicateHandler {
    * Loop through search conditions and build ranges for predicates involving rowID column, if any.
    * 
    */
-  public Collection<Range> getRanges(Configuration conf, ColumnMapper columnMapper) throws SerDeException {
+  public Collection<Range> getRanges(Configuration conf, ColumnMapper columnMapper)
+      throws SerDeException {
     List<Range> ranges = Lists.newArrayList();
     if (!columnMapper.hasRowIdMapping()) {
       return ranges;
@@ -161,15 +193,18 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * Loop through search conditions and build iterator settings for predicates involving columns other than rowID, if any.
+   * Loop through search conditions and build iterator settings for predicates involving columns
+   * other than rowID, if any.
    * 
    * @param conf
    *          Configuration
    * @throws SerDeException
    */
-  public List<IteratorSetting> getIterators(Configuration conf, ColumnMapper columnMapper) throws SerDeException {
+  public List<IteratorSetting> getIterators(Configuration conf, ColumnMapper columnMapper)
+      throws SerDeException {
     List<IteratorSetting> itrs = Lists.newArrayList();
-    boolean shouldPushdown = conf.getBoolean(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, AccumuloSerDeParameters.ITERATOR_PUSHDOWN_DEFAULT);
+    boolean shouldPushdown = conf.getBoolean(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY,
+        AccumuloSerDeParameters.ITERATOR_PUSHDOWN_DEFAULT);
     if (!shouldPushdown) {
       log.info("Iterator pushdown is disabled for this table");
       return itrs;
@@ -183,7 +218,7 @@ public class AccumuloPredicateHandler {
     }
 
     String hiveRowIdColumnName = null;
-    
+
     if (rowIdOffset >= 0 && rowIdOffset < hiveColumnNamesArr.length) {
       hiveRowIdColumnName = hiveColumnNamesArr[rowIdOffset];
     }
@@ -193,7 +228,8 @@ public class AccumuloPredicateHandler {
     for (IndexSearchCondition sc : getSearchConditions(conf)) {
       String col = sc.getColumnDesc().getColumn();
       if (hiveRowIdColumnName == null || !hiveRowIdColumnName.equals(col)) {
-        HiveAccumuloColumnMapping mapping = (HiveAccumuloColumnMapping) columnMapper.getColumnMappingForHiveColumn(hiveColumnNames, col);
+        HiveAccumuloColumnMapping mapping = (HiveAccumuloColumnMapping) columnMapper
+            .getColumnMappingForHiveColumn(hiveColumnNames, col);
         itrs.add(toSetting(mapping, sc));
       }
     }
@@ -211,7 +247,23 @@ public class AccumuloPredicateHandler {
    */
   public Range toRange(IndexSearchCondition sc) throws SerDeException {
     Range range;
-    PushdownTuple tuple = new PushdownTuple(sc);
+    final String type = sc.getColumnDesc().getTypeString();
+    final String comparisonOpStr = sc.getComparisonOp();
+    final PrimitiveComparison primitiveComparison;
+    final CompareOp compareOp;
+    try {
+      primitiveComparison = getPrimitiveComparison(type, sc);
+    } catch (NoSuchPrimitiveComparisonException e) {
+      throw new SerDeException("Could not find PrimitiveComparison for " + type, e);
+    }
+
+    try {
+      compareOp = getCompareOp(comparisonOpStr, sc);
+    } catch (NoSuchCompareOpException e) {
+      throw new SerDeException("Could not find CompareOp for " + comparisonOpStr, e);
+    }
+
+    PushdownTuple tuple = new PushdownTuple(sc, primitiveComparison, compareOp);
     Text constText = new Text(tuple.getConstVal());
     if (tuple.getcOpt() instanceof Equal) {
       range = new Range(constText, true, constText, true); // start inclusive to end inclusive
@@ -224,13 +276,15 @@ public class AccumuloPredicateHandler {
     } else if (tuple.getcOpt() instanceof LessThan) {
       range = new Range(null, true, constText, false); // neg-infinity to start exclusive
     } else {
-      throw new SerDeException("Unsupported comparison operator involving rowid: " + tuple.getcOpt().getClass().getName() + " only =, !=, <, <=, >, >=");
+      throw new SerDeException("Unsupported comparison operator involving rowid: "
+          + tuple.getcOpt().getClass().getName() + " only =, !=, <, <=, >, >=");
     }
     return range;
   }
 
   /**
-   * Create an IteratorSetting for the right qualifier, constant, CompareOpt, and PrimitiveCompare type.
+   * Create an IteratorSetting for the right qualifier, constant, CompareOpt, and PrimitiveCompare
+   * type.
    * 
    * @param accumuloColumnMapping
    *          ColumnMapping to filter
@@ -239,14 +293,29 @@ public class AccumuloPredicateHandler {
    * @return IteratorSetting
    * @throws SerDeException
    */
-  public IteratorSetting toSetting(HiveAccumuloColumnMapping accumuloColumnMapping, IndexSearchCondition sc) throws SerDeException {
+  public IteratorSetting toSetting(HiveAccumuloColumnMapping accumuloColumnMapping,
+      IndexSearchCondition sc) throws SerDeException {
     iteratorCount++;
-    IteratorSetting is = new IteratorSetting(iteratorCount, PrimitiveComparisonFilter.FILTER_PREFIX + iteratorCount, PrimitiveComparisonFilter.class);
+    final IteratorSetting is = new IteratorSetting(iteratorCount,
+        PrimitiveComparisonFilter.FILTER_PREFIX + iteratorCount, PrimitiveComparisonFilter.class);
+    final String type = sc.getColumnDesc().getTypeString();
+    final String comparisonOpStr = sc.getComparisonOp();
 
-    PushdownTuple tuple = new PushdownTuple(sc);
-    is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, tuple.getpCompare().getClass().getName());
+    PushdownTuple tuple;
+    try {
+      tuple = new PushdownTuple(sc, getPrimitiveComparison(type, sc), getCompareOp(comparisonOpStr,
+          sc));
+    } catch (NoSuchPrimitiveComparisonException e) {
+      throw new SerDeException("No configured PrimitiveComparison class for " + type, e);
+    } catch (NoSuchCompareOpException e) {
+      throw new SerDeException("No configured CompareOp class for " + comparisonOpStr, e);
+    }
+
+    is.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, tuple.getpCompare().getClass()
+        .getName());
     is.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, tuple.getcOpt().getClass().getName());
-    is.addOption(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(tuple.getConstVal())));
+    is.addOption(PrimitiveComparisonFilter.CONST_VAL,
+        new String(Base64.encodeBase64(tuple.getConstVal())));
     is.addOption(PrimitiveComparisonFilter.COLUMN, accumuloColumnMapping.serialize());
 
     return is;
@@ -298,7 +367,8 @@ public class AccumuloPredicateHandler {
   }
 
   /*
-   * Build an analyzer that allows comparison opts from compareOpts map, and all columns from table definition.
+   * Build an analyzer that allows comparison opts from compareOpts map, and all columns from table
+   * definition.
    */
   private IndexPredicateAnalyzer newAnalyzer(Configuration conf) {
     IndexPredicateAnalyzer analyzer = new IndexPredicateAnalyzer();
@@ -313,91 +383,5 @@ public class AccumuloPredicateHandler {
     }
 
     return analyzer;
-  }
-
-  /**
-   * For use in IteratorSetting construction.
-   * 
-   * encapsulates a constant byte [], PrimitiveCompare instance, and CompareOp instance.
-   */
-  public static class PushdownTuple {
-
-    private byte[] constVal;
-    private PrimitiveCompare pCompare;
-    private CompareOp cOpt;
-
-    public PushdownTuple(IndexSearchCondition sc) throws SerDeException {
-      init(sc);
-    }
-
-    private void init(IndexSearchCondition sc) throws SerDeException {
-
-      try {
-        ExprNodeConstantEvaluator eval = new ExprNodeConstantEvaluator(sc.getConstantDesc());
-        String type = sc.getColumnDesc().getTypeString();
-        Class<? extends PrimitiveCompare> pClass = pComparisons.get(type);
-        Class<? extends CompareOp> cClass = compareOps.get(sc.getComparisonOp());
-        if (cClass == null)
-          throw new SerDeException("no CompareOp subclass mapped for operation: " + sc.getComparisonOp());
-        if (pClass == null)
-          throw new SerDeException("no PrimitiveCompare subclass mapped for type: " + type);
-        pCompare = pClass.newInstance();
-        cOpt = cClass.newInstance();
-        Writable writable = (Writable) eval.evaluate(null);
-        constVal = getConstantAsBytes(writable);
-      } catch (ClassCastException cce) {
-        log.info(StringUtils.stringifyException(cce));
-        throw new SerDeException(" Column type mismatch in where clause " + sc.getComparisonExpr().getExprString() + " found type "
-            + sc.getConstantDesc().getTypeString() + " instead of " + sc.getColumnDesc().getTypeString());
-      } catch (HiveException e) {
-        throw new SerDeException(e);
-      } catch (InstantiationException e) {
-        throw new SerDeException(e);
-      } catch (IllegalAccessException e) {
-        throw new SerDeException(e);
-      }
-
-    }
-
-    public byte[] getConstVal() {
-      return constVal;
-    }
-
-    public PrimitiveCompare getpCompare() {
-      return pCompare;
-    }
-
-    public CompareOp getcOpt() {
-      return cOpt;
-    }
-
-    /**
-     * 
-     * @return byte [] value from writable.
-     * @throws SerDeException
-     */
-    public byte[] getConstantAsBytes(Writable writable) throws SerDeException {
-      if (pCompare instanceof StringCompare) {
-        return writable.toString().getBytes();
-      } else if (pCompare instanceof DoubleCompare) {
-        byte[] bts = new byte[8];
-        double val = ((DoubleWritable) writable).get();
-        ByteBuffer.wrap(bts).putDouble(val);
-        return bts;
-      } else if (pCompare instanceof IntCompare) {
-        byte[] bts = new byte[4];
-        int val = ((IntWritable) writable).get();
-        ByteBuffer.wrap(bts).putInt(val);
-        return bts;
-      } else if (pCompare instanceof LongCompare) {
-        byte[] bts = new byte[8];
-        long val = ((LongWritable) writable).get();
-        ByteBuffer.wrap(bts).putLong(val);
-        return bts;
-      } else {
-        throw new SerDeException("Unsupported primitive category: " + pCompare.getClass().getName());
-      }
-    }
-
   }
 }

@@ -7,21 +7,21 @@ package org.apache.hadoop.hive.accumulo.predicate.compare;
  */
 public class Equal implements CompareOp {
 
-    private PrimitiveCompare comp;
+    private PrimitiveComparison comp;
 
     public Equal(){}
 
-    public Equal(PrimitiveCompare comp) {
+    public Equal(PrimitiveComparison comp) {
         this.comp  = comp;
     }
 
     @Override
-    public void setPrimitiveCompare(PrimitiveCompare comp) {
+    public void setPrimitiveCompare(PrimitiveComparison comp) {
         this.comp = comp;
     }
 
     @Override
-    public PrimitiveCompare getPrimitiveCompare() {
+    public PrimitiveComparison getPrimitiveCompare() {
         return comp;
     }
 

@@ -11,7 +11,7 @@ package org.apache.hadoop.hive.accumulo.predicate.compare;
  *  Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}.
  *  Works with {@link CompareOp}
  */
-public interface PrimitiveCompare {
+public interface PrimitiveComparison {
 
     public boolean isEqual(byte[] value);
     public boolean isNotEqual(byte[] value);

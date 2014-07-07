@@ -16,7 +16,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
-import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveCompare;
+import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveComparison;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -93,7 +93,7 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
     try {
       Class<?> pClass = Class.forName(options.get(P_COMPARE_CLASS));
       Class<?> cClazz = Class.forName(options.get(COMPARE_OPT_CLASS));
-      PrimitiveCompare pCompare = pClass.asSubclass(PrimitiveCompare.class).newInstance();
+      PrimitiveComparison pCompare = pClass.asSubclass(PrimitiveComparison.class).newInstance();
       compOpt = cClazz.asSubclass(CompareOp.class).newInstance();
       String b64Const = options.get(CONST_VAL);
       String constStr = new String(Base64.decodeBase64(b64Const.getBytes()));

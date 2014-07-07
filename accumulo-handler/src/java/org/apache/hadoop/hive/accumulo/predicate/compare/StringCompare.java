@@ -12,7 +12,7 @@ import org.apache.log4j.Logger;
  * Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}
  *
  */
-public class StringCompare implements PrimitiveCompare {
+public class StringCompare implements PrimitiveComparison {
 
     private String constant;
     private static final Logger log = Logger.getLogger(StringCompare.class);

@@ -2,27 +2,27 @@ package org.apache.hadoop.hive.accumulo.predicate.compare;
 
 /**
  *
- * Wraps call to lessThanOrEqual over {@link PrimitiveCompare} instance.
+ * Wraps call to lessThanOrEqual over {@link PrimitiveComparison} instance.
  *
  * Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}
  */
 public class LessThanOrEqual implements CompareOp {
 
-    private PrimitiveCompare comp;
+    private PrimitiveComparison comp;
 
     public LessThanOrEqual(){}
 
-    public LessThanOrEqual(PrimitiveCompare comp) {
+    public LessThanOrEqual(PrimitiveComparison comp) {
         this.comp = comp;
     }
 
     @Override
-    public void setPrimitiveCompare(PrimitiveCompare comp) {
+    public void setPrimitiveCompare(PrimitiveComparison comp) {
        this.comp = comp;
     }
 
     @Override
-    public PrimitiveCompare getPrimitiveCompare() {
+    public PrimitiveComparison getPrimitiveCompare() {
         return comp;
     }
 

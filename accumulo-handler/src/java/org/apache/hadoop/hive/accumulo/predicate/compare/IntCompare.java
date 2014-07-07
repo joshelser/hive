@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
  * Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}
  *
  */
-public class IntCompare implements PrimitiveCompare {
+public class IntCompare implements PrimitiveComparison {
 
     private int constant;
 

@@ -2,27 +2,27 @@ package org.apache.hadoop.hive.accumulo.predicate.compare;
 
 /**
  *
- * Wraps call to isEqual over {@link PrimitiveCompare} instance and returns the negation.
+ * Wraps call to isEqual over {@link PrimitiveComparison} instance and returns the negation.
  *
  * Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}
  */
 public class NotEqual implements CompareOp {
 
-    private PrimitiveCompare comp;
+    private PrimitiveComparison comp;
 
     public NotEqual(){}
 
-    public NotEqual(PrimitiveCompare comp) {
+    public NotEqual(PrimitiveComparison comp) {
         this.comp = comp;
     }
 
     @Override
-    public void setPrimitiveCompare(PrimitiveCompare comp) {
+    public void setPrimitiveCompare(PrimitiveComparison comp) {
         this.comp = comp;
     }
 
     @Override
-    public PrimitiveCompare getPrimitiveCompare() {
+    public PrimitiveComparison getPrimitiveCompare() {
         return comp;
     }
 

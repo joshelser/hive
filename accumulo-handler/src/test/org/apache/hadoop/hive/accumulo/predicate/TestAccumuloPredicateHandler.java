@@ -29,7 +29,7 @@ import org.apache.hadoop.hive.accumulo.predicate.compare.LessThan;
 import org.apache.hadoop.hive.accumulo.predicate.compare.LessThanOrEqual;
 import org.apache.hadoop.hive.accumulo.predicate.compare.LongCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.NotEqual;
-import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveCompare;
+import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveComparison;
 import org.apache.hadoop.hive.accumulo.predicate.compare.StringCompare;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
@@ -86,191 +86,206 @@ public class TestAccumuloPredicateHandler {
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqual(), children);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqual(), children);
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
-      assertEquals(sConditions.size(), 1);
-    } catch (Exception e) {
-      fail("Error getting search conditions");
-    }
+
+    List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
+    assertEquals(sConditions.size(), 1);
   }
 
   @Test()
-  public void testRangeEqual() {
+  public void testRangeEqual() throws SerDeException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqual(), children);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqual(), children);
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
-      assertEquals(ranges.size(), 1);
-      Range range = ranges.iterator().next();
-      assertTrue(range.isStartKeyInclusive());
-      assertFalse(range.isEndKeyInclusive());
-      assertTrue(range.contains(new Key(new Text("aaa"))));
-      assertTrue(range.afterEndKey(new Key(new Text("aab"))));
-      assertTrue(range.beforeStartKey(new Key(new Text("aa"))));
-    } catch (Exception e) {
-      fail("Error getting search conditions");
-    }
+
+    Collection<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(ranges.size(), 1);
+    Range range = ranges.iterator().next();
+    assertTrue(range.isStartKeyInclusive());
+    assertFalse(range.isEndKeyInclusive());
+    assertTrue(range.contains(new Key(new Text("aaa"))));
+    assertTrue(range.afterEndKey(new Key(new Text("aab"))));
+    assertTrue(range.beforeStartKey(new Key(new Text("aa"))));
   }
 
   @Test()
-  public void testRangeGreaterThan() {
+  public void testRangeGreaterThan() throws SerDeException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPGreaterThan(), children);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPGreaterThan(), children);
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
-      assertEquals(ranges.size(), 1);
-      Range range = ranges.iterator().next();
-      assertTrue(range.isStartKeyInclusive());
-      assertFalse(range.isEndKeyInclusive());
-      assertFalse(range.contains(new Key(new Text("aaa"))));
-      assertFalse(range.afterEndKey(new Key(new Text("ccccc"))));
-      assertTrue(range.contains(new Key(new Text("aab"))));
-      assertTrue(range.beforeStartKey(new Key(new Text("aa"))));
-      assertTrue(range.beforeStartKey(new Key(new Text("aaa"))));
-    } catch (Exception e) {
-      fail("Error getting search conditions");
-    }
+
+    Collection<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(ranges.size(), 1);
+    Range range = ranges.iterator().next();
+    assertTrue(range.isStartKeyInclusive());
+    assertFalse(range.isEndKeyInclusive());
+    assertFalse(range.contains(new Key(new Text("aaa"))));
+    assertFalse(range.afterEndKey(new Key(new Text("ccccc"))));
+    assertTrue(range.contains(new Key(new Text("aab"))));
+    assertTrue(range.beforeStartKey(new Key(new Text("aa"))));
+    assertTrue(range.beforeStartKey(new Key(new Text("aaa"))));
   }
 
   @Test
-  public void rangeGreaterThanOrEqual() {
+  public void rangeGreaterThanOrEqual() throws SerDeException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqualOrGreaterThan(), children);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrGreaterThan(), children);
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
-      assertEquals(ranges.size(), 1);
-      Range range = ranges.iterator().next();
-      assertTrue(range.isStartKeyInclusive());
-      assertFalse(range.isEndKeyInclusive());
-      assertTrue(range.contains(new Key(new Text("aaa"))));
-      assertFalse(range.afterEndKey(new Key(new Text("ccccc"))));
-      assertTrue(range.contains(new Key(new Text("aab"))));
-      assertTrue(range.beforeStartKey(new Key(new Text("aa"))));
-    } catch (Exception e) {
-      fail("Error getting search conditions");
-    }
+
+    Collection<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(ranges.size(), 1);
+    Range range = ranges.iterator().next();
+    assertTrue(range.isStartKeyInclusive());
+    assertFalse(range.isEndKeyInclusive());
+    assertTrue(range.contains(new Key(new Text("aaa"))));
+    assertFalse(range.afterEndKey(new Key(new Text("ccccc"))));
+    assertTrue(range.contains(new Key(new Text("aab"))));
+    assertTrue(range.beforeStartKey(new Key(new Text("aa"))));
   }
 
   @Test
-  public void rangeLessThan() {
+  public void rangeLessThan() throws SerDeException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPLessThan(), children);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPLessThan(), children);
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
-      assertEquals(ranges.size(), 1);
-      Range range = ranges.iterator().next();
-      assertTrue(range.isStartKeyInclusive());
-      assertFalse(range.isEndKeyInclusive());
-      assertFalse(range.contains(new Key(new Text("aaa"))));
-      assertTrue(range.afterEndKey(new Key(new Text("ccccc"))));
-      assertTrue(range.contains(new Key(new Text("aa"))));
-      assertTrue(range.afterEndKey(new Key(new Text("aab"))));
-      assertTrue(range.afterEndKey(new Key(new Text("aaa"))));
-    } catch (Exception e) {
-      fail("Error getting search conditions");
-    }
+
+    Collection<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(ranges.size(), 1);
+    Range range = ranges.iterator().next();
+    assertTrue(range.isStartKeyInclusive());
+    assertFalse(range.isEndKeyInclusive());
+    assertFalse(range.contains(new Key(new Text("aaa"))));
+    assertTrue(range.afterEndKey(new Key(new Text("ccccc"))));
+    assertTrue(range.contains(new Key(new Text("aa"))));
+    assertTrue(range.afterEndKey(new Key(new Text("aab"))));
+    assertTrue(range.afterEndKey(new Key(new Text("aaa"))));
   }
 
   @Test
-  public void rangeLessThanOrEqual() {
+  public void rangeLessThanOrEqual() throws SerDeException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqualOrLessThan(), children);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children);
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
-      assertEquals(ranges.size(), 1);
-      Range range = ranges.iterator().next();
-      assertTrue(range.isStartKeyInclusive());
-      assertFalse(range.isEndKeyInclusive());
-      assertTrue(range.contains(new Key(new Text("aaa"))));
-      assertTrue(range.afterEndKey(new Key(new Text("ccccc"))));
-      assertTrue(range.contains(new Key(new Text("aa"))));
-      assertTrue(range.afterEndKey(new Key(new Text("aab"))));
-      assertFalse(range.afterEndKey(new Key(new Text("aaa"))));
-    } catch (Exception e) {
-      fail("Error getting search conditions");
-    }
+
+    Collection<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(ranges.size(), 1);
+    Range range = ranges.iterator().next();
+    assertTrue(range.isStartKeyInclusive());
+    assertFalse(range.isEndKeyInclusive());
+    assertTrue(range.contains(new Key(new Text("aaa"))));
+    assertTrue(range.afterEndKey(new Key(new Text("ccccc"))));
+    assertTrue(range.contains(new Key(new Text("aa"))));
+    assertTrue(range.afterEndKey(new Key(new Text("aab"))));
+    assertFalse(range.afterEndKey(new Key(new Text("aaa"))));
   }
 
   @Test
-  public void multiRange() {
+  public void multiRange() throws SerDeException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqualOrLessThan(), children);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children);
     assertNotNull(node);
 
-    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null,
+        false);
     ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "bbb");
     List<ExprNodeDesc> children2 = Lists.newArrayList();
     children2.add(column2);
     children2.add(constant2);
-    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPGreaterThan(), children2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPGreaterThan(), children2);
     assertNotNull(node2);
 
     List<ExprNodeDesc> bothFilters = Lists.newArrayList();
     bothFilters.add(node);
     bothFilters.add(node2);
-    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPAnd(), bothFilters);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
 
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      Collection<Range> ranges = handler.getRanges(conf, columnMapper);
-      assertEquals(ranges.size(), 2);
-      Iterator<Range> itr = ranges.iterator();
-      Range range1 = itr.next();
-      Range range2 = itr.next();
-      assertNull(range1.clip(range2, true));
-    } catch (Exception e) {
-      fail("Error getting search conditions");
-    }
+
+    Collection<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(ranges.size(), 2);
+    Iterator<Range> itr = ranges.iterator();
+    Range range1 = itr.next();
+    Range range2 = itr.next();
+    assertNull(range1.clip(range2, true));
   }
 
   @Test
-  public void testPushdownTuple() {
+  public void testPushdownTuple() throws SerDeException, NoSuchPrimitiveComparisonException,
+      NoSuchCompareOpException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "field1", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, 5);
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(column);
+    children.add(constant);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqual(), children);
+    assertNotNull(node);
+    String filterExpr = Utilities.serializeExpression(node);
+    conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
+
+    List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
+    assertEquals(sConditions.size(), 1);
+    IndexSearchCondition sc = sConditions.get(0);
+    PushdownTuple tuple = new PushdownTuple(sConditions.get(0), handler.getPrimitiveComparison(
+        sc.getColumnDesc().getTypeString(), sc), handler.getCompareOp(sc.getComparisonOp(), sc));
+    byte[] expectedVal = new byte[4];
+    ByteBuffer.wrap(expectedVal).putInt(5);
+    assertArrayEquals(tuple.getConstVal(), expectedVal);
+    assertEquals(tuple.getcOpt().getClass(), Equal.class);
+    assertEquals(tuple.getpCompare().getClass(), IntCompare.class);
+  }
+
+  @Test(expected = NoSuchPrimitiveComparisonException.class)
+  public void testPushdownColumnTypeNotSupported() throws SerDeException, NoSuchPrimitiveComparisonException, NoSuchCompareOpException {
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.floatTypeInfo, "field1", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.floatTypeInfo, 5.5f);
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
@@ -278,56 +293,31 @@ public class TestAccumuloPredicateHandler {
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
-      assertEquals(sConditions.size(), 1);
-      AccumuloPredicateHandler.PushdownTuple tuple = new AccumuloPredicateHandler.PushdownTuple(sConditions.get(0));
-      byte[] expectedVal = new byte[4];
-      ByteBuffer.wrap(expectedVal).putInt(5);
-      assertArrayEquals(tuple.getConstVal(), expectedVal);
-      assertEquals(tuple.getcOpt().getClass(), Equal.class);
-      assertEquals(tuple.getpCompare().getClass(), IntCompare.class);
-    } catch (Exception e) {
-      fail(StringUtils.stringifyException(e));
-    }
-  }
+    List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
+    assertEquals(sConditions.size(), 1);
+    IndexSearchCondition sc = sConditions.get(0);
 
-  @Test
-  public void testPushdownColumnTypeNotSupported() {
-    try {
-      ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.floatTypeInfo, "field1", null, false);
-      ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.floatTypeInfo, 5.5f);
-      List<ExprNodeDesc> children = Lists.newArrayList();
-      children.add(column);
-      children.add(constant);
-      ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqual(), children);
-      assertNotNull(node);
-      String filterExpr = Utilities.serializeExpression(node);
-      conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-      List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
-      assertEquals(sConditions.size(), 1);
-      new AccumuloPredicateHandler.PushdownTuple(sConditions.get(0));
-      fail("Should fail: type not supported");
-    } catch (SerDeException e) {
-      assertTrue(e.getMessage().contains("no PrimitiveCompare subclass mapped for type:"));
-    } catch (Exception e) {
-      fail(StringUtils.stringifyException(e));
-    }
+    handler.getPrimitiveComparison(sc.getColumnDesc()
+        .getTypeString(), sc);
   }
 
   @Test
   public void testPushdownComparisonOptNotSupported() {
     try {
-      ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
+      ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null,
+          false);
       List<ExprNodeDesc> children = Lists.newArrayList();
       children.add(column);
-      ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPNotNull(), children);
+      ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+          new GenericUDFOPNotNull(), children);
       assertNotNull(node);
       String filterExpr = Utilities.serializeExpression(node);
       conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
       List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
       assertEquals(sConditions.size(), 1);
-      new AccumuloPredicateHandler.PushdownTuple(sConditions.get(0));
+      IndexSearchCondition sc = sConditions.get(0);
+      new PushdownTuple(sc, handler.getPrimitiveComparison(sc.getColumnDesc().getTypeString(), sc),
+          handler.getCompareOp(sc.getComparisonOp(), sc));
       fail("Should fail: compare op not registered for index analyzer. Should leave undesirable residual predicate");
     } catch (RuntimeException e) {
       assertTrue(e.getMessage().contains("Unexpected residual predicate: field1 is not null"));
@@ -343,21 +333,25 @@ public class TestAccumuloPredicateHandler {
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqualOrLessThan(), children);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children);
     assertNotNull(node);
 
-    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null,
+        false);
     ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "bbb");
     List<ExprNodeDesc> children2 = Lists.newArrayList();
     children2.add(column2);
     children2.add(constant2);
-    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPGreaterThan(), children2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPGreaterThan(), children2);
     assertNotNull(node2);
 
     List<ExprNodeDesc> bothFilters = Lists.newArrayList();
     bothFilters.add(node);
     bothFilters.add(node2);
-    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPAnd(), bothFilters);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
 
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
@@ -380,26 +374,31 @@ public class TestAccumuloPredicateHandler {
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
     columnMapper = new ColumnMapper(columnMappingStr);
 
-    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null,
+        false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqualOrLessThan(), children);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children);
     assertNotNull(node);
 
-    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "field2", null, false);
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "field2", null,
+        false);
     ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, 5);
     List<ExprNodeDesc> children2 = Lists.newArrayList();
     children2.add(column2);
     children2.add(constant2);
-    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPGreaterThan(), children2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPGreaterThan(), children2);
     assertNotNull(node2);
 
     List<ExprNodeDesc> bothFilters = Lists.newArrayList();
     bothFilters.add(node);
     bothFilters.add(node2);
-    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPAnd(), bothFilters);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
 
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
@@ -413,7 +412,7 @@ public class TestAccumuloPredicateHandler {
   }
 
   @Test
-  public void testCreateIteratorSettings() {
+  public void testCreateIteratorSettings() throws Exception {
     // Override what's placed in the Configuration by setup()
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,field2,rid");
@@ -422,86 +421,86 @@ public class TestAccumuloPredicateHandler {
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
     columnMapper = new ColumnMapper(columnMappingStr);
 
-    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null,
+        false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqualOrLessThan(), children);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children);
     assertNotNull(node);
 
-    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "field2", null, false);
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "field2", null,
+        false);
     ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, 5);
     List<ExprNodeDesc> children2 = Lists.newArrayList();
     children2.add(column2);
     children2.add(constant2);
-    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPGreaterThan(), children2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPGreaterThan(), children2);
     assertNotNull(node2);
 
     List<ExprNodeDesc> bothFilters = Lists.newArrayList();
     bothFilters.add(node);
     bothFilters.add(node2);
-    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPAnd(), bothFilters);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
 
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
-    try {
-      List<IteratorSetting> iterators = handler.getIterators(conf, columnMapper);
-      assertEquals(iterators.size(), 2);
-      IteratorSetting is1 = iterators.get(0);
-      IteratorSetting is2 = iterators.get(1);
+    List<IteratorSetting> iterators = handler.getIterators(conf, columnMapper);
+    assertEquals(iterators.size(), 2);
+    IteratorSetting is1 = iterators.get(0);
+    IteratorSetting is2 = iterators.get(1);
 
-      boolean foundQual = false;
-      boolean foundPCompare = false;
-      boolean foundCOpt = false;
-      boolean foundConst = false;
-      for (Map.Entry<String,String> option : is1.getOptions().entrySet()) {
-        String optKey = option.getKey();
-        if (optKey.equals(PrimitiveComparisonFilter.COLUMN)) {
-          foundQual = true;
-          assertEquals(option.getValue(), "cf:f1");
-        } else if (optKey.equals(PrimitiveComparisonFilter.CONST_VAL)) {
-          foundConst = true;
-          assertEquals(option.getValue(), new String(Base64.encodeBase64("aaa".getBytes())));
-        } else if (optKey.equals(PrimitiveComparisonFilter.COMPARE_OPT_CLASS)) {
-          foundCOpt = true;
-          assertEquals(option.getValue(), LessThanOrEqual.class.getName());
-        } else if (optKey.equals(PrimitiveComparisonFilter.P_COMPARE_CLASS)) {
-          foundPCompare = true;
-          assertEquals(option.getValue(), StringCompare.class.getName());
-        }
-
+    boolean foundQual = false;
+    boolean foundPCompare = false;
+    boolean foundCOpt = false;
+    boolean foundConst = false;
+    for (Map.Entry<String,String> option : is1.getOptions().entrySet()) {
+      String optKey = option.getKey();
+      if (optKey.equals(PrimitiveComparisonFilter.COLUMN)) {
+        foundQual = true;
+        assertEquals(option.getValue(), "cf:f1");
+      } else if (optKey.equals(PrimitiveComparisonFilter.CONST_VAL)) {
+        foundConst = true;
+        assertEquals(option.getValue(), new String(Base64.encodeBase64("aaa".getBytes())));
+      } else if (optKey.equals(PrimitiveComparisonFilter.COMPARE_OPT_CLASS)) {
+        foundCOpt = true;
+        assertEquals(option.getValue(), LessThanOrEqual.class.getName());
+      } else if (optKey.equals(PrimitiveComparisonFilter.P_COMPARE_CLASS)) {
+        foundPCompare = true;
+        assertEquals(option.getValue(), StringCompare.class.getName());
       }
-      assertTrue(foundConst & foundCOpt & foundPCompare & foundQual);
 
-      foundQual = false;
-      foundPCompare = false;
-      foundCOpt = false;
-      foundConst = false;
-      for (Map.Entry<String,String> option : is2.getOptions().entrySet()) {
-        String optKey = option.getKey();
-        if (optKey.equals(PrimitiveComparisonFilter.COLUMN)) {
-          foundQual = true;
-          assertEquals(option.getValue(), "cf:f2");
-        } else if (optKey.equals(PrimitiveComparisonFilter.CONST_VAL)) {
-          foundConst = true;
-          byte[] intVal = new byte[4];
-          ByteBuffer.wrap(intVal).putInt(5);
-          assertEquals(option.getValue(), new String(Base64.encodeBase64(intVal)));
-        } else if (optKey.equals(PrimitiveComparisonFilter.COMPARE_OPT_CLASS)) {
-          foundCOpt = true;
-          assertEquals(option.getValue(), GreaterThan.class.getName());
-        } else if (optKey.equals(PrimitiveComparisonFilter.P_COMPARE_CLASS)) {
-          foundPCompare = true;
-          assertEquals(option.getValue(), IntCompare.class.getName());
-        }
-
-      }
-      assertTrue(foundConst & foundCOpt & foundPCompare & foundQual);
-
-    } catch (Exception e) {
-      fail(StringUtils.stringifyException(e));
     }
+    assertTrue(foundConst & foundCOpt & foundPCompare & foundQual);
+
+    foundQual = false;
+    foundPCompare = false;
+    foundCOpt = false;
+    foundConst = false;
+    for (Map.Entry<String,String> option : is2.getOptions().entrySet()) {
+      String optKey = option.getKey();
+      if (optKey.equals(PrimitiveComparisonFilter.COLUMN)) {
+        foundQual = true;
+        assertEquals(option.getValue(), "cf:f2");
+      } else if (optKey.equals(PrimitiveComparisonFilter.CONST_VAL)) {
+        foundConst = true;
+        byte[] intVal = new byte[4];
+        ByteBuffer.wrap(intVal).putInt(5);
+        assertEquals(option.getValue(), new String(Base64.encodeBase64(intVal)));
+      } else if (optKey.equals(PrimitiveComparisonFilter.COMPARE_OPT_CLASS)) {
+        foundCOpt = true;
+        assertEquals(option.getValue(), GreaterThan.class.getName());
+      } else if (optKey.equals(PrimitiveComparisonFilter.P_COMPARE_CLASS)) {
+        foundPCompare = true;
+        assertEquals(option.getValue(), IntCompare.class.getName());
+      }
+
+    }
+    assertTrue(foundConst & foundCOpt & foundPCompare & foundQual);
   }
 
   @Test
@@ -513,7 +512,7 @@ public class TestAccumuloPredicateHandler {
     boolean foundLessThanOrEqual = false;
     boolean foundLessThan = false;
     for (String opt : handler.cOpKeyset()) {
-      Class<? extends CompareOp> compOpt = handler.getCompareOp(opt);
+      Class<? extends CompareOp> compOpt = handler.getCompareOpClass(opt);
       if (compOpt.getName().equals(Equal.class.getName())) {
         foundEqual = true;
       } else if (compOpt.getName().equals(NotEqual.class.getName())) {
@@ -536,19 +535,19 @@ public class TestAccumuloPredicateHandler {
     assertTrue("Did not find LessThanOrEqual comparison op", foundLessThanOrEqual);
   }
 
-  @Test(expected = RuntimeException.class)
+  @Test(expected = NoSuchCompareOpException.class)
   public void testNoOptFound() throws NoSuchCompareOpException {
-    handler.getCompareOp("blah");
+    handler.getCompareOpClass("blah");
   }
 
   @Test
-  public void testPrimitiveComparsionLookup() {
+  public void testPrimitiveComparsionLookup() throws NoSuchPrimitiveComparisonException {
     boolean foundLong = false;
     boolean foundString = false;
     boolean foundInt = false;
     boolean foundDouble = false;
     for (String type : handler.pComparisonKeyset()) {
-      Class<? extends PrimitiveCompare> pCompare = handler.getPrimitiveComparison(type);
+      Class<? extends PrimitiveComparison> pCompare = handler.getPrimitiveComparisonClass(type);
       if (pCompare.getName().equals(DoubleCompare.class.getName())) {
         foundDouble = true;
       } else if (pCompare.getName().equals(LongCompare.class.getName())) {

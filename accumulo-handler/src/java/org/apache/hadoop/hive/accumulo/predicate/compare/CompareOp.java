@@ -5,21 +5,21 @@ package org.apache.hadoop.hive.accumulo.predicate.compare;
  * delegates value acceptance to the CompareOpt.
  *
  * Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}.
- * Works with {@link PrimitiveCompare}
+ * Works with {@link PrimitiveComparison}
  */
 public interface CompareOp {
     /**
      *
      * @param comp
      */
-    public void setPrimitiveCompare(PrimitiveCompare comp);
+    public void setPrimitiveCompare(PrimitiveComparison comp);
 
     /**
      *
      *
      * @return PrimitiveCompare
      */
-    public PrimitiveCompare getPrimitiveCompare();
+    public PrimitiveComparison getPrimitiveCompare();
 
     /**
      *

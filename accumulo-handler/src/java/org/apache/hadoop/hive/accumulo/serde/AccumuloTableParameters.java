@@ -16,21 +16,6 @@
  */
 package org.apache.hadoop.hive.accumulo.serde;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.NoSuchElementException;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
-import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
-import org.apache.hadoop.hive.accumulo.columns.ColumnMappingFactory;
-import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
-import org.apache.hadoop.hive.serde.serdeConstants;
-import org.apache.hadoop.util.StringUtils;
-
-import com.google.common.base.Preconditions;
 
 /**
  * 

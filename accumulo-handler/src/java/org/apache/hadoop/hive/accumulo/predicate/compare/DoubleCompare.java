@@ -2,7 +2,6 @@ package org.apache.hadoop.hive.accumulo.predicate.compare;
 
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * 

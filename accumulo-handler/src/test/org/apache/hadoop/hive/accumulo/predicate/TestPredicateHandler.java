@@ -31,7 +31,6 @@ import org.apache.hadoop.hive.accumulo.predicate.compare.LongCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.NotEqual;
 import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.StringCompare;
-import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Utilities;
@@ -81,7 +80,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void getRowIDSearchCondition() {
+  public void testGetRowIDSearchCondition() {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "hi");
     List<ExprNodeDesc> children = Lists.newArrayList();
@@ -100,7 +99,7 @@ public class TestPredicateHandler {
   }
 
   @Test()
-  public void rangeEqual() {
+  public void testRangeEqual() {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
@@ -125,7 +124,7 @@ public class TestPredicateHandler {
   }
 
   @Test()
-  public void rangeGreaterThan() {
+  public void testRangeGreaterThan() {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
@@ -269,7 +268,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void pushdownTuple() {
+  public void testPushdownTuple() {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "field1", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, 5);
     List<ExprNodeDesc> children = Lists.newArrayList();
@@ -294,7 +293,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void pushdownColumnTypeNotSupported() {
+  public void testPushdownColumnTypeNotSupported() {
     try {
       ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.floatTypeInfo, "field1", null, false);
       ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.floatTypeInfo, 5.5f);
@@ -317,7 +316,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void pushdownComparisonOptNotSupported() {
+  public void testPushdownComparisonOptNotSupported() {
     try {
       ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null, false);
       List<ExprNodeDesc> children = Lists.newArrayList();
@@ -338,7 +337,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void iteratorIgnoreRowIDFields() {
+  public void testIteratorIgnoreRowIDFields() {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
@@ -371,7 +370,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void ignoreIteratorPushdown() {
+  public void testIgnoreIteratorPushdown() {
     // Override what's placed in the Configuration by setup()
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,field2,rid");
@@ -414,7 +413,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void createIteratorSettings() {
+  public void testCreateIteratorSettings() {
     // Override what's placed in the Configuration by setup()
     conf = new JobConf();
     conf.set(serdeConstants.LIST_COLUMNS, "field1,field2,rid");
@@ -529,7 +528,12 @@ public class TestPredicateHandler {
         foundLessThanOrEqual = true;
       }
     }
-    assertTrue(foundEqual & foundNotEqual & foundGreaterThan & foundGreaterThanOrEqual & foundLessThan & foundLessThanOrEqual);
+    assertTrue("Did not find Equal comparison op", foundEqual);
+    assertTrue("Did not find NotEqual comparison op", foundNotEqual);
+    assertTrue("Did not find GreaterThan comparison op", foundGreaterThan);
+    assertTrue("Did not find GreaterThanOrEqual comparison op", foundGreaterThanOrEqual);
+    assertTrue("Did not find LessThan comparison op", foundLessThan);
+    assertTrue("Did not find LessThanOrEqual comparison op", foundLessThanOrEqual);
   }
 
   @Test(expected = RuntimeException.class)
@@ -538,7 +542,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void pComparsionLookup() {
+  public void testPrimitiveComparsionLookup() {
     boolean foundLong = false;
     boolean foundString = false;
     boolean foundInt = false;
@@ -555,6 +559,9 @@ public class TestPredicateHandler {
         foundString = true;
       }
     }
-    assertTrue(foundDouble & foundLong & foundInt & foundString);
+    assertTrue("Did not find DoubleCompare op", foundDouble);
+    assertTrue("Did not find LongCompare op", foundLong);
+    assertTrue("Did not find IntCompare op", foundInt);
+    assertTrue("Did not find StringCompare op", foundString);
   }
 }

@@ -7,14 +7,6 @@ import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
 
-import org.apache.hadoop.hive.accumulo.predicate.compare.Equal;
-import org.apache.hadoop.hive.accumulo.predicate.compare.GreaterThan;
-import org.apache.hadoop.hive.accumulo.predicate.compare.GreaterThanOrEqual;
-import org.apache.hadoop.hive.accumulo.predicate.compare.LessThan;
-import org.apache.hadoop.hive.accumulo.predicate.compare.LessThanOrEqual;
-import org.apache.hadoop.hive.accumulo.predicate.compare.Like;
-import org.apache.hadoop.hive.accumulo.predicate.compare.LongCompare;
-import org.apache.hadoop.hive.accumulo.predicate.compare.NotEqual;
 import org.junit.Before;
 import org.junit.Test;
 

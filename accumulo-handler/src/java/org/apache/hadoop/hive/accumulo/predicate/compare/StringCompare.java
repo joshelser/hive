@@ -1,9 +1,8 @@
 package org.apache.hadoop.hive.accumulo.predicate.compare;
 
-import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
-import org.apache.log4j.Logger;
-
 import java.util.regex.Pattern;
+
+import org.apache.log4j.Logger;
 
 /**
  *

@@ -14,19 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.lexicoders;
 
-import java.nio.charset.Charset;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 
 /**
+ * This lexicoder encodes/decodes a given String to/from bytes without further processing. It can be combined with other encoders like the
+ * {@link ReverseLexicoder} to flip the default sort order.
  * 
+ * @since 1.6.0
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
 
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public class StringLexicoder implements Lexicoder<String> {
+  
+  @Override
+  public byte[] encode(String data) {
+    return data.getBytes(AccumuloHiveConstants.UTF_8);
+  }
+  
+  @Override
+  public String decode(byte[] data) {
+    return new String(data, AccumuloHiveConstants.UTF_8);
+  }
+  
 }

@@ -14,19 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
-
-import java.nio.charset.Charset;
+package org.apache.hadoop.hive.accumulo.lexicoders;
 
 /**
- * 
+ * A lexicoder for signed integers. The encoding sorts Integer.MIN_VALUE first and Integer.MAX_VALUE last. The encoding sorts -2 before -1. It
+ * corresponds to the sort order of Integer.
+ * @since 1.6.0
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
-
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public class IntegerLexicoder implements Lexicoder<Integer> {
+  
+  private UIntegerLexicoder uil = new UIntegerLexicoder();
+  
+  @Override
+  public byte[] encode(Integer i) {
+    return uil.encode(i ^ 0x80000000);
+  }
+  
+  @Override
+  public Integer decode(byte[] data) {
+    return uil.decode(data) ^ 0x80000000;
+  }
+  
 }

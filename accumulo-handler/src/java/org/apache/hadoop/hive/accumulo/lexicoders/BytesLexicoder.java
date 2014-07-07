@@ -14,19 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
-
-import java.nio.charset.Charset;
+package org.apache.hadoop.hive.accumulo.lexicoders;
 
 /**
+ * For each of the methods, this lexicoder just passes the input through untouched. It is meant to be combined with other lexicoders like the
+ * {@link ReverseLexicoder}.
  * 
+ * @since 1.6.0
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
-
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public class BytesLexicoder implements Lexicoder<byte[]> {
+  
+  @Override
+  public byte[] encode(byte[] data) {
+    return data;
+  }
+  
+  @Override
+  public byte[] decode(byte[] data) {
+    return data;
+  }
+  
 }

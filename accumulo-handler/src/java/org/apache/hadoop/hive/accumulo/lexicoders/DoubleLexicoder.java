@@ -14,19 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
-
-import java.nio.charset.Charset;
+package org.apache.hadoop.hive.accumulo.lexicoders;
 
 /**
- * 
+ * A lexicoder for preserving the native Java sort order of Double values.
+ *
+ * @since 1.6.0
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
-
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public class DoubleLexicoder implements Lexicoder<Double> {
+  
+  private ULongLexicoder longEncoder = new ULongLexicoder();
+  
+  @Override
+  public byte[] encode(Double d) {
+    long l = Double.doubleToRawLongBits(d);
+    if (l < 0)
+      l = ~l;
+    else
+      l = l ^ 0x8000000000000000l;
+    
+    return longEncoder.encode(l);
+  }
+  
+  @Override
+  public Double decode(byte[] data) {
+    long l = longEncoder.decode(data);
+    if (l < 0)
+      l = l ^ 0x8000000000000000l;
+    else
+      l = ~l;
+    return Double.longBitsToDouble(l);
+  }
+  
 }

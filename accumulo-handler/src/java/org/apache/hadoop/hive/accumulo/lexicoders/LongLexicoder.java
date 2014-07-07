@@ -14,19 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
-
-import java.nio.charset.Charset;
+package org.apache.hadoop.hive.accumulo.lexicoders;
 
 /**
+ * Signed long lexicoder. The encoding sorts Long.MIN_VALUE first and Long.MAX_VALUE last. The encoding sorts -2l before -1l. It corresponds to the native Java
+ * sort order of Long.
  * 
+ * @since 1.6.0
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
-
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public class LongLexicoder extends ULongLexicoder {
+  @Override
+  public byte[] encode(Long l) {
+    return super.encode(l ^ 0x8000000000000000l);
+  }
+  
+  @Override
+  public Long decode(byte[] data) {
+    return super.decode(data) ^ 0x8000000000000000l;
+  }
 }

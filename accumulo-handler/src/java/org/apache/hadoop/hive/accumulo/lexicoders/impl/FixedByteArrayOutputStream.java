@@ -14,19 +14,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.lexicoders.impl;
 
-import java.nio.charset.Charset;
+import java.io.IOException;
+import java.io.OutputStream;
 
 /**
- * 
+ * Uses a fixed length array and will not grow in size dynamically like the {@link java.io.ByteArrayOutputStream}.
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
-
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public class FixedByteArrayOutputStream extends OutputStream {
+  
+  private int i;
+  byte out[];
+  
+  public FixedByteArrayOutputStream(byte out[]) {
+    this.out = out;
+  }
+  
+  @Override
+  public void write(int b) throws IOException {
+    out[i++] = (byte) b;
+  }
+  
+  @Override
+  public void write(byte b[], int off, int len) throws IOException {
+    System.arraycopy(b, off, out, i, len);
+    i += len;
+  }
+  
 }

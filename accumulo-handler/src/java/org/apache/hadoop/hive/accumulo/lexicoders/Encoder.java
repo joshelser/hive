@@ -14,19 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
-
-import java.nio.charset.Charset;
+package org.apache.hadoop.hive.accumulo.lexicoders;
 
 /**
- * 
+ * An encoder represents a typed object that can be encoded/decoded to/from a byte array.
+ * @since 1.6.0
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
-
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public interface Encoder<T> extends org.apache.accumulo.core.iterators.TypedValueCombiner.Encoder<T> {
+  
 }

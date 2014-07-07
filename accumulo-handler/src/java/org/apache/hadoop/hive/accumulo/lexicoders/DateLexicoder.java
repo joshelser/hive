@@ -14,19 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.lexicoders;
 
-import java.nio.charset.Charset;
+import java.util.Date;
 
 /**
- * 
+ * A lexicoder for date objects. It preserves the native Java sort order for Date.
+ * @since 1.6.0
  */
-public class AccumuloHiveConstants {
-  public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
-  public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
-  public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
-      + Character.toString(ESCAPE) + Character.toString(COLON);
-
-  public static final Charset UTF_8 = Charset.forName("UTF-8");
+public class DateLexicoder implements Lexicoder<Date> {
+  
+  private ULongLexicoder longEncoder = new ULongLexicoder();
+  
+  @Override
+  public byte[] encode(Date data) {
+    return longEncoder.encode(data.getTime());
+  }
+  
+  @Override
+  public Date decode(byte[] data) {
+    return new Date(longEncoder.decode(data));
+  }
+  
 }

@@ -422,7 +422,8 @@ public class TestHiveAccumuloTableInputFormat {
   @Test
   public void testConfigureMockAccumuloInputFormat() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
-    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
     Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
@@ -451,7 +452,8 @@ public class TestHiveAccumuloTableInputFormat {
   @Test
   public void testConfigureAccumuloInputFormat() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
-    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
     Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
@@ -487,7 +489,8 @@ public class TestHiveAccumuloTableInputFormat {
   @Test
   public void testConfigureAccumuloInputFormatWithIterators() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
-    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
     Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
     Set<Range> ranges = Collections.singleton(new Range());

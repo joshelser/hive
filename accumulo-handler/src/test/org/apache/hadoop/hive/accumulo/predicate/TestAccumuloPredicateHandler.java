@@ -76,7 +76,7 @@ public class TestAccumuloPredicateHandler {
 
     String columnMappingStr = "cf:f1,:rowID";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr, null);
   }
 
   @Test
@@ -372,7 +372,7 @@ public class TestAccumuloPredicateHandler {
 
     String columnMappingStr = "cf:f1,cf:f2,:rowID";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr, null);
 
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null,
         false);
@@ -419,7 +419,7 @@ public class TestAccumuloPredicateHandler {
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,string");
     String columnMappingStr = "cf:f1,cf:f2,:rowID";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr, null);
 
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null,
         false);

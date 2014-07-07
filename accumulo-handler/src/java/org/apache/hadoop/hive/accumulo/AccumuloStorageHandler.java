@@ -51,10 +51,12 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   protected Configuration conf;
 
   /**
-   * 
+   * Push down table properties into the JobConf.
+   *
    * @param desc
-   *          table description
+   *          Hive table description
    * @param jobProps
+   *          Properties that will be added to the JobConf by Hive 
    */
   @Override
   public void configureTableJobProperties(TableDesc desc, Map<String,String> jobProps) {
@@ -66,6 +68,10 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     String useIterators = tblProperties.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
       jobProps.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
+    }
+    if (tblProperties.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
+      jobProps.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE,
+          tblProperties.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
     }
   }
 
@@ -107,11 +113,11 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   }
 
   @Override
-  public void configureInputJobProperties(TableDesc tableDesc, Map<String,String> properties) {
+  public void configureInputJobProperties(TableDesc tableDesc, Map<String,String> jobProperties) {
     Properties props = tableDesc.getProperties();
-    properties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+    jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
         props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    properties.put(AccumuloSerDeParameters.TABLE_NAME,
+    jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
         props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
     String useIterators = props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
@@ -120,7 +126,10 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
             + AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
       }
 
-      properties.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
+      jobProperties.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
+    }
+    if (props.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
+      jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, props.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
     }
   }
 
@@ -132,6 +141,9 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
         props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
     jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
         props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+    if (props.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
+      jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, props.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+    }
   }
 
   @SuppressWarnings("rawtypes")

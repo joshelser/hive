@@ -23,7 +23,7 @@ import java.nio.charset.Charset;
  */
 public class AccumuloHiveConstants {
   public static final String ROWID = ":rowID";
-  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\';
+  public static final char COLON = ':', COMMA = ',', ESCAPE = '\\', POUND = '#';
   public static final String ESCAPED_COLON = Character.toString(ESCAPE) + Character.toString(COLON);
   public static final String ESCAPED_COLON_REGEX = Character.toString(ESCAPE)
       + Character.toString(ESCAPE) + Character.toString(COLON);

@@ -40,11 +40,12 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   public static final String ITERATOR_PUSHDOWN_KEY = "accumulo.iterator.pushdown";
   public static final boolean ITERATOR_PUSHDOWN_DEFAULT = true;
 
+  public static final String DEFAULT_STORAGE_TYPE = "accumulo.default.storage";
+
   protected final ColumnMapper columnMapper;
 
   private Properties tableProperties;
   private String serdeName;
-
   private SerDeParameters lazySerDeParameters;
 
   public AccumuloSerDeParameters(Configuration conf, Properties tableProperties, String serdeName) throws SerDeException {
@@ -54,7 +55,10 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
     lazySerDeParameters = LazySimpleSerDe.initSerdeParams(conf, tableProperties, serdeName);
 
-    columnMapper = new ColumnMapper(getColumnMappingValue());
+    // The default encoding for this table when not otherwise specified
+    String defaultStorage = tableProperties.getProperty(DEFAULT_STORAGE_TYPE);
+
+    columnMapper = new ColumnMapper(getColumnMappingValue(), defaultStorage);
 
     // Generate types for column mapping
     if (null == getColumnTypeValue()) {

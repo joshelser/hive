@@ -36,6 +36,7 @@ public class ColumnMapper {
   private List<ColumnMapping> columnMappings;
   private int rowIdOffset;
   private HiveRowIdColumnMapping rowIdMapping = null;
+  private final ColumnEncoding defaultEncoding;
 
   /**
    * Create a mapping from Hive columns (rowID and column) to Accumulo columns (column family and
@@ -46,7 +47,7 @@ public class ColumnMapper {
    *          Comma-separated list of designators that map to Accumulo columns whose offsets
    *          correspond to the Hive table schema
    */
-  public ColumnMapper(String serializedColumnMappings) {
+  public ColumnMapper(String serializedColumnMappings, String defaultStorageType) {
     Preconditions.checkNotNull(serializedColumnMappings);
 
     String[] parsedColumnMappingValue = StringUtils.split(serializedColumnMappings,
@@ -54,12 +55,29 @@ public class ColumnMapper {
     columnMappings = new ArrayList<ColumnMapping>(parsedColumnMappingValue.length);
     rowIdOffset = -1;
 
+    // Determine the default encoding type (specified on the table, or the default
+    // if none was provided)
+    if (null == defaultStorageType || "".equals(defaultStorageType)) {
+      defaultEncoding = ColumnEncoding.getDefault();
+    } else {
+      defaultEncoding = ColumnEncoding.fromName(defaultStorageType.toLowerCase());
+    }
+
+    // Use the default encoding, but let columns override the default
+    ColumnEncoding encoding = defaultEncoding;
+
     for (int i = 0; i < parsedColumnMappingValue.length; i++) {
       String columnMappingStr = parsedColumnMappingValue[i];
 
-      // TODO actually allow for configuration of the column encoding
-      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr,
-          ColumnEncoding.STRING);
+      // If the mapping has an encoding specified, construct the ColumnEncoding
+      // and remove the encoding information from the original mapping information
+      if (ColumnEncoding.hasColumnEncoding(columnMappingStr)) {
+        encoding = ColumnEncoding.parseCode(columnMappingStr);
+        columnMappingStr = ColumnEncoding.stripCode(columnMappingStr);
+      }
+
+      // Create the mapping for this column, with configured encoding
+      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr, encoding);
 
       if (columnMapping instanceof HiveRowIdColumnMapping) {
         if (-1 != rowIdOffset) {

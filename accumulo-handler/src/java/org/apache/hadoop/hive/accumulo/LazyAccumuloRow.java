@@ -77,6 +77,7 @@ public class LazyAccumuloRow extends LazyStruct {
         HiveAccumuloColumnMapping accumuloColumnMapping = (HiveAccumuloColumnMapping) columnMapping;
 
         // Use the colfam and colqual to get the value
+        // TODO Respect the ColumnEncoding when deserializing
         byte[] val = row.getValue(accumuloColumnMapping.getColumnFamily(), accumuloColumnMapping.getColumnQualifier());
         if (val == null) {
           return null;
@@ -106,4 +107,18 @@ public class LazyAccumuloRow extends LazyStruct {
     }
     return cachedList;
   }
+
+//  @Override
+//  protected LazyObjectBase createLazyField(int fieldID, StructField fieldRef) throws SerDeException {
+//    if (fieldID == iKey) {
+//      return keyFactory.createKey(fieldRef.getFieldObjectInspector());
+//    }
+//    ColumnMapping colMap = columnsMapping[fieldID];
+//    if (colMap.qualifierName == null && !colMap.hbaseRowKey) {
+//      // a column family
+//      return new LazyHBaseCellMap((LazyMapObjectInspector) fieldRef.getFieldObjectInspector());
+//    }
+//    return LazyFactory.createLazyObject(fieldRef.getFieldObjectInspector(),
+//        colMap.binaryStorage.get(0));
+//  }
 }

@@ -36,7 +36,7 @@ public class TestColumnMapper {
   @Test
   public void testNormalMapping() {
     List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings));
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
 
     List<ColumnMapping> mappings = mapper.getColumnMappings();
 
@@ -67,14 +67,14 @@ public class TestColumnMapper {
 
   @Test(expected = IllegalArgumentException.class)
   public void testMultipleRowIDsFails() {
-    new ColumnMapper(AccumuloHiveConstants.ROWID + AccumuloHiveConstants.COMMA + AccumuloHiveConstants.ROWID);
+    new ColumnMapper(AccumuloHiveConstants.ROWID + AccumuloHiveConstants.COMMA + AccumuloHiveConstants.ROWID, null);
   }
 
   @Test
   public void testGetMappingFromHiveColumn() {
     List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3");
     List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings));
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
 
     for (int i = 0; i < hiveColumns.size(); i++) {
       String hiveColumn = hiveColumns.get(i), accumuloMapping = rawMappings.get(i);
@@ -87,7 +87,7 @@ public class TestColumnMapper {
   @Test
   public void testGetTypesString() {
     List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings));
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
 
     String typeString = mapper.getTypesString();
     String[] types = StringUtils.split(typeString, AccumuloHiveConstants.COLON);

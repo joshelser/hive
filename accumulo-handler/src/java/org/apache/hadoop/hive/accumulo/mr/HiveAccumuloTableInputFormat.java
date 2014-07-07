@@ -58,16 +58,17 @@ public class HiveAccumuloTableInputFormat implements
     org.apache.hadoop.mapred.InputFormat<Text,AccumuloHiveRow> {
   private static final Logger log = LoggerFactory.getLogger(HiveAccumuloTableInputFormat.class);
 
-  // Visibile for testing
+  // Visible for testing
   protected AccumuloRowInputFormat accumuloInputFormat = new AccumuloRowInputFormat();
   protected AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
 
   @Override
   public InputSplit[] getSplits(JobConf jobConf, int numSplits) throws IOException {
-    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(jobConf);
-    Instance instance = accumuloParams.getInstance();
-    ColumnMapper columnMapper = new ColumnMapper(
-        jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    final AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(jobConf);
+    final String defaultStorageType = jobConf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE);
+    final Instance instance = accumuloParams.getInstance();
+    final ColumnMapper columnMapper = new ColumnMapper(
+        jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS), defaultStorageType);
 
     JobContext context = ShimLoader.getHadoopShims().newJobContext(Job.getInstance(jobConf));
     Path[] tablePaths = FileInputFormat.getInputPaths(context);
@@ -125,8 +126,9 @@ public class HiveAccumuloTableInputFormat implements
   @Override
   public RecordReader<Text,AccumuloHiveRow> getRecordReader(InputSplit inputSplit,
       final JobConf jobConf, final Reporter reporter) throws IOException {
-    ColumnMapper columnMapper = new ColumnMapper(
-        jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    final String defaultStorageType = jobConf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE);
+    final ColumnMapper columnMapper = new ColumnMapper(
+        jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS), defaultStorageType);
 
     try {
       final List<IteratorSetting> iterators = predicateHandler.getIterators(jobConf, columnMapper);

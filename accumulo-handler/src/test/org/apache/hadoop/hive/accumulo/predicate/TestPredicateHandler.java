@@ -506,7 +506,7 @@ public class TestPredicateHandler {
   }
 
   @Test
-  public void basicOptLookup() {
+  public void testBasicOptLookup() throws NoSuchCompareOpException {
     boolean foundEqual = false;
     boolean foundNotEqual = false;
     boolean foundGreaterThanOrEqual = false;
@@ -532,14 +532,9 @@ public class TestPredicateHandler {
     assertTrue(foundEqual & foundNotEqual & foundGreaterThan & foundGreaterThanOrEqual & foundLessThan & foundLessThanOrEqual);
   }
 
-  @Test
-  public void noOptFound() {
-    try {
-      handler.getCompareOp("blah");
-      fail("Should not contain key blah");
-    } catch (RuntimeException e) {
-      assertTrue(e.getMessage().contains("Null compare op for specified key"));
-    }
+  @Test(expected = RuntimeException.class)
+  public void testNoOptFound() throws NoSuchCompareOpException {
+    handler.getCompareOp("blah");
   }
 
   @Test

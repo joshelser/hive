@@ -113,9 +113,9 @@ public class AccumuloPredicateHandler {
    *          GenericUDF classname to lookup matching CompareOpt
    * @return Class<? extends CompareOpt/>
    */
-  public Class<? extends CompareOp> getCompareOp(String udfType) {
+  public Class<? extends CompareOp> getCompareOp(String udfType) throws NoSuchCompareOpException {
     if (!compareOps.containsKey(udfType))
-      throw new RuntimeException("Null compare op for specified key: " + udfType);
+      throw new NoSuchCompareOpException("Null compare op for specified key: " + udfType);
     return compareOps.get(udfType);
   }
 

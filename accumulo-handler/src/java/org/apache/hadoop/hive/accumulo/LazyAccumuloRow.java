@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
-import org.apache.hadoop.hive.serde2.lazy.LazyObject;
+import org.apache.hadoop.hive.serde2.lazy.LazyObjectBase;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
@@ -40,16 +42,13 @@ public class LazyAccumuloRow extends LazyStruct {
 
   private void parse() {
     if (getFields() == null) {
-      List<? extends StructField> fieldRefs = getInspector().getAllStructFieldRefs();
-      setFields(new LazyObject[fieldRefs.size()]);
-      for (int i = 0; i < getFields().length; i++) {
-        // Only supports fam:qual pairs for now. Cell mapped column families not yet supported.
-        getFields()[i] = LazyFactory.createLazyObject(fieldRefs.get(i).getFieldObjectInspector());
-      }
-      setFieldInited(new boolean[getFields().length]);
+      // Will properly set string or binary serialization via createLazyField(...)
+      initLazyFields(oi.getAllStructFieldRefs());
     }
-    Arrays.fill(getFieldInited(), false);
-    setParsed(true);
+    if (!getParsed()) {
+      Arrays.fill(getFieldInited(), false);
+      setParsed(true);
+    }
   }
 
   @Override
@@ -77,7 +76,6 @@ public class LazyAccumuloRow extends LazyStruct {
         HiveAccumuloColumnMapping accumuloColumnMapping = (HiveAccumuloColumnMapping) columnMapping;
 
         // Use the colfam and colqual to get the value
-        // TODO Respect the ColumnEncoding when deserializing
         byte[] val = row.getValue(accumuloColumnMapping.getColumnFamily(), accumuloColumnMapping.getColumnQualifier());
         if (val == null) {
           return null;
@@ -108,17 +106,10 @@ public class LazyAccumuloRow extends LazyStruct {
     return cachedList;
   }
 
-//  @Override
-//  protected LazyObjectBase createLazyField(int fieldID, StructField fieldRef) throws SerDeException {
-//    if (fieldID == iKey) {
-//      return keyFactory.createKey(fieldRef.getFieldObjectInspector());
-//    }
-//    ColumnMapping colMap = columnsMapping[fieldID];
-//    if (colMap.qualifierName == null && !colMap.hbaseRowKey) {
-//      // a column family
-//      return new LazyHBaseCellMap((LazyMapObjectInspector) fieldRef.getFieldObjectInspector());
-//    }
-//    return LazyFactory.createLazyObject(fieldRef.getFieldObjectInspector(),
-//        colMap.binaryStorage.get(0));
-//  }
+  @Override
+  protected LazyObjectBase createLazyField(int fieldID, StructField fieldRef) throws SerDeException {
+    final ColumnMapping columnMapping = columnMappings.get(fieldID);
+    return LazyFactory.createLazyObject(fieldRef.getFieldObjectInspector(),
+        ColumnEncoding.BINARY == columnMapping.getEncoding());
+  }
 }

@@ -96,4 +96,19 @@ public class TestColumnMapper {
       Assert.assertEquals(serdeConstants.STRING_TYPE_NAME, type);
     }
   }
+
+  @Test
+  public void testDefaultBinary() {
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:#s", "cf:qual#s", "cf:qual2");
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName());
+
+    List<ColumnMapping> mappings = mapper.getColumnMappings();
+    Assert.assertEquals(5, mappings.size());
+
+    Assert.assertEquals(ColumnEncoding.BINARY, mappings.get(0).getEncoding());
+    Assert.assertEquals(ColumnEncoding.BINARY, mappings.get(1).getEncoding());
+    Assert.assertEquals(ColumnEncoding.STRING, mappings.get(2).getEncoding());
+    Assert.assertEquals(ColumnEncoding.STRING, mappings.get(3).getEncoding());
+    Assert.assertEquals(ColumnEncoding.BINARY, mappings.get(4).getEncoding());
+  }
 }

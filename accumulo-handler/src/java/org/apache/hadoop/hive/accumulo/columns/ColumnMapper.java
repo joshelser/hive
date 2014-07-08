@@ -64,9 +64,10 @@ public class ColumnMapper {
     }
 
     // Use the default encoding, but let columns override the default
-    ColumnEncoding encoding = defaultEncoding;
+    ColumnEncoding encoding;
 
     for (int i = 0; i < parsedColumnMappingValue.length; i++) {
+      encoding = defaultEncoding;
       String columnMappingStr = parsedColumnMappingValue[i];
 
       // If the mapping has an encoding specified, construct the ColumnEncoding

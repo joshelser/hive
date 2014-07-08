@@ -29,6 +29,7 @@ import org.apache.hadoop.hive.serde2.lazy.LazyInteger;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazyString;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
+import org.apache.hadoop.hive.serde2.lazydio.LazyDioInteger;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
@@ -115,7 +116,7 @@ public class TestLazyAccumuloRow {
     out.writeInt(72);
     hiveRow.add("personal", "height", baos.toByteArray());
 
-    List<String> fetchedCols = Arrays.asList("personal:given_name", "personal:surname", "personal:age", "personal:weight", "personal:height");
+    List<String> fetchedCols = Arrays.asList("personal:given_name#s", "personal:surname#s", "personal:age", "personal:weight", "personal:height");
     ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.BINARY.getName());
 
     lazyRow.init(hiveRow, columnMapper.getColumnMappings());
@@ -132,18 +133,18 @@ public class TestLazyAccumuloRow {
 
     o = lazyRow.getField(2);
     Assert.assertNotNull(o);
-    Assert.assertEquals(LazyInteger.class, o.getClass());
-    Assert.assertEquals("30", ((LazyInteger) o).toString());
+    Assert.assertEquals(LazyDioInteger.class, o.getClass());
+    Assert.assertEquals("30", ((LazyDioInteger) o).toString());
 
     o = lazyRow.getField(3);
     Assert.assertNotNull(o);
-    Assert.assertEquals(LazyInteger.class, o.getClass());
-    Assert.assertEquals("200", ((LazyInteger) o).toString());
+    Assert.assertEquals(LazyDioInteger.class, o.getClass());
+    Assert.assertEquals("200", ((LazyDioInteger) o).toString());
 
     o = lazyRow.getField(4);
     Assert.assertNotNull(o);
-    Assert.assertEquals(LazyInteger.class, o.getClass());
-    Assert.assertEquals("72", ((LazyInteger) o).toString());
+    Assert.assertEquals(LazyDioInteger.class, o.getClass());
+    Assert.assertEquals("72", ((LazyDioInteger) o).toString());
   }
 
 }

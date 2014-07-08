@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -63,12 +64,13 @@ public class AccumuloRowSerializer {
 
     StructField field = fields.get(rowIdOffset);
     Object value = columnValues.get(rowIdOffset);
+    ColumnMapping rowMapping = mappings.get(rowIdOffset);
 
     // The ObjectInspector for the row ID
     ObjectInspector fieldObjectInspector = field.getFieldObjectInspector();
 
     // Serialize the row component
-    byte[] data = getSerializedValue(objInspector, fieldObjectInspector, value, output);
+    byte[] data = getSerializedValue(objInspector, fieldObjectInspector, value, output, rowMapping);
 
     // Set that as the row id in the mutation
     Mutation mutation = new Mutation(data);
@@ -102,7 +104,7 @@ public class AccumuloRowSerializer {
       HiveAccumuloColumnMapping hiveColumnMapping = (HiveAccumuloColumnMapping) mapping;
 
       // Get the serialized value for the column
-      byte[] serializedValue = getSerializedValue(objInspector, fieldObjectInspector, value, output);
+      byte[] serializedValue = getSerializedValue(objInspector, fieldObjectInspector, value, output, hiveColumnMapping);
 
       // Put it all in the Mutation
       mutation.put(hiveColumnMapping.getColumnFamily().getBytes(Charsets.UTF_8), hiveColumnMapping
@@ -130,7 +132,7 @@ public class AccumuloRowSerializer {
    *           An error occurred when performing IO to serialize the data
    */
   protected byte[] getSerializedValue(ObjectInspector objectInspector,
-      ObjectInspector fieldObjectInspector, Object value, ByteStream.Output output)
+      ObjectInspector fieldObjectInspector, Object value, ByteStream.Output output, ColumnMapping mapping)
       throws IOException {
     // Reset the buffer we're going to use
     output.reset();
@@ -138,7 +140,11 @@ public class AccumuloRowSerializer {
     // Start by only serializing primitives as-is
     if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
       // TODO Allow configuration of escaped characters
-      writeString(output, value, (PrimitiveObjectInspector) fieldObjectInspector);
+      if (ColumnEncoding.BINARY == mapping.getEncoding()) {
+        writeBinary(output, value, (PrimitiveObjectInspector) fieldObjectInspector);
+      } else {
+        writeString(output, value, (PrimitiveObjectInspector) fieldObjectInspector);
+      }
     } else {
       // Or serializing complex types as json
       String asJson = SerDeUtils.getJSONString(value, objectInspector);
@@ -147,6 +153,11 @@ public class AccumuloRowSerializer {
     }
 
     return output.toByteArray();
+  }
+
+  protected void writeBinary(ByteStream.Output output, Object value,
+      PrimitiveObjectInspector inspector) throws IOException {
+    LazyUtils.writePrimitive(output, value, inspector);
   }
 
   protected void writeString(ByteStream.Output output, Object value,

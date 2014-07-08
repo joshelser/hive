@@ -16,13 +16,32 @@
  */
 package org.apache.hadoop.hive.accumulo;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
+import org.apache.accumulo.core.data.ColumnUpdate;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.ByteStream;
+import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
+import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
+import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.StringObjectInspector;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
 import org.junit.Assert;
 import org.junit.Test;
@@ -38,6 +57,7 @@ public class TestAccumuloRowSerializer {
     ByteStream.Output output = new ByteStream.Output();
     ObjectInspector objectInspector = Mockito.mock(ObjectInspector.class);
     PrimitiveObjectInspector fieldObjectInspector = Mockito.mock(StringObjectInspector.class);
+    ColumnMapping mapping = Mockito.mock(ColumnMapping.class);
 
     // Write some garbage to the buffer that should be erased
     output.write("foobar".getBytes());
@@ -51,18 +71,79 @@ public class TestAccumuloRowSerializer {
         .when(
             serializer.getSerializedValue(Mockito.any(ObjectInspector.class),
                 Mockito.any(ObjectInspector.class), Mockito.any(),
-                Mockito.any(ByteStream.Output.class))).thenCallRealMethod();
+                Mockito.any(ByteStream.Output.class), Mockito.any(ColumnMapping.class))).thenCallRealMethod();
 
     Mockito.when(fieldObjectInspector.getCategory()).thenReturn(ObjectInspector.Category.PRIMITIVE);
     Mockito.when(fieldObjectInspector.getPrimitiveCategory()).thenReturn(PrimitiveCategory.STRING);
     Mockito.when(fieldObjectInspector.getPrimitiveWritableObject(Mockito.any(Object.class)))
         .thenReturn(new Text(object));
+    Mockito.when(mapping.getEncoding()).thenReturn(ColumnEncoding.STRING);
 
     // Invoke the method
-    serializer.getSerializedValue(objectInspector, fieldObjectInspector, object, output);
+    serializer.getSerializedValue(objectInspector, fieldObjectInspector, object, output, mapping);
 
     // Verify the buffer was reset (real output doesn't happen because it was mocked)
     Assert.assertEquals(0, output.size());
   }
 
+  @Test
+  public void testBinarySerialization() throws IOException, SerDeException {
+    ArrayList<ColumnMapping> mappings = new ArrayList<ColumnMapping>();
+    mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("cf:cq1", ColumnEncoding.BINARY));
+    mappings.add(new HiveAccumuloColumnMapping("cf:cq2", ColumnEncoding.BINARY));
+    mappings.add(new HiveAccumuloColumnMapping("cf:cq3", ColumnEncoding.STRING));
+
+    List<String> columns = Arrays.asList("row", "cq1", "cq2", "cq3");
+    List<TypeInfo> types = Arrays.<TypeInfo> asList(
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME),
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME),
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME));
+
+    LazySimpleStructObjectInspector oi = (LazySimpleStructObjectInspector) LazyFactory
+        .createLazyStructInspector(columns, types, new byte[] {' '}, new Text("\\N"), false, false,
+            (byte) '\\');
+
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings);
+
+    // Create the LazyStruct from the LazyStruct...Inspector
+    LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(oi);
+
+    ByteArrayRef byteRef = new ByteArrayRef();
+    byteRef.setData(new byte[] {'r', 'o', 'w', '1', ' ', '1', '0', ' ', '2', '0', ' ', 'v',
+        'a', 'l', 'u', 'e'});
+    obj.init(byteRef, 0, byteRef.getData().length);
+
+    Mutation m = (Mutation) serializer.serialize(obj, oi);
+
+    Assert.assertArrayEquals("row1".getBytes(), m.getRow());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+    Assert.assertEquals(3, updates.size());
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    DataOutputStream out = new DataOutputStream(baos);
+
+    ColumnUpdate update = updates.get(0);
+    Assert.assertEquals("cf", new String(update.getColumnFamily()));
+    Assert.assertEquals("cq1", new String(update.getColumnQualifier()));
+
+    out.writeInt(10);
+    Assert.assertArrayEquals(baos.toByteArray(), update.getValue());
+
+    update = updates.get(1);
+    Assert.assertEquals("cf", new String(update.getColumnFamily()));
+    Assert.assertEquals("cq2", new String(update.getColumnQualifier()));
+
+    baos.reset();
+    out.writeInt(20);
+    Assert.assertArrayEquals(baos.toByteArray(), update.getValue());
+
+    update = updates.get(2);
+    Assert.assertEquals("cf", new String(update.getColumnFamily()));
+    Assert.assertEquals("cq3", new String(update.getColumnQualifier()));
+
+    Assert.assertEquals("value", new String(update.getValue()));
+  }
 }

@@ -17,7 +17,6 @@
 package org.apache.hadoop.hive.accumulo.mr;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,14 +27,9 @@ import org.apache.accumulo.core.client.mapreduce.AccumuloInputFormat;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
-import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
-import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
-import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
-import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.mapred.RecordReader;
@@ -47,15 +41,10 @@ import com.google.common.collect.Lists;
  * to a {@link Writable} for consumption by the {@link AccumuloSerDe}.
  */
 public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveRow> {
-  private Configuration conf;
-  private ColumnMapper columnMapper;
   private RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader;
   private int iteratorCount;
 
-  public HiveAccumuloRecordReader(Configuration conf, ColumnMapper columnMapper,
-      RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
-    this.conf = conf;
-    this.columnMapper = columnMapper;
+  public HiveAccumuloRecordReader(RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
     this.recordReader = recordReader;
     this.iteratorCount = iteratorCount;
   }
@@ -124,71 +113,7 @@ public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveR
     while (kIter.hasNext()) {
       Key k = kIter.next();
       Value v = vIter.next();
-      byte[] utf8Val = parseValueWithType(k, v);
-      row.add(k.getColumnFamily().toString(), k.getColumnQualifier().toString(), utf8Val);
+      row.add(k.getColumnFamily().toString(), k.getColumnQualifier().toString(), v.get());
     }
-  }
-
-  private byte[] parseValueWithType(Key k, Value v) throws IOException {
-    String cf = k.getColumnFamily().toString(), cq = k.getColumnQualifier().toString();
-
-    // Find the column mapping for this Key (cf:cq)
-    int desiredMappingOffset = -1;
-    List<ColumnMapping> columnMappings = columnMapper.getColumnMappings();
-    for (int i = 0; i < columnMappings.size(); i++) {
-      ColumnMapping mapping = columnMappings.get(i);
-
-      // It isn't the :rowId
-      if (mapping instanceof HiveAccumuloColumnMapping) {
-        HiveAccumuloColumnMapping columnMapping = (HiveAccumuloColumnMapping) mapping;
-
-        if (cf.equals(columnMapping.getColumnFamily())) {
-          // We had a cq to fetch
-          if (cq.length() > 0) {
-            if (cq.equals(columnMapping.getColumnQualifier())) {
-              // The cf and cq match
-              desiredMappingOffset = i;
-              break;
-            }
-          } else if (null == columnMapping.getColumnQualifier()) {
-            // The cf matches, and both cqs are null
-            desiredMappingOffset = i;
-            break;
-          }
-        }
-      }
-    }
-
-    if (-1 == desiredMappingOffset) {
-      throw new IOException("Could not determine type for key");
-    }
-
-    String[] hiveColumnTypes = conf.getStrings(serdeConstants.LIST_COLUMN_TYPES);
-    if (null == hiveColumnTypes) {
-      throw new IllegalArgumentException("Hive columns must not be null in configuration");
-    }
-
-    if (desiredMappingOffset >= hiveColumnTypes.length) {
-      throw new IOException("Tried to access Hive column type at offset " + desiredMappingOffset + " but Hive column types were " + hiveColumnTypes);
-    }
-
-    String hiveColumnType = hiveColumnTypes[desiredMappingOffset];
-
-    // TODO this needs to be encapsulated in something that properly handles the Hive types
-    // TODO Also respect the ColumnEncoding when reconstituting
-    if (serdeConstants.STRING_TYPE_NAME.equals(hiveColumnType)) {
-      return v.get();
-    } else if (serdeConstants.INT_TYPE_NAME.equals(hiveColumnType)) {
-      int val = ByteBuffer.wrap(v.get()).asIntBuffer().get();
-      return String.valueOf(val).getBytes();
-    } else if (serdeConstants.DOUBLE_TYPE_NAME.equals(hiveColumnType)) {
-      double val = ByteBuffer.wrap(v.get()).asDoubleBuffer().get();
-      return String.valueOf(val).getBytes();
-    } else if (serdeConstants.BIGINT_TYPE_NAME.equals(hiveColumnType)) {
-      long val = ByteBuffer.wrap(v.get()).asLongBuffer().get();
-      return String.valueOf(val).getBytes();
-    }
-
-    throw new IOException("Unsupported type: " + hiveColumnType + " currently only primitive string, int, bigint, and double types supported");
   }
 }

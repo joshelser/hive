@@ -148,7 +148,7 @@ public class HiveAccumuloTableInputFormat implements
       final RecordReader<Text,PeekingIterator<Map.Entry<Key,Value>>> recordReader = accumuloInputFormat
           .getRecordReader(hiveSplit.getSplit(), jobConf, reporter);
 
-      return new HiveAccumuloRecordReader(jobConf, columnMapper, recordReader, iterators.size());
+      return new HiveAccumuloRecordReader(recordReader, iterators.size());
     } catch (SerDeException e) {
       throw new IOException(StringUtils.stringifyException(e));
     }

@@ -5,6 +5,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -131,25 +134,31 @@ public class TestHiveAccumuloTableInputFormat {
     writer.close();
   }
 
-  private byte[] parseIntBytes(String s) {
+  private byte[] parseIntBytes(String s) throws IOException {
     int val = Integer.parseInt(s);
-    byte[] valBytes = new byte[4];
-    ByteBuffer.wrap(valBytes).putInt(val);
-    return valBytes;
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(4);
+    DataOutputStream out = new DataOutputStream(baos);
+    out.writeInt(val);
+    out.close();
+    return baos.toByteArray();
   }
 
-  private byte[] parseLongBytes(String s) {
+  private byte[] parseLongBytes(String s) throws IOException {
     long val = Long.parseLong(s);
-    byte[] valBytes = new byte[8];
-    ByteBuffer.wrap(valBytes).putLong(val);
-    return valBytes;
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
+    DataOutputStream out = new DataOutputStream(baos);
+    out.writeLong(val);
+    out.close();
+    return baos.toByteArray();
   }
 
-  private byte[] parseDoubleBytes(String s) {
+  private byte[] parseDoubleBytes(String s) throws IOException {
     double val = Double.parseDouble(s);
-    byte[] valBytes = new byte[8];
-    ByteBuffer.wrap(valBytes).putDouble(val);
-    return valBytes;
+    ByteArrayOutputStream baos = new ByteArrayOutputStream(8);
+    DataOutputStream out = new DataOutputStream(baos);
+    out.writeDouble(val);
+    out.close();
+    return baos.toByteArray();
   }
 
   @Test
@@ -165,15 +174,15 @@ public class TestHiveAccumuloTableInputFormat {
     row.add(COLUMN_FAMILY.toString(), DEGREES.toString(), parseDoubleBytes("44.5"));
     row.add(COLUMN_FAMILY.toString(), MILLIS.toString(), parseLongBytes("555"));
     assertTrue(reader.next(rowId, row));
-    assertEquals(row.getRowId(), rowId.toString());
+    assertEquals(rowId.toString(), row.getRowId());
     assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), NAME.toString()));
-    assertArrayEquals(row.getValue(COLUMN_FAMILY.toString(), NAME.toString()), "brian".getBytes());
+    assertArrayEquals("brian".getBytes(), row.getValue(COLUMN_FAMILY.toString(), NAME.toString()));
     assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), SID.toString()));
-    assertArrayEquals(row.getValue(COLUMN_FAMILY.toString(), SID.toString()), "1".getBytes());
+    assertArrayEquals(parseIntBytes("1"), row.getValue(COLUMN_FAMILY.toString(), SID.toString()));
     assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), DEGREES.toString()));
-    assertArrayEquals(row.getValue(COLUMN_FAMILY.toString(), DEGREES.toString()), "44.5".getBytes());
+    assertArrayEquals(parseDoubleBytes("44.5"), row.getValue(COLUMN_FAMILY.toString(), DEGREES.toString()));
     assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), MILLIS.toString()));
-    assertArrayEquals(row.getValue(COLUMN_FAMILY.toString(), MILLIS.toString()), "555".getBytes());
+    assertArrayEquals(parseLongBytes("555"), row.getValue(COLUMN_FAMILY.toString(), MILLIS.toString()));
   }
 
   @Test

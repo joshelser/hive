@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.serde2.lazy.LazyPrimitive;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 /**
@@ -61,9 +62,11 @@ public class LazyAccumuloMap extends LazyMap {
 
     LazyMapObjectInspector lazyMoi = getInspector();
 
+    Text cf = new Text(columnMapping.getColumnFamily());
     for (ColumnTuple tuple : sourceRow.getTuples()) {
-      if (!columnMapping.getColumnFamily().equals(tuple.getCf()) ||
-          !tuple.getCq().startsWith(columnMapping.getColumnQualifierPrefix())){
+
+      if (!cf.equals(tuple.getCf()) ||
+          !tuple.getCq().toString().startsWith(columnMapping.getColumnQualifierPrefix())){
         // A column family or qualifier we don't want to include in the map
         continue;
       }

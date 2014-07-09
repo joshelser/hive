@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.builder.HashCodeBuilder;
+import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
 import com.google.common.base.Preconditions;
@@ -111,8 +112,11 @@ public class AccumuloHiveRow implements Writable {
     int size = tuples.size();
     dataOutput.writeInt(size);
     for (ColumnTuple tuple : tuples) {
-      dataOutput.writeUTF(tuple.getCf());
-      dataOutput.writeUTF(tuple.getCq());
+      Text cf = tuple.getCf(), cq = tuple.getCq();
+      dataOutput.writeInt(cf.getLength());
+      dataOutput.write(cf.getBytes(), 0, cf.getLength());
+      dataOutput.writeInt(cq.getLength());
+      dataOutput.write(cq.getBytes(), 0, cq.getLength());
       byte[] value = tuple.getValue();
       dataOutput.writeInt(value.length);
       dataOutput.write(value);
@@ -126,14 +130,20 @@ public class AccumuloHiveRow implements Writable {
     }
     int size = dataInput.readInt();
     for (int i = 0; i < size; i++) {
-      String cf = dataInput.readUTF();
-      String qual = dataInput.readUTF();
+      int cfLength = dataInput.readInt();
+      byte[] cfData = new byte[cfLength];
+      dataInput.readFully(cfData, 0, cfLength);
+      Text cf = new Text(cfData);
+      int cqLength = dataInput.readInt();
+      byte[] cqData = new byte[cqLength];
+      dataInput.readFully(cqData, 0, cqLength);
+      Text cq = new Text(cqData);
       int valSize = dataInput.readInt();
       byte[] val = new byte[valSize];
       for (int j = 0; j < valSize; j++) {
         val[j] = dataInput.readByte();
       }
-      tuples.add(new ColumnTuple(cf, qual, val));
+      tuples.add(new ColumnTuple(cf, cq, val));
     }
   }
 
@@ -142,15 +152,23 @@ public class AccumuloHiveRow implements Writable {
     Preconditions.checkNotNull(qual);
     Preconditions.checkNotNull(val);
 
+    add(new Text(cf), new Text(qual), val);
+  }
+
+  public void add(Text cf, Text qual, byte[] val) {
+    Preconditions.checkNotNull(cf);
+    Preconditions.checkNotNull(qual);
+    Preconditions.checkNotNull(val);
+
     tuples.add(new ColumnTuple(cf, qual, val));
   }
 
   public static class ColumnTuple {
-    private final String cf;
-    private final String cq;
+    private final Text cf;
+    private final Text cq;
     private final byte[] value;
 
-    public ColumnTuple(String cf, String cq, byte[] value) {
+    public ColumnTuple(Text cf, Text cq, byte[] value) {
       this.value = value;
       this.cf = cf;
       this.cq = cq;
@@ -160,11 +178,11 @@ public class AccumuloHiveRow implements Writable {
       return value;
     }
 
-    public String getCf() {
+    public Text getCf() {
       return cf;
     }
 
-    public String getCq() {
+    public Text getCq() {
       return cq;
     }
 

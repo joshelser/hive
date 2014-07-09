@@ -412,18 +412,18 @@ public class TestHiveAccumuloTableInputFormat {
     mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
 
     // Some cf:cq
-    mappings.add(new HiveAccumuloColumnMapping("person:name", ColumnEncoding.STRING));
-    mappings.add(new HiveAccumuloColumnMapping("person:age", ColumnEncoding.STRING));
-    mappings.add(new HiveAccumuloColumnMapping("person:height", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("person", "name", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("person", "age", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("person", "height", ColumnEncoding.STRING));
 
     // Bare cf
-    mappings.add(new HiveAccumuloColumnMapping("city:", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("city", "name", ColumnEncoding.STRING));
 
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("name")));
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("age")));
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("height")));
     // Null qualifier would mean all qualifiers in that family, want an empty qualifier
-    columns.add(new Pair<Text,Text>(new Text("city"), new Text("")));
+    columns.add(new Pair<Text,Text>(new Text("city"), new Text("name")));
 
     assertEquals(columns, inputformat.getPairCollection(mappings));
   }

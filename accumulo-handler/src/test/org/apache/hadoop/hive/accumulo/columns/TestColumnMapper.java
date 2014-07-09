@@ -35,7 +35,7 @@ public class TestColumnMapper {
 
   @Test
   public void testNormalMapping() {
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_", "cf:qual");
     ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
 
     List<ColumnMapping> mappings = mapper.getColumnMappings();
@@ -73,7 +73,7 @@ public class TestColumnMapper {
   @Test
   public void testGetMappingFromHiveColumn() {
     List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3");
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_", "cf:qual");
     ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
 
     for (int i = 0; i < hiveColumns.size(); i++) {
@@ -86,7 +86,7 @@ public class TestColumnMapper {
 
   @Test
   public void testGetTypesString() {
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:", "cf:qual");
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_", "cf:qual");
     ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
 
     String typeString = mapper.getTypesString();
@@ -99,7 +99,7 @@ public class TestColumnMapper {
 
   @Test
   public void testDefaultBinary() {
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:#s", "cf:qual#s", "cf:qual2");
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_#s", "cf:qual#s", "cf:qual2");
     ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName());
 
     List<ColumnMapping> mappings = mapper.getColumnMappings();

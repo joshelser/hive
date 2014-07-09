@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.data.Key;
@@ -14,6 +15,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMappingFactory;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveComparison;
@@ -83,8 +85,10 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     String serializedColumnMapping = options.get(COLUMN);
+    Entry<String,String> pair = ColumnMappingFactory.parseMapping(serializedColumnMapping);
+
     // The ColumnEncoding is irrelevant at this point, just need the cf:[cq]
-    columnMapping = new HiveAccumuloColumnMapping(serializedColumnMapping, ColumnEncoding.STRING);
+    columnMapping = new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(), ColumnEncoding.STRING);
     columnMappingFamily = new Text(columnMapping.getColumnFamily());
     columnMappingQualifier = new Text(columnMapping.getColumnQualifier());
     cfHolder = new Text();

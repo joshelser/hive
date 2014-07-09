@@ -16,6 +16,8 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
+import java.util.Map.Entry;
+
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,5 +44,40 @@ public class TestColumnMappingFactory {
     ColumnMapping mapping = ColumnMappingFactory.get("cf:cq", ColumnEncoding.STRING);
 
     Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
+  }
+
+  @Test(expected = InvalidColumnMappingException.class)
+  public void testColumnMappingRequiresCfAndCq() {
+    ColumnMappingFactory.parseMapping("cf");
+  }
+
+  @Test
+  public void testColumnMappingWithMultipleColons() {
+    // A column qualifier with a colon
+    String cf = "cf", cq = "cq1:cq2";
+    Entry<String,String> pair = ColumnMappingFactory.parseMapping(cf + ":" + cq);
+
+    Assert.assertEquals(cf, pair.getKey());
+    Assert.assertEquals(cq, pair.getValue());
+  }
+
+  @Test
+  public void testEscapedColumnFamily() {
+    String cf = "c" + '\\' + ":f", cq = "cq1:cq2";
+    Entry<String,String> pair = ColumnMappingFactory.parseMapping(cf + ":" + cq);
+
+    // The getter should remove the escape character for us
+    Assert.assertEquals("c:f", pair.getKey());
+    Assert.assertEquals(cq, pair.getValue());
+  }
+
+  @Test
+  public void testEscapedColumnFamilyAndQualifier() {
+    String cf = "c" + '\\' + ":f", cq = "cq1\\:cq2";
+    Entry<String,String> pair = ColumnMappingFactory.parseMapping(cf + ":" + cq);
+
+    // The getter should remove the escape character for us
+    Assert.assertEquals("c:f", pair.getKey());
+    Assert.assertEquals("cq1:cq2", pair.getValue());
   }
 }

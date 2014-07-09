@@ -24,6 +24,8 @@ import java.util.List;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyInteger;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
@@ -147,4 +149,29 @@ public class TestLazyAccumuloRow {
     Assert.assertEquals("72", ((LazyDioInteger) o).toString());
   }
 
+  @Test
+  public void testNullInit() throws SerDeException {
+    List<String> columns = Arrays.asList("1", "2", "3");
+    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME), TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME));
+
+    LazySimpleStructObjectInspector objectInspector = (LazySimpleStructObjectInspector) LazyFactory.createLazyStructInspector(columns, types,
+        LazySimpleSerDe.DefaultSeparators, new Text("\\N"), false, false, (byte) '\\');
+
+    List<String> fetchedCols = Arrays.asList("cf:cq1", "cf:cq2", "cf:cq3");
+    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.STRING.getName());
+
+    LazyAccumuloRow lazyRow = new LazyAccumuloRow(objectInspector);
+    AccumuloHiveRow hiveRow = new AccumuloHiveRow("1");
+    hiveRow.add("cf", "cq1", "foo".getBytes());
+    hiveRow.add("cf", "cq3", "bar".getBytes());
+
+    lazyRow.init(hiveRow, columnMapper.getColumnMappings());
+
+    // Noticed that we also suffer from the same issue as HIVE-3179
+    // Only want to call a field init'ed when it's non-NULL
+    // Check it twice, make sure we get null both times
+    Assert.assertEquals("{'1':'foo','2':null,'3':'bar'}".replace('\'', '"'), SerDeUtils.getJSONString(lazyRow, objectInspector));
+    Assert.assertEquals("{'1':'foo','2':null,'3':'bar'}".replace('\'', '"'), SerDeUtils.getJSONString(lazyRow, objectInspector));
+  }
 }

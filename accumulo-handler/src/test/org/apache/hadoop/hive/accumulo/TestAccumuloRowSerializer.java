@@ -90,9 +90,9 @@ public class TestAccumuloRowSerializer {
   public void testBinarySerialization() throws IOException, SerDeException {
     ArrayList<ColumnMapping> mappings = new ArrayList<ColumnMapping>();
     mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
-    mappings.add(new HiveAccumuloColumnMapping("cf:cq1", ColumnEncoding.BINARY));
-    mappings.add(new HiveAccumuloColumnMapping("cf:cq2", ColumnEncoding.BINARY));
-    mappings.add(new HiveAccumuloColumnMapping("cf:cq3", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("cf", "cq1", ColumnEncoding.BINARY));
+    mappings.add(new HiveAccumuloColumnMapping("cf", "cq2", ColumnEncoding.BINARY));
+    mappings.add(new HiveAccumuloColumnMapping("cf", "cq3", ColumnEncoding.STRING));
 
     List<String> columns = Arrays.asList("row", "cq1", "cq2", "cq3");
     List<TypeInfo> types = Arrays.<TypeInfo> asList(

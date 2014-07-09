@@ -5,6 +5,7 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang.builder.HashCodeBuilder;
@@ -19,7 +20,7 @@ import com.google.common.base.Preconditions;
 public class AccumuloHiveRow implements Writable {
 
   private String rowId;
-  List<ColumnTuple> tuples = new ArrayList<ColumnTuple>();
+  private List<ColumnTuple> tuples = new ArrayList<ColumnTuple>();
 
   public AccumuloHiveRow() {}
 
@@ -29,6 +30,10 @@ public class AccumuloHiveRow implements Writable {
 
   public void setRowId(String rowId) {
     this.rowId = rowId;
+  }
+
+  public List<ColumnTuple> getTuples() {
+    return Collections.unmodifiableList(tuples);
   }
 
   /**

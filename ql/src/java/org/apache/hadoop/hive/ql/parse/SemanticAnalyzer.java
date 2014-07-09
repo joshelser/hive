@@ -62,8 +62,10 @@ import org.apache.hadoop.hive.ql.QueryProperties;
 import org.apache.hadoop.hive.ql.exec.AbstractMapJoinOperator;
 import org.apache.hadoop.hive.ql.exec.ArchiveUtils;
 import org.apache.hadoop.hive.ql.exec.ColumnInfo;
+import org.apache.hadoop.hive.ql.exec.ExprNodeEvaluatorFactory;
 import org.apache.hadoop.hive.ql.exec.FetchTask;
 import org.apache.hadoop.hive.ql.exec.FileSinkOperator;
+import org.apache.hadoop.hive.ql.exec.FilterOperator;
 import org.apache.hadoop.hive.ql.exec.FunctionInfo;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.GroupByOperator;
@@ -96,7 +98,6 @@ import org.apache.hadoop.hive.ql.metadata.DummyPartition;
 import org.apache.hadoop.hive.ql.metadata.Hive;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveUtils;
-import org.apache.hadoop.hive.ql.metadata.InvalidTableException;
 import org.apache.hadoop.hive.ql.metadata.Partition;
 import org.apache.hadoop.hive.ql.metadata.Table;
 import org.apache.hadoop.hive.ql.metadata.VirtualColumn;
@@ -404,7 +405,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     LinkedHashMap<String, ASTNode> aggregationTrees = new LinkedHashMap<String, ASTNode>();
     List<ASTNode> wdwFns = new ArrayList<ASTNode>();
     for (int i = 0; i < selExpr.getChildCount(); ++i) {
-      ASTNode function = (ASTNode) selExpr.getChild(i).getChild(0);
+      ASTNode function = (ASTNode) selExpr.getChild(i);
+      if (function.getType() == HiveParser.TOK_SELEXPR ||
+          function.getType() == HiveParser.TOK_SUBQUERY_EXPR) {
+        function = (ASTNode)function.getChild(0);
+      }
       doPhase1GetAllAggregations(function, aggregationTrees, wdwFns);
     }
 
@@ -1219,10 +1224,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
       for (String alias : tabAliases) {
         String tab_name = qb.getTabNameForAlias(alias);
-        Table tab = null;
-        try {
-          tab = db.getTable(tab_name);
-        } catch (InvalidTableException ite) {
+        Table tab = db.getTable(tab_name, false);
+        if (tab == null) {
           /*
            * if this s a CTE reference:
            * Add its AST as a SubQuery to this QB.
@@ -1416,11 +1419,11 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
               // allocate a temporary output dir on the location of the table
               String tableName = getUnescapedName((ASTNode) ast.getChild(0));
-              Table newTable = db.newTable(tableName);
+              String[] names = Utilities.getDbTableName(tableName);
               Path location;
               try {
                 Warehouse wh = new Warehouse(conf);
-                location = wh.getDatabasePath(db.getDatabase(newTable.getDbName()));
+                location = wh.getDatabasePath(db.getDatabase(names[0]));
               } catch (MetaException e) {
                 throw new SemanticException(e);
               }
@@ -2367,6 +2370,16 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
 
     OpParseContext inputCtx = opParseCtx.get(input);
     RowResolver inputRR = inputCtx.getRowResolver();
+
+    if (input instanceof FilterOperator) {
+      FilterOperator f = (FilterOperator) input;
+      List<ExprNodeDesc> preds = new ArrayList<ExprNodeDesc>();
+      preds.add(f.getConf().getPredicate());
+      preds.add(filterPred);
+      f.getConf().setPredicate(ExprNodeDescUtils.mergePredicates(preds));
+
+      return input;
+    }
 
     Operator output = putOpInsertMap(OperatorFactory.getAndMakeChild(
         new FilterDesc(filterPred, false),
@@ -4131,6 +4144,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         reduceSinkInputRowResolver, reduceSinkOutputRowResolver, outputKeyColumnNames,
         colExprMap);
 
+    int keyLength = reduceKeys.size();
+
     // add a key for reduce sink
     if (groupingSetsPresent) {
       // Process grouping set for the reduce sink operator
@@ -4182,7 +4197,7 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
     ReduceSinkOperator rsOp = (ReduceSinkOperator) putOpInsertMap(
         OperatorFactory.getAndMakeChild(
             PlanUtils.getReduceSinkDesc(reduceKeys,
-                groupingSetsPresent ? grpByExprs.size() + 1 : grpByExprs.size(),
+                groupingSetsPresent ? keyLength + 1 : keyLength,
                 reduceValues, distinctColIndices,
                 outputKeyColumnNames, outputValueColumnNames, true, -1, numPartitionFields,
                 numReducers),
@@ -4203,22 +4218,30 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       ASTNode grpbyExpr = grpByExprs.get(i);
       ExprNodeDesc inputExpr = genExprNodeDesc(grpbyExpr,
           reduceSinkInputRowResolver);
-      reduceKeys.add(inputExpr);
-      if (reduceSinkOutputRowResolver.getExpression(grpbyExpr) == null) {
-        outputKeyColumnNames.add(getColumnInternalName(reduceKeys.size() - 1));
-        String field = Utilities.ReduceField.KEY.toString() + "."
-            + getColumnInternalName(reduceKeys.size() - 1);
-        ColumnInfo colInfo = new ColumnInfo(field, reduceKeys.get(
-            reduceKeys.size() - 1).getTypeInfo(), null, false);
-        reduceSinkOutputRowResolver.putExpression(grpbyExpr, colInfo);
-        colExprMap.put(colInfo.getInternalName(), inputExpr);
-      } else {
-        throw new SemanticException(ErrorMsg.DUPLICATE_GROUPBY_KEY
-            .getMsg(grpbyExpr));
+      ColumnInfo prev = reduceSinkOutputRowResolver.getExpression(grpbyExpr);
+      if (prev != null && isDeterministic(inputExpr)) {
+        colExprMap.put(prev.getInternalName(), inputExpr);
+        continue;
       }
+      reduceKeys.add(inputExpr);
+      outputKeyColumnNames.add(getColumnInternalName(reduceKeys.size() - 1));
+      String field = Utilities.ReduceField.KEY.toString() + "."
+          + getColumnInternalName(reduceKeys.size() - 1);
+      ColumnInfo colInfo = new ColumnInfo(field, reduceKeys.get(
+          reduceKeys.size() - 1).getTypeInfo(), null, false);
+      reduceSinkOutputRowResolver.putExpression(grpbyExpr, colInfo);
+      colExprMap.put(colInfo.getInternalName(), inputExpr);
     }
 
     return reduceKeys;
+  }
+
+  private boolean isDeterministic(ExprNodeDesc expr) throws SemanticException {
+    try {
+      return ExprNodeEvaluatorFactory.get(expr).isDeterministic();
+    } catch (Exception e) {
+      throw new SemanticException(e);
+    }
   }
 
   private List<List<Integer>> getDistinctColIndicesForReduceSink(QBParseInfo parseInfo,
@@ -4326,6 +4349,8 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
         reduceSinkInputRowResolver, reduceSinkOutputRowResolver, outputKeyColumnNames,
         colExprMap);
 
+    int keyLength = reduceKeys.size();
+
     List<List<Integer>> distinctColIndices = getDistinctColIndicesForReduceSink(parseInfo, dest,
         reduceKeys, reduceSinkInputRowResolver, reduceSinkOutputRowResolver, outputKeyColumnNames,
         colExprMap);
@@ -4371,11 +4396,17 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
       }
     }
 
+    // Optimize the scenario when there are no grouping keys - only 1 reducer is needed
+    int numReducers = -1;
+    if (grpByExprs.isEmpty()) {
+      numReducers = 1;
+    }
+    ReduceSinkDesc rsDesc = PlanUtils.getReduceSinkDesc(reduceKeys, keyLength, reduceValues,
+        distinctColIndices, outputKeyColumnNames, outputValueColumnNames,
+        true, -1, keyLength, numReducers);
+
     ReduceSinkOperator rsOp = (ReduceSinkOperator) putOpInsertMap(
-        OperatorFactory.getAndMakeChild(PlanUtils.getReduceSinkDesc(reduceKeys,
-            grpByExprs.size(), reduceValues, distinctColIndices,
-            outputKeyColumnNames, outputValueColumnNames, true, -1, grpByExprs.size(),
-            -1), new RowSchema(reduceSinkOutputRowResolver
+        OperatorFactory.getAndMakeChild(rsDesc, new RowSchema(reduceSinkOutputRowResolver
             .getColumnInfos()), inputOperatorInfo), reduceSinkOutputRowResolver);
     rsOp.setColumnExprMap(colExprMap);
     return rsOp;

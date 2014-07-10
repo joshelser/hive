@@ -150,53 +150,88 @@ public class TestHiveAccumuloTypes {
     String cf = "cf";
     byte[] cfBytes = cf.getBytes();
 
-    String stringValue = "string";
     Mutation m = new Mutation("row1");
-    out.writeUTF(stringValue);
+
+    // string
+    String stringValue = "string";
+    JavaStringObjectInspector stringOI = (JavaStringObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME));
+    LazyUtils.writePrimitiveUTF8(baos, stringOI.create(stringValue), stringOI, false, (byte) 0,
+        null);
     m.put(cfBytes, "string".getBytes(), baos.toByteArray());
 
+    // boolean
     boolean booleanValue = true;
     baos.reset();
-    out.writeBoolean(booleanValue);
+    JavaBooleanObjectInspector booleanOI = (JavaBooleanObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.BOOLEAN_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, booleanOI.create(booleanValue), booleanOI);
     m.put(cfBytes, "boolean".getBytes(), baos.toByteArray());
 
+    // tinyint
     byte tinyintValue = -127;
     baos.reset();
-    out.write(tinyintValue);
+    JavaByteObjectInspector byteOI = (JavaByteObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.TINYINT_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, tinyintValue, byteOI);
     m.put(cfBytes, "tinyint".getBytes(), baos.toByteArray());
 
+    // smallint
     short smallintValue = Short.MAX_VALUE;
     baos.reset();
-    ShortWritable shortWritable = new ShortWritable(smallintValue);
-    shortWritable.write(out);
+    JavaShortObjectInspector shortOI = (JavaShortObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.SMALLINT_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, smallintValue, shortOI);
     m.put(cfBytes, "smallint".getBytes(), baos.toByteArray());
 
+    // int
     int intValue = Integer.MAX_VALUE;
     baos.reset();
-    out.writeInt(intValue);
+    JavaIntObjectInspector intOI = (JavaIntObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, intValue, intOI);
     m.put(cfBytes, "int".getBytes(), baos.toByteArray());
 
+    // bigint
     long bigintValue = Long.MAX_VALUE;
     baos.reset();
-    out.writeLong(bigintValue);
+    JavaLongObjectInspector longOI = (JavaLongObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.BIGINT_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, bigintValue, longOI);
     m.put(cfBytes, "bigint".getBytes(), baos.toByteArray());
 
+    // float
     float floatValue = Float.MAX_VALUE;
     baos.reset();
-    out.writeFloat(floatValue);
+    JavaFloatObjectInspector floatOI = (JavaFloatObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.FLOAT_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, floatValue, floatOI);
     m.put(cfBytes, "float".getBytes(), baos.toByteArray());
 
+    // double
     double doubleValue = Double.MAX_VALUE;
     baos.reset();
-    out.writeDouble(doubleValue);
+    JavaDoubleObjectInspector doubleOI = (JavaDoubleObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.DOUBLE_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, doubleValue, doubleOI);
     m.put(cfBytes, "double".getBytes(), baos.toByteArray());
 
+    // decimal
     baos.reset();
     HiveDecimal decimalValue = HiveDecimal.create(65536l);
     HiveDecimalWritable decimalWritable = new HiveDecimalWritable(decimalValue);
     decimalWritable.write(out);
     m.put(cfBytes, "decimal".getBytes(), baos.toByteArray());
 
+    // date
     baos.reset();
     Date now = new Date(System.currentTimeMillis());
     DateWritable dateWritable = new DateWritable(now);
@@ -204,21 +239,30 @@ public class TestHiveAccumuloTypes {
     dateWritable.write(out);
     m.put(cfBytes, "date".getBytes(), baos.toByteArray());
 
+    // tiemestamp
     baos.reset();
+    Timestamp timestampValue = new Timestamp(now.getTime());
     ByteStream.Output output = new ByteStream.Output();
     TimestampWritable timestampWritable = new TimestampWritable(new Timestamp(now.getTime()));
     timestampWritable.write(output);
     output.close();
     m.put(cfBytes, "timestamp".getBytes(), output.toByteArray());
 
+    // char
     baos.reset();
-    Text charValue = new Text("hivechar");
-    charValue.write(out);
+    HiveChar charValue = new HiveChar("char", 4);
+    JavaHiveCharObjectInspector charOI = (JavaHiveCharObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(new CharTypeInfo(4));
+    LazyUtils.writePrimitiveUTF8(baos, charOI.create(charValue), charOI, false, (byte) 0,
+        null);
     m.put(cfBytes, "char".getBytes(), baos.toByteArray());
 
     baos.reset();
-    Text varcharValue = new Text("hivevarchar");
-    varcharValue.write(out);
+    HiveVarchar varcharValue = new HiveVarchar("varchar", 7);
+    JavaHiveVarcharObjectInspector varcharOI = (JavaHiveVarcharObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(new VarcharTypeInfo(7));
+    LazyUtils.writePrimitiveUTF8(baos, varcharOI.create(varcharValue), varcharOI, false, (byte) 0,
+        null);
     m.put(cfBytes, "varchar".getBytes(), baos.toByteArray());
 
     writer.addMutation(m);
@@ -242,95 +286,128 @@ public class TestHiveAccumuloTypes {
 
     Assert.assertEquals(13, value.getTuples().size());
 
+    ByteArrayRef byteRef = new ByteArrayRef();
+
     // string
     Text cfText = new Text(cf), cqHolder = new Text();
     cqHolder.set("string");
     byte[] valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    ByteArrayInputStream bais = new ByteArrayInputStream(valueBytes);
-    DataInputStream in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    LazyStringObjectInspector lazyStringOI = LazyPrimitiveObjectInspectorFactory
+        .getLazyStringObjectInspector(false, (byte) 0);
+    LazyString lazyString = (LazyString) LazyFactory.createLazyObject(lazyStringOI);
+    lazyString.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(stringValue, in.readUTF());
+    Assert.assertEquals(stringValue, lazyString.getWritableObject().toString());
 
     // boolean
     cqHolder.set("boolean");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    LazyBooleanObjectInspector lazyBooleanOI = (LazyBooleanObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.BOOLEAN_TYPE_NAME));
+    LazyBoolean lazyBoolean = (LazyBoolean) LazyFactory
+        .createLazyPrimitiveBinaryClass(lazyBooleanOI);
+    lazyBoolean.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(booleanValue, in.readBoolean());
+    Assert.assertEquals(booleanValue, lazyBoolean.getWritableObject().get());
 
     // tinyint
     cqHolder.set("tinyint");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    LazyByteObjectInspector lazyByteOI = (LazyByteObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.TINYINT_TYPE_NAME));
+    LazyByte lazyByte = (LazyByte) LazyFactory.createLazyPrimitiveBinaryClass(lazyByteOI);
+    lazyByte.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(tinyintValue, in.readByte());
+    Assert.assertEquals(tinyintValue, lazyByte.getWritableObject().get());
 
     // smallint
     cqHolder.set("smallint");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
-    shortWritable.readFields(in);
+    byteRef.setData(valueBytes);
+    LazyShortObjectInspector lazyShortOI = (LazyShortObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.SMALLINT_TYPE_NAME));
+    LazyShort lazyShort = (LazyShort) LazyFactory.createLazyPrimitiveBinaryClass(lazyShortOI);
+    lazyShort.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(smallintValue, shortWritable.get());
+    Assert.assertEquals(smallintValue, lazyShort.getWritableObject().get());
 
     // int
     cqHolder.set("int");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    LazyIntObjectInspector lazyIntOI = (LazyIntObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME));
+    LazyInteger lazyInt = (LazyInteger) LazyFactory.createLazyPrimitiveBinaryClass(lazyIntOI);
+    lazyInt.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(intValue, in.readInt());
+    Assert.assertEquals(intValue, lazyInt.getWritableObject().get());
 
     // bigint
     cqHolder.set("bigint");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    LazyLongObjectInspector lazyLongOI = (LazyLongObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.BIGINT_TYPE_NAME));
+    LazyLong lazyLong = (LazyLong) LazyFactory.createLazyPrimitiveBinaryClass(lazyLongOI);
+    lazyLong.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(bigintValue, in.readLong());
+    Assert.assertEquals(bigintValue, lazyLong.getWritableObject().get());
 
     // float
     cqHolder.set("float");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    LazyFloatObjectInspector lazyFloatOI = (LazyFloatObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.FLOAT_TYPE_NAME));
+    LazyFloat lazyFloat = (LazyFloat) LazyFactory.createLazyPrimitiveBinaryClass(lazyFloatOI);
+    lazyFloat.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(floatValue, in.readFloat(), 0);
+    Assert.assertEquals(floatValue, lazyFloat.getWritableObject().get(), 0);
 
     // double
     cqHolder.set("double");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    LazyDoubleObjectInspector lazyDoubleOI = (LazyDoubleObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.DOUBLE_TYPE_NAME));
+    LazyDouble lazyDouble = (LazyDouble) LazyFactory.createLazyPrimitiveBinaryClass(lazyDoubleOI);
+    lazyDouble.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(doubleValue, in.readDouble(), 0);
+    Assert.assertEquals(doubleValue, lazyDouble.getWritableObject().get(), 0);
 
     // decimal
     cqHolder.set("decimal");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
+    byteRef.setData(valueBytes);
+    ByteArrayInputStream bais = new ByteArrayInputStream(valueBytes);
+    DataInputStream in = new DataInputStream(bais);
     decimalWritable.readFields(in);
 
     Assert.assertEquals(decimalValue, decimalWritable.getHiveDecimal());
@@ -340,6 +417,7 @@ public class TestHiveAccumuloTypes {
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
+    byteRef.setData(valueBytes);
     bais = new ByteArrayInputStream(valueBytes);
     in = new DataInputStream(bais);
     dateWritable.readFields(in);
@@ -351,33 +429,38 @@ public class TestHiveAccumuloTypes {
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
+    byteRef.setData(valueBytes);
     bais = new ByteArrayInputStream(valueBytes);
     in = new DataInputStream(bais);
     timestampWritable.readFields(in);
 
-    Assert.assertEquals(new Timestamp(now.getTime()), timestampWritable.getTimestamp());
+    Assert.assertEquals(timestampValue, timestampWritable.getTimestamp());
 
+    // char
     cqHolder.set("char");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
-    Text actualChar = new Text();
-    actualChar.readFields(in);
+    byteRef.setData(valueBytes);
+    LazyHiveCharObjectInspector lazyCharOI = (LazyHiveCharObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(new CharTypeInfo(4));
+    LazyHiveChar lazyChar = (LazyHiveChar) LazyFactory.createLazyObject(lazyCharOI);
+    lazyChar.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(charValue, actualChar);
+    Assert.assertEquals(charValue, lazyChar.getWritableObject().getHiveChar());
 
+    // varchar
     cqHolder.set("varchar");
     valueBytes = value.getValue(cfText, cqHolder);
     Assert.assertNotNull(valueBytes);
 
-    bais = new ByteArrayInputStream(valueBytes);
-    in = new DataInputStream(bais);
-    Text actualVarchar = new Text();
-    actualVarchar.readFields(in);
+    byteRef.setData(valueBytes);
+    LazyHiveVarcharObjectInspector lazyVarcharOI = (LazyHiveVarcharObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(new VarcharTypeInfo(7));
+    LazyHiveVarchar lazyVarchar = (LazyHiveVarchar) LazyFactory.createLazyObject(lazyVarcharOI);
+    lazyVarchar.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(varcharValue, actualVarchar);
+    Assert.assertEquals(varcharValue.toString(), lazyVarchar.getWritableObject().getHiveVarchar().toString());
   }
 
   @Test
@@ -437,6 +520,7 @@ public class TestHiveAccumuloTypes {
         null);
     m.put(cfBytes, "boolean".getBytes(), baos.toByteArray());
 
+    // tinyint
     byte tinyintValue = -127;
     baos.reset();
     JavaByteObjectInspector byteOI = (JavaByteObjectInspector) PrimitiveObjectInspectorFactory

@@ -39,7 +39,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
+import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
+import org.apache.hadoop.hive.common.type.HiveVarchar;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.io.DateWritable;
@@ -53,7 +55,9 @@ import org.apache.hadoop.hive.serde2.lazy.LazyDate;
 import org.apache.hadoop.hive.serde2.lazy.LazyDouble;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyFloat;
+import org.apache.hadoop.hive.serde2.lazy.LazyHiveChar;
 import org.apache.hadoop.hive.serde2.lazy.LazyHiveDecimal;
+import org.apache.hadoop.hive.serde2.lazy.LazyHiveVarchar;
 import org.apache.hadoop.hive.serde2.lazy.LazyInteger;
 import org.apache.hadoop.hive.serde2.lazy.LazyLong;
 import org.apache.hadoop.hive.serde2.lazy.LazyShort;
@@ -65,7 +69,9 @@ import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyByteObje
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyDateObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyDoubleObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyFloatObjectInspector;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyHiveCharObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyHiveDecimalObjectInspector;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyHiveVarcharObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyIntObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyLongObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyPrimitiveObjectInspectorFactory;
@@ -77,15 +83,19 @@ import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaByteObjectIns
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaDateObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaDoubleObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaFloatObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveCharObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveDecimalObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveVarcharObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaIntObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaLongObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaShortObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaStringObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaTimestampObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.typeinfo.CharTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
+import org.apache.hadoop.hive.serde2.typeinfo.VarcharTypeInfo;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputSplit;
@@ -123,11 +133,11 @@ public class TestHiveAccumuloTypes {
 
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, AccumuloHiveConstants.ROWID
         + ",cf:string,cf:boolean,cf:tinyint,cf:smallint,cf:int,cf:bigint"
-        + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp");
+        + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp,cf:char,cf:varchar");
     conf.set(serdeConstants.LIST_COLUMNS,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
     conf.set(serdeConstants.LIST_COLUMN_TYPES,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
     conf.set(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, "binary");
 
     conn.tableOperations().create(tableName);
@@ -201,6 +211,16 @@ public class TestHiveAccumuloTypes {
     output.close();
     m.put(cfBytes, "timestamp".getBytes(), output.toByteArray());
 
+    baos.reset();
+    Text charValue = new Text("hivechar");
+    charValue.write(out);
+    m.put(cfBytes, "char".getBytes(), baos.toByteArray());
+
+    baos.reset();
+    Text varcharValue = new Text("hivevarchar");
+    varcharValue.write(out);
+    m.put(cfBytes, "varchar".getBytes(), baos.toByteArray());
+
     writer.addMutation(m);
 
     writer.close();
@@ -220,7 +240,7 @@ public class TestHiveAccumuloTypes {
 
     reader.next(key, value);
 
-    Assert.assertEquals(11, value.getTuples().size());
+    Assert.assertEquals(13, value.getTuples().size());
 
     // string
     Text cfText = new Text(cf), cqHolder = new Text();
@@ -336,6 +356,28 @@ public class TestHiveAccumuloTypes {
     timestampWritable.readFields(in);
 
     Assert.assertEquals(new Timestamp(now.getTime()), timestampWritable.getTimestamp());
+
+    cqHolder.set("char");
+    valueBytes = value.getValue(cfText, cqHolder);
+    Assert.assertNotNull(valueBytes);
+
+    bais = new ByteArrayInputStream(valueBytes);
+    in = new DataInputStream(bais);
+    Text actualChar = new Text();
+    actualChar.readFields(in);
+
+    Assert.assertEquals(charValue, actualChar);
+
+    cqHolder.set("varchar");
+    valueBytes = value.getValue(cfText, cqHolder);
+    Assert.assertNotNull(valueBytes);
+
+    bais = new ByteArrayInputStream(valueBytes);
+    in = new DataInputStream(bais);
+    Text actualVarchar = new Text();
+    actualVarchar.readFields(in);
+
+    Assert.assertEquals(varcharValue, actualVarchar);
   }
 
   @Test
@@ -357,11 +399,11 @@ public class TestHiveAccumuloTypes {
 
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, AccumuloHiveConstants.ROWID
         + ",cf:string,cf:boolean,cf:tinyint,cf:smallint,cf:int,cf:bigint"
-        + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp");
+        + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp,cf:char,cf:varchar");
     conf.set(serdeConstants.LIST_COLUMNS,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
     conf.set(serdeConstants.LIST_COLUMN_TYPES,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
 
     conn.tableOperations().create(tableName);
     BatchWriterConfig writerConf = new BatchWriterConfig();
@@ -470,7 +512,6 @@ public class TestHiveAccumuloTypes {
 
     // timestamp
     Timestamp timestampValue = new Timestamp(now.getTime());
-    TimestampWritable timestampWritable = new TimestampWritable(timestampValue);
     baos.reset();
     JavaTimestampObjectInspector timestampOI = (JavaTimestampObjectInspector) PrimitiveObjectInspectorFactory
         .getPrimitiveJavaObjectInspector(TypeInfoFactory
@@ -478,6 +519,22 @@ public class TestHiveAccumuloTypes {
     LazyUtils.writePrimitiveUTF8(baos, timestampOI.create(timestampValue), timestampOI, false,
         (byte) 0, null);
     m.put(cfBytes, "timestamp".getBytes(), baos.toByteArray());
+
+    // char
+    baos.reset();
+    HiveChar charValue = new HiveChar("char", 4);
+    JavaHiveCharObjectInspector charOI = (JavaHiveCharObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(new CharTypeInfo(4));
+    LazyUtils.writePrimitiveUTF8(baos, charOI.create(charValue), charOI, false, (byte) 0, null);
+    m.put(cfBytes, "char".getBytes(), baos.toByteArray());
+
+    // varchar
+    baos.reset();
+    HiveVarchar varcharValue = new HiveVarchar("varchar", 7);
+    JavaHiveVarcharObjectInspector varcharOI = (JavaHiveVarcharObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(new VarcharTypeInfo(7));
+    LazyUtils.writePrimitiveUTF8(baos, varcharOI.create(varcharValue), varcharOI, false, (byte) 0, null);
+    m.put(cfBytes, "varchar".getBytes(), baos.toByteArray());
 
     writer.addMutation(m);
 
@@ -498,7 +555,7 @@ public class TestHiveAccumuloTypes {
 
     reader.next(key, value);
 
-    Assert.assertEquals(11, value.getTuples().size());
+    Assert.assertEquals(13, value.getTuples().size());
 
     // string
     Text cfText = new Text(cf), cqHolder = new Text();
@@ -650,5 +707,31 @@ public class TestHiveAccumuloTypes {
     lazyTimestamp.init(byteRef, 0, valueBytes.length);
 
     Assert.assertEquals(timestampValue, lazyTimestamp.getWritableObject().getTimestamp());
+
+    // char
+    cqHolder.set("char");
+    valueBytes = value.getValue(cfText, cqHolder);
+    Assert.assertNotNull(valueBytes);
+
+    byteRef.setData(valueBytes);
+    LazyHiveCharObjectInspector lazyCharOI = (LazyHiveCharObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(new CharTypeInfo(4));
+    LazyHiveChar lazyChar = (LazyHiveChar) LazyFactory.createLazyObject(lazyCharOI);
+    lazyChar.init(byteRef, 0, valueBytes.length);
+
+    Assert.assertEquals(charValue, lazyChar.getWritableObject().getHiveChar());
+
+    // varchar
+    cqHolder.set("varchar");
+    valueBytes = value.getValue(cfText, cqHolder);
+    Assert.assertNotNull(valueBytes);
+
+    byteRef.setData(valueBytes);
+    LazyHiveVarcharObjectInspector lazyVarcharOI = (LazyHiveVarcharObjectInspector) LazyPrimitiveObjectInspectorFactory
+        .getLazyObjectInspector(new VarcharTypeInfo(7));
+    LazyHiveVarchar lazyVarchar = (LazyHiveVarchar) LazyFactory.createLazyObject(lazyVarcharOI);
+    lazyVarchar.init(byteRef, 0, valueBytes.length);
+
+    Assert.assertEquals(varcharValue.toString(), lazyVarchar.getWritableObject().getHiveVarchar().toString());
   }
 }

@@ -28,6 +28,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
 /**
@@ -45,13 +46,13 @@ public class TestAccumuloHiveRow {
     }
 
     // Check that we don't find unexpected columns
-    assertFalse(row.hasFamAndQual("", ""));
-    assertFalse(row.hasFamAndQual("cf0", "cq1"));
-    assertFalse(row.hasFamAndQual("cf1", "cq0"));
+    assertFalse(row.hasFamAndQual(new Text(""), new Text("")));
+    assertFalse(row.hasFamAndQual(new Text("cf0"), new Text("cq1")));
+    assertFalse(row.hasFamAndQual(new Text("cf1"), new Text("cq0")));
 
     // Check that we do find all expected columns
     for (int i = 1; i <= 5; i++) {
-      assertTrue(row.hasFamAndQual("cf1", "cq" + i));
+      assertTrue(row.hasFamAndQual(new Text("cf1"), new Text("cq" + i)));
     }
   }
 
@@ -60,16 +61,16 @@ public class TestAccumuloHiveRow {
     AccumuloHiveRow row = new AccumuloHiveRow("row1");
 
     // Should return null when there is no column
-    assertNull(row.getValue("", ""));
+    assertNull(row.getValue(new Text(""), new Text("")));
 
     for (int i = 1; i <= 5; i++) {
       row.add("cf", "cq" + i, Integer.toString(i).getBytes());
     }
 
-    assertNull(row.getValue("cf", "cq0"));
+    assertNull(row.getValue(new Text("cf"), new Text("cq0")));
 
     for (int i = 1; i <= 5; i++) {
-      assertArrayEquals(Integer.toString(i).getBytes(), row.getValue("cf", "cq" + i));
+      assertArrayEquals(Integer.toString(i).getBytes(), row.getValue(new Text("cf"), new Text("cq" + i)));
     }
   }
 

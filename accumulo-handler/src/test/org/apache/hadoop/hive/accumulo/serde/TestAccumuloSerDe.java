@@ -159,14 +159,17 @@ public class TestAccumuloSerDe {
 
     LazyAccumuloRow lazyRow = (LazyAccumuloRow) obj;
     Object field0 = lazyRow.getField(0);
+    assertNotNull(field0);
     assertTrue(field0 instanceof LazyString);
     assertEquals(field0.toString(), "r1");
 
     Object field1 = lazyRow.getField(1);
-    assertTrue(field1 instanceof LazyString);
+    assertNotNull(field1);
+    assertTrue("Expected instance of LazyString but was " + field1.getClass(), field1 instanceof LazyString);
     assertEquals(field1.toString(), "v1");
 
     Object field2 = lazyRow.getField(2);
+    assertNotNull(field2);
     assertTrue(field2 instanceof LazyString);
     assertEquals(field2.toString(), "v2");
   }

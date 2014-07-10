@@ -17,6 +17,7 @@ import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
+import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
@@ -83,7 +84,8 @@ public class LazyAccumuloRow extends LazyStruct {
           HiveAccumuloColumnMapping accumuloColumnMapping = (HiveAccumuloColumnMapping) columnMapping;
   
           // Use the colfam and colqual to get the value
-          byte[] val = row.getValue(accumuloColumnMapping.getColumnFamily(), accumuloColumnMapping.getColumnQualifier());
+          byte[] val = row.getValue(new Text(accumuloColumnMapping.getColumnFamily()), new Text(
+              accumuloColumnMapping.getColumnQualifier()));
           if (val == null) {
             return null;
           } else {

@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -175,14 +174,14 @@ public class TestHiveAccumuloTableInputFormat {
     row.add(COLUMN_FAMILY.toString(), MILLIS.toString(), parseLongBytes("555"));
     assertTrue(reader.next(rowId, row));
     assertEquals(rowId.toString(), row.getRowId());
-    assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), NAME.toString()));
-    assertArrayEquals("brian".getBytes(), row.getValue(COLUMN_FAMILY.toString(), NAME.toString()));
-    assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), SID.toString()));
-    assertArrayEquals(parseIntBytes("1"), row.getValue(COLUMN_FAMILY.toString(), SID.toString()));
-    assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), DEGREES.toString()));
-    assertArrayEquals(parseDoubleBytes("44.5"), row.getValue(COLUMN_FAMILY.toString(), DEGREES.toString()));
-    assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), MILLIS.toString()));
-    assertArrayEquals(parseLongBytes("555"), row.getValue(COLUMN_FAMILY.toString(), MILLIS.toString()));
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals("brian".getBytes(), row.getValue(COLUMN_FAMILY, NAME));
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, SID));
+    assertArrayEquals(parseIntBytes("1"), row.getValue(COLUMN_FAMILY, SID));
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, DEGREES));
+    assertArrayEquals(parseDoubleBytes("44.5"), row.getValue(COLUMN_FAMILY, DEGREES));
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, MILLIS));
+    assertArrayEquals(parseLongBytes("555"), row.getValue(COLUMN_FAMILY, MILLIS));
   }
 
   @Test
@@ -196,20 +195,20 @@ public class TestHiveAccumuloTableInputFormat {
     AccumuloHiveRow row = new AccumuloHiveRow();
     assertTrue(reader.next(rowId, row));
     assertEquals(row.getRowId(), rowId.toString());
-    assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), NAME.toString()));
-    assertArrayEquals(row.getValue(COLUMN_FAMILY.toString(), NAME.toString()), "brian".getBytes());
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "brian".getBytes());
 
     rowId = new Text("r2");
     assertTrue(reader.next(rowId, row));
     assertEquals(row.getRowId(), rowId.toString());
-    assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), NAME.toString()));
-    assertArrayEquals(row.getValue(COLUMN_FAMILY.toString(), NAME.toString()), "mark".getBytes());
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "mark".getBytes());
 
     rowId = new Text("r3");
     assertTrue(reader.next(rowId, row));
     assertEquals(row.getRowId(), rowId.toString());
-    assertTrue(row.hasFamAndQual(COLUMN_FAMILY.toString(), NAME.toString()));
-    assertArrayEquals(row.getValue(COLUMN_FAMILY.toString(), NAME.toString()), "dennis".getBytes());
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "dennis".getBytes());
 
     assertFalse(reader.next(rowId, row));
   }

@@ -41,7 +41,7 @@ public class AccumuloHiveRow implements Writable {
    * 
    * @return true if this instance has a tuple containing fam and qual, false otherwise.
    */
-  public boolean hasFamAndQual(String fam, String qual) {
+  public boolean hasFamAndQual(Text fam, Text qual) {
     for (ColumnTuple tuple : tuples) {
       if (tuple.getCf().equals(fam) && tuple.getCq().equals(qual)) {
         return true;
@@ -54,7 +54,7 @@ public class AccumuloHiveRow implements Writable {
    * 
    * @return byte [] value for first tuple containing fam and qual or null if no match.
    */
-  public byte[] getValue(String fam, String qual) {
+  public byte[] getValue(Text fam, Text qual) {
     for (ColumnTuple tuple : tuples) {
       if (tuple.getCf().equals(fam) && tuple.getCq().equals(qual)) {
         return tuple.getValue();

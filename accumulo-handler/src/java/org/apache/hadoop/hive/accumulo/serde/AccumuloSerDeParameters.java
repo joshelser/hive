@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
@@ -41,6 +42,9 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   public static final boolean ITERATOR_PUSHDOWN_DEFAULT = true;
 
   public static final String DEFAULT_STORAGE_TYPE = "accumulo.default.storage";
+
+  public static final String VISIBILITY_LABEL_KEY = "accumulo.visibility.label";
+  public static final ColumnVisibility DEFAULT_VISIBILITY_LABEL = new ColumnVisibility();
 
   protected final ColumnMapper columnMapper;
 
@@ -155,5 +159,14 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     }
 
     throw new NoSuchElementException("Could not find Hive column type for " + hiveColumn);
+  }
+
+  public ColumnVisibility getTableVisibilityLabel() {
+    String visibilityLabel = tableProperties.getProperty(VISIBILITY_LABEL_KEY, null);
+    if (null == visibilityLabel || visibilityLabel.isEmpty()) {
+      return DEFAULT_VISIBILITY_LABEL;
+    }
+
+    return new ColumnVisibility(visibilityLabel);
   }
 }

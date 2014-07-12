@@ -14,12 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hive.accumulo;
+package org.apache.hadoop.hive.accumulo.serde;
 
 import java.io.IOException;
 import java.util.List;
 
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
@@ -43,14 +44,16 @@ public class AccumuloRowSerializer {
   private final int rowIdOffset;
   private final ByteStream.Output output;
   private final List<ColumnMapping> mappings;
+  private final ColumnVisibility visibility;
 
-  public AccumuloRowSerializer(int primaryKeyOffset, List<ColumnMapping> mappings) {
+  public AccumuloRowSerializer(int primaryKeyOffset, List<ColumnMapping> mappings, ColumnVisibility visibility) {
     this.rowIdOffset = primaryKeyOffset;
     this.output = new ByteStream.Output();
     this.mappings = mappings;
+    this.visibility = visibility;
   }
 
-  public Writable serialize(Object obj, ObjectInspector objInspector) throws SerDeException,
+  public Mutation serialize(Object obj, ObjectInspector objInspector) throws SerDeException,
       IOException {
     if (objInspector.getCategory() != ObjectInspector.Category.STRUCT) {
       throw new SerDeException(getClass().toString()
@@ -108,7 +111,7 @@ public class AccumuloRowSerializer {
 
       // Put it all in the Mutation
       mutation.put(hiveColumnMapping.getColumnFamily().getBytes(Charsets.UTF_8), hiveColumnMapping
-          .getColumnQualifier().getBytes(Charsets.UTF_8), serializedValue);
+          .getColumnQualifier().getBytes(Charsets.UTF_8), visibility, serializedValue);
     }
 
     return mutation;
@@ -163,5 +166,9 @@ public class AccumuloRowSerializer {
   protected void writeString(ByteStream.Output output, Object value,
       PrimitiveObjectInspector inspector) throws IOException {
     LazyUtils.writePrimitiveUTF8(output, value, inspector, false, (byte) '\'', new boolean[128]);
+  }
+
+  protected ColumnVisibility getVisibility() {
+    return visibility;
   }
 }

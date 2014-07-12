@@ -59,19 +59,27 @@ public class TestAccumuloStorageHandler {
 
     props.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq1,cf:cq2,cf:cq3");
     props.setProperty(AccumuloSerDeParameters.TABLE_NAME, "table");
+    props.setProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY, "foo");
 
     Mockito.when(tableDesc.getProperties()).thenReturn(props);
 
     storageHandler.configureOutputJobProperties(tableDesc, jobProperties);
 
-    Assert.assertEquals(2, jobProperties.size());
-    Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+    Assert.assertEquals(3, jobProperties.size());
+    Assert.assertTrue("Job properties did not contain column mappings",
+        jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
     Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS),
         jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
 
-    Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.TABLE_NAME));
+    Assert.assertTrue("Job properties did not contain accumulo table name",
+        jobProperties.containsKey(AccumuloSerDeParameters.TABLE_NAME));
     Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME),
         jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
+
+    Assert.assertTrue("Job properties did not contain visibility label",
+        jobProperties.containsKey(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY),
+        jobProperties.get(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY));
   }
 
   @Test

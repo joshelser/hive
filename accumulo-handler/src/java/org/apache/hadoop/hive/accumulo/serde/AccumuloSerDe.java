@@ -6,7 +6,6 @@ import java.util.Properties;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
-import org.apache.hadoop.hive.accumulo.AccumuloRowSerializer;
 import org.apache.hadoop.hive.accumulo.LazyAccumuloRow;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -15,7 +14,8 @@ import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.io.Writable;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Deserialization from Accumulo to LazyAccumuloRow for Hive.
@@ -28,21 +28,28 @@ public class AccumuloSerDe implements SerDe {
   private ObjectInspector cachedObjectInspector;
   private AccumuloRowSerializer serializer;
 
-  private static final Logger log = Logger.getLogger(AccumuloSerDe.class);
+  private static final Logger log = LoggerFactory.getLogger(AccumuloSerDe.class);
 
   public void initialize(Configuration conf, Properties properties) throws SerDeException {
     accumuloSerDeParameters = new AccumuloSerDeParameters(conf, properties, getClass().getName());
 
-    cachedObjectInspector = LazyFactory.createLazyStructInspector(accumuloSerDeParameters.getSerDeParameters().getColumnNames(), accumuloSerDeParameters.getSerDeParameters().getColumnTypes(),
-        accumuloSerDeParameters.getSerDeParameters().getSeparators(), accumuloSerDeParameters.getSerDeParameters().getNullSequence(), accumuloSerDeParameters.getSerDeParameters().isLastColumnTakesRest(), accumuloSerDeParameters.getSerDeParameters().isEscaped(),
-        accumuloSerDeParameters.getSerDeParameters().getEscapeChar());
+    cachedObjectInspector = LazyFactory.createLazyStructInspector(accumuloSerDeParameters
+        .getSerDeParameters().getColumnNames(), accumuloSerDeParameters.getSerDeParameters()
+        .getColumnTypes(), accumuloSerDeParameters.getSerDeParameters().getSeparators(),
+        accumuloSerDeParameters.getSerDeParameters().getNullSequence(), accumuloSerDeParameters
+            .getSerDeParameters().isLastColumnTakesRest(), accumuloSerDeParameters
+            .getSerDeParameters().isEscaped(), accumuloSerDeParameters.getSerDeParameters()
+            .getEscapeChar());
 
     cachedRow = new LazyAccumuloRow((LazySimpleStructObjectInspector) cachedObjectInspector);
 
-    serializer = new AccumuloRowSerializer(accumuloSerDeParameters.getRowIdOffset(), accumuloSerDeParameters.getColumnMappings());
+    serializer = new AccumuloRowSerializer(accumuloSerDeParameters.getRowIdOffset(),
+        accumuloSerDeParameters.getColumnMappings(),
+        accumuloSerDeParameters.getTableVisibilityLabel());
 
     if (log.isInfoEnabled()) {
-      log.info("Initialized with " + accumuloSerDeParameters.getSerDeParameters().getColumnNames() + " type: " + accumuloSerDeParameters.getSerDeParameters().getColumnTypes());
+      log.info("Initialized with {} type: {}", accumuloSerDeParameters.getSerDeParameters()
+          .getColumnNames(), accumuloSerDeParameters.getSerDeParameters().getColumnTypes());
     }
   }
 
@@ -69,7 +76,8 @@ public class AccumuloSerDe implements SerDe {
   @Override
   public Object deserialize(Writable writable) throws SerDeException {
     if (!(writable instanceof AccumuloHiveRow)) {
-      throw new SerDeException(getClass().getName() + " : " + "Expected AccumuloHiveRow. Got " + writable.getClass().getName());
+      throw new SerDeException(getClass().getName() + " : " + "Expected AccumuloHiveRow. Got "
+          + writable.getClass().getName());
     }
 
     cachedRow.init((AccumuloHiveRow) writable, accumuloSerDeParameters.getColumnMappings());
@@ -91,5 +99,9 @@ public class AccumuloSerDe implements SerDe {
 
   public boolean getIteratorPushdown() {
     return accumuloSerDeParameters.getIteratorPushdown();
+  }
+
+  protected AccumuloRowSerializer getSerializer() {
+    return serializer;
   }
 }

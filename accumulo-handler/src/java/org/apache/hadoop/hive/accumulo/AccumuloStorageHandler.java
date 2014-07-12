@@ -73,6 +73,11 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
       jobProps.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE,
           tblProperties.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
     }
+
+    if (tblProperties.containsKey(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY)) {
+      jobProps.put(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY,
+          tblProperties.getProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY));
+    }
   }
 
   protected String getTableName(Table table) throws MetaException {
@@ -141,8 +146,15 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
         props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
     jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
         props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+
     if (props.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
-      jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, props.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+      jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE,
+          props.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+    }
+
+    if (props.containsKey(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY)) {
+      jobProperties.put(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY,
+          props.getProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY));
     }
   }
 

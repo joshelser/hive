@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.util.Properties;
 
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
@@ -17,11 +18,18 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazyString;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestAccumuloSerDe {
 
-  AccumuloSerDe serde = new AccumuloSerDe();
+  protected AccumuloSerDe serde;
+
+  @Before
+  public void setup() {
+    serde = new AccumuloSerDe();
+  }
 
   private static final Logger log = Logger.getLogger(TestAccumuloSerDe.class);
 
@@ -54,28 +62,20 @@ public class TestAccumuloSerDe {
   }
 
   @Test
-  public void withOrWithoutRowID() {
+  public void withOrWithoutRowID() throws SerDeException {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
     properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1,:rowID");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
 
-    try {
-      serde.initialize(conf, properties);
-    } catch (SerDeException e) {
-      fail(e.getMessage());
-    }
+    serde.initialize(conf, properties);
 
     properties = new Properties();
     conf = new Configuration();
     properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1,cf:f2");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
 
-    try {
-      serde.initialize(conf, properties);
-    } catch (SerDeException e) {
-      fail(e.getMessage());
-    }
+    serde.initialize(conf, properties);
   }
 
   @Test(expected = NullPointerException.class)
@@ -172,5 +172,34 @@ public class TestAccumuloSerDe {
     assertNotNull(field2);
     assertTrue(field2 instanceof LazyString);
     assertEquals(field2.toString(), "v2");
+  }
+
+  @Test
+  public void testNoVisibilitySetsEmptyVisibility() throws SerDeException {
+    Properties properties = new Properties();
+    Configuration conf = new Configuration();
+    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1,:rowID");
+    properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
+
+    serde.initialize(conf, properties);
+
+    AccumuloRowSerializer serializer = serde.getSerializer();
+
+    Assert.assertEquals(new ColumnVisibility(), serializer.getVisibility());
+  }
+
+  @Test
+  public void testColumnVisibilityForSerializer() throws SerDeException {
+    Properties properties = new Properties();
+    Configuration conf = new Configuration();
+    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1,:rowID");
+    properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2");
+    properties.setProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY, "foobar");
+
+    serde.initialize(conf, properties);
+
+    AccumuloRowSerializer serializer = serde.getSerializer();
+
+    Assert.assertEquals(new ColumnVisibility("foobar"), serializer.getVisibility());
   }
 }

@@ -250,6 +250,8 @@ public class TestAccumuloSerDe {
       assertTrue(strValue.startsWith("v"));
       assertTrue(strValue.endsWith(Character.toString(strKey.charAt(1))));
     }
+
+    assertTrue("Did not find expected keys: " + expectedKeys, expectedKeys.isEmpty());
   }
 
   @Test

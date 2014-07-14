@@ -5,16 +5,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
 import org.apache.hadoop.hive.accumulo.LazyAccumuloRow;
 import org.apache.hadoop.hive.accumulo.columns.InvalidColumnMappingException;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.lazy.LazyArray;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazyString;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
@@ -140,6 +142,51 @@ public class TestAccumuloSerDe {
   }
 
   @Test
+  public void arraySerialization() throws Exception {
+    Properties properties = new Properties();
+    Configuration conf = new Configuration();
+
+    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowID,cf:vals");
+    properties.setProperty(serdeConstants.LIST_COLUMNS, "row,values");
+    properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string,array<string>");
+    properties.setProperty(serdeConstants.COLLECTION_DELIM, ":");
+
+    // Get one of the default separators to avoid having to set a custom separator
+    char separator = ':';
+
+    serde.initialize(conf, properties);
+
+    AccumuloHiveRow row = new AccumuloHiveRow();
+    row.setRowId("r1");
+    row.add("cf", "vals", ("value1" + separator + "value2" + separator + "value3").getBytes());
+
+    Object obj = serde.deserialize(row);
+
+    assertNotNull(obj);
+    assertTrue(obj instanceof LazyAccumuloRow);
+
+    LazyAccumuloRow lazyRow = (LazyAccumuloRow) obj;
+    Object field0 = lazyRow.getField(0);
+    assertNotNull(field0);
+    assertTrue(field0 instanceof LazyString);
+    assertEquals(row.getRowId(), ((LazyString) field0).getWritableObject().toString());
+
+    Object field1 = lazyRow.getField(1);
+    assertNotNull(field1);
+    assertTrue(field1 instanceof LazyArray);
+    LazyArray array = (LazyArray) field1;
+
+    List<Object> values = array.getList();
+    assertEquals(3, values.size());
+    for (int i = 0; i < 3; i++) {
+      Object o = values.get(i);
+      assertNotNull(o);
+      assertTrue(o instanceof LazyString);
+      assertEquals("value" + (i+1), ((LazyString) o).getWritableObject().toString());
+    }
+  }
+
+  @Test
   public void deserialization() throws Exception {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
@@ -147,7 +194,6 @@ public class TestAccumuloSerDe {
 
     properties.setProperty(serdeConstants.LIST_COLUMNS, "blah,field2,field3,field4");
     serde.initialize(conf, properties);
-    assertEquals(AccumuloHiveConstants.ROWID, ":rowID");
 
     AccumuloHiveRow row = new AccumuloHiveRow();
     row.setRowId("r1");

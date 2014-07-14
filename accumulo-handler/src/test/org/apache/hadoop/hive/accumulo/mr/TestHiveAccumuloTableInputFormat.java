@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.fs.Path;
@@ -495,6 +496,44 @@ public class TestHiveAccumuloTableInputFormat {
   }
 
   @Test
+  public void testConfigureAccumuloInputFormatWithAuthorizations() throws Exception {
+    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
+    conf.set(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo,bar");
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    List<IteratorSetting> iterators = Collections.emptyList();
+    Set<Range> ranges = Collections.singleton(new Range());
+    String instanceName = "realInstance";
+    String zookeepers = "host1:2181,host2:2181,host3:2181";
+
+    ZooKeeperInstance zkInstance = Mockito.mock(ZooKeeperInstance.class);
+    HiveAccumuloTableInputFormat mockInputFormat = Mockito.mock(HiveAccumuloTableInputFormat.class);
+
+    // Stub out the ZKI mock
+    Mockito.when(zkInstance.getInstanceName()).thenReturn(instanceName);
+    Mockito.when(zkInstance.getZooKeepers()).thenReturn(zookeepers);
+
+    // Call out to the real configure method
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Also compute the correct cf:cq pairs so we can assert the right argument was passed
+    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Verify that the correct methods are invoked on AccumuloInputFormat
+    Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
+    Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
+    Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, new Authorizations("foo,bar"));
+    Mockito.verify(mockInputFormat).addIterators(conf, iterators);
+    Mockito.verify(mockInputFormat).setRanges(conf, ranges);
+    Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
+  }
+
+  @Test
   public void testConfigureAccumuloInputFormatWithIterators() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
@@ -544,5 +583,57 @@ public class TestHiveAccumuloTableInputFormat {
     Mockito.verify(mockInputFormat).addIterators(conf, iterators);
     Mockito.verify(mockInputFormat).setRanges(conf, ranges);
     Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
+  }
+
+  @Test
+  public void testGetProtectedField() throws Exception {
+    FileInputFormat.addInputPath(conf, new Path("unused"));
+
+    BatchWriterConfig writerConf = new BatchWriterConfig();
+    BatchWriter writer = con.createBatchWriter(TEST_TABLE, writerConf);
+
+    Authorizations origAuths = con.securityOperations().getUserAuthorizations(USER);
+    con.securityOperations().changeUserAuthorizations(USER, new Authorizations(origAuths.toString() + ",foo"));
+
+    Mutation m = new Mutation("r4"); 
+    m.put(COLUMN_FAMILY, NAME, new ColumnVisibility("foo"), new Value("frank".getBytes()));
+    m.put(COLUMN_FAMILY, SID, new ColumnVisibility("foo"), new Value(parseIntBytes("4")));
+    m.put(COLUMN_FAMILY, DEGREES, new ColumnVisibility("foo"), new Value(parseDoubleBytes("60.6")));
+    m.put(COLUMN_FAMILY, MILLIS, new ColumnVisibility("foo"), new Value(parseLongBytes("777")));
+
+    writer.addMutation(m);
+    writer.close();
+
+    conf.set(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo");
+
+    InputSplit[] splits = inputformat.getSplits(conf, 0);
+    assertEquals(splits.length, 1);
+    RecordReader<Text,AccumuloHiveRow> reader = inputformat.getRecordReader(splits[0], conf, null);
+    Text rowId = new Text("r1");
+    AccumuloHiveRow row = new AccumuloHiveRow();
+    assertTrue(reader.next(rowId, row));
+    assertEquals(row.getRowId(), rowId.toString());
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "brian".getBytes());
+
+    rowId = new Text("r2");
+    assertTrue(reader.next(rowId, row));
+    assertEquals(row.getRowId(), rowId.toString());
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "mark".getBytes());
+
+    rowId = new Text("r3");
+    assertTrue(reader.next(rowId, row));
+    assertEquals(row.getRowId(), rowId.toString());
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "dennis".getBytes());
+
+    rowId = new Text("r4");
+    assertTrue(reader.next(rowId, row));
+    assertEquals(row.getRowId(), rowId.toString());
+    assertTrue(row.hasFamAndQual(COLUMN_FAMILY, NAME));
+    assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "frank".getBytes());
+
+    assertFalse(reader.next(rowId, row));
   }
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
@@ -32,6 +33,8 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+
+import com.google.common.base.Preconditions;
 
 /**
  * 
@@ -45,6 +48,8 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
   public static final String VISIBILITY_LABEL_KEY = "accumulo.visibility.label";
   public static final ColumnVisibility DEFAULT_VISIBILITY_LABEL = new ColumnVisibility();
+
+  public static final String AUTHORIZATIONS_KEY = "accumulo.authorizations";
 
   protected final ColumnMapper columnMapper;
 
@@ -161,6 +166,14 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     throw new NoSuchElementException("Could not find Hive column type for " + hiveColumn);
   }
 
+  /**
+   * Extracts the table property to allow a custom ColumnVisibility label to be set on updates to be
+   * written to an Accumulo table. The value in the table property must be a properly formatted
+   * {@link ColumnVisibility}. If not value is present in the table properties, an empty
+   * ColumnVisibility is returned.
+   * 
+   * @return The ColumnVisibility to be applied to all updates sent to Accumulo
+   */
   public ColumnVisibility getTableVisibilityLabel() {
     String visibilityLabel = tableProperties.getProperty(VISIBILITY_LABEL_KEY, null);
     if (null == visibilityLabel || visibilityLabel.isEmpty()) {
@@ -168,5 +181,49 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     }
 
     return new ColumnVisibility(visibilityLabel);
+  }
+
+  /**
+   * Extracts the table property to allow dynamic Accumulo Authorizations to be used when reading
+   * data from an Accumulo table. If no Authorizations are provided in the table properties, null is
+   * returned to preserve the functionality to read all data that the current user has access to.
+   * 
+   * @return The Authorizations that should be used to read data from Accumulo, null if no
+   *         configuration is supplied.
+   */
+  public Authorizations getAuthorizations() {
+    String authorizationStr = tableProperties.getProperty(AUTHORIZATIONS_KEY, null);
+
+    return getAuthorizationsFromValue(authorizationStr);
+  }
+
+  /**
+   * Create an Authorizations object when the provided value is not null. Will return null,
+   * otherwise.
+   * 
+   * @param authorizationStr
+   *          Configuration value to parse
+   * @return Authorization object or null
+   */
+  protected static Authorizations getAuthorizationsFromValue(String authorizationStr) {
+    if (null == authorizationStr) {
+      return null;
+    }
+
+    return new Authorizations(authorizationStr);
+  }
+
+  /**
+   * Extract any configuration on Authorizations to be used from the provided Configuration. If a
+   * non-null value is not present in the configuration, a null object is returned
+   * 
+   * @return Authorization built from configuration value, null if no value is present in conf
+   */
+  public static Authorizations getAuthorizationsFromConf(Configuration conf) {
+    Preconditions.checkNotNull(conf);
+
+    String authorizationStr = conf.get(AUTHORIZATIONS_KEY, null);
+
+    return getAuthorizationsFromValue(authorizationStr);
   }
 }

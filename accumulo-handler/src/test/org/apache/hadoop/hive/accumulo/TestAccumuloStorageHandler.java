@@ -23,6 +23,7 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
@@ -91,12 +92,15 @@ public class TestAccumuloStorageHandler {
     props.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq1,cf:cq2,cf:cq3");
     props.setProperty(AccumuloSerDeParameters.TABLE_NAME, "table");
     props.setProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, "true");
+    props.setProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, ColumnEncoding.BINARY.getName());
+    props.setProperty(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo,bar");
 
     Mockito.when(tableDesc.getProperties()).thenReturn(props);
 
     storageHandler.configureInputJobProperties(tableDesc, jobProperties);
 
-    Assert.assertEquals(3, jobProperties.size());
+    Assert.assertEquals(5, jobProperties.size());
+
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
     Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS),
         jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
@@ -108,6 +112,14 @@ public class TestAccumuloStorageHandler {
     Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
     Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY),
         jobProperties.get(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
+
+    Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE),
+        jobProperties.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+
+    Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.AUTHORIZATIONS_KEY));
+    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.AUTHORIZATIONS_KEY),
+        jobProperties.get(AccumuloSerDeParameters.AUTHORIZATIONS_KEY));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -141,31 +153,19 @@ public class TestAccumuloStorageHandler {
   }
 
   @Test
-  public void testTableJobProperties() {
+  public void testTableJobPropertiesCallsInputAndOutputMethods() {
+    AccumuloStorageHandler mockStorageHandler = Mockito.mock(AccumuloStorageHandler.class);
     TableDesc tableDesc = Mockito.mock(TableDesc.class);
-    Properties props = new Properties();
     Map<String,String> jobProperties = new HashMap<String,String>();
 
-    props.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq1,cf:cq2,cf:cq3");
-    props.setProperty(AccumuloSerDeParameters.TABLE_NAME, "table");
-    props.setProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, "true");
+    Mockito.doCallRealMethod().when(mockStorageHandler).configureTableJobProperties(tableDesc, jobProperties);
 
-    Mockito.when(tableDesc.getProperties()).thenReturn(props);
+    // configureTableJobProperties shouldn't be getting called by Hive, but, if it somehow does,
+    // we should just set all of the configurations for input and output.
+    mockStorageHandler.configureTableJobProperties(tableDesc, jobProperties);
 
-    storageHandler.configureTableJobProperties(tableDesc, jobProperties);
-
-    Assert.assertEquals(3, jobProperties.size());
-    Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS),
-        jobProperties.get(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-
-    Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.TABLE_NAME));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.TABLE_NAME),
-        jobProperties.get(AccumuloSerDeParameters.TABLE_NAME));
-
-    Assert.assertTrue(jobProperties.containsKey(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
-    Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY),
-        jobProperties.get(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY));
+    Mockito.verify(mockStorageHandler).configureInputJobProperties(tableDesc, jobProperties);
+    Mockito.verify(mockStorageHandler).configureOutputJobProperties(tableDesc, jobProperties);
   }
 
   @Test

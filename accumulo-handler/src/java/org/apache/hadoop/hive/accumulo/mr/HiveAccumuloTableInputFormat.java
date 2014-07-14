@@ -194,10 +194,17 @@ public class HiveAccumuloTableInputFormat implements
     // Read from the given Accumulo table
     setInputTableName(conf, accumuloParams.getAccumuloTableName());
 
-    // TODO Allow configuration of the authorizations that should be used
-    // Scan with all of the user's authorizations
-    setScanAuthorizations(conf, connector.securityOperations()
-        .getUserAuthorizations(accumuloParams.getAccumuloUserName()));
+    // Check Configuration for any user-provided Authorization definition 
+    Authorizations auths = AccumuloSerDeParameters.getAuthorizationsFromConf(conf);
+
+    if (null == auths) {
+      // Default to all of user's authorizations when no configuration is provided
+      auths = connector.securityOperations().getUserAuthorizations(
+          accumuloParams.getAccumuloUserName());
+    }
+
+    // Implicitly handles users providing invalid authorizations
+    setScanAuthorizations(conf, auths);
 
     // restrict with any filters found from WHERE predicates.
     addIterators(conf, iterators);

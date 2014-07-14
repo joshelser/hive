@@ -60,24 +60,10 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
    */
   @Override
   public void configureTableJobProperties(TableDesc desc, Map<String,String> jobProps) {
-    Properties tblProperties = desc.getProperties();
-    jobProps.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
-        tblProperties.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
-    String tableName = tblProperties.getProperty(AccumuloSerDeParameters.TABLE_NAME);
-    jobProps.put(AccumuloSerDeParameters.TABLE_NAME, tableName);
-    String useIterators = tblProperties.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
-    if (useIterators != null) {
-      jobProps.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
-    }
-    if (tblProperties.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
-      jobProps.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE,
-          tblProperties.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
-    }
-
-    if (tblProperties.containsKey(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY)) {
-      jobProps.put(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY,
-          tblProperties.getProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY));
-    }
+    // Should not be getting invoked, configureInputJobProperties or configureOutputJobProperties
+    // should be invoked instead.
+    configureInputJobProperties(desc, jobProps);
+    configureOutputJobProperties(desc, jobProps);
   }
 
   protected String getTableName(Table table) throws MetaException {
@@ -120,10 +106,13 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void configureInputJobProperties(TableDesc tableDesc, Map<String,String> jobProperties) {
     Properties props = tableDesc.getProperties();
+
     jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
         props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+
     jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
         props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+
     String useIterators = props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
       if (!useIterators.equalsIgnoreCase("true") && !useIterators.equalsIgnoreCase("false")) {
@@ -133,8 +122,15 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
 
       jobProperties.put(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, useIterators);
     }
-    if (props.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
-      jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, props.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+
+    String storageType = props.getProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE);
+    if (null != storageType) {
+      jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, storageType);
+    }
+
+    String authValue = props.getProperty(AccumuloSerDeParameters.AUTHORIZATIONS_KEY);
+    if (null != authValue) {
+      jobProperties.put(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, authValue);
     }
   }
 

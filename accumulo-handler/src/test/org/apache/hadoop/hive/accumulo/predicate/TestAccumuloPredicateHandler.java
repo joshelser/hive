@@ -9,10 +9,16 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
@@ -35,11 +41,21 @@ import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
+import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
+import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
+import org.apache.hadoop.hive.ql.lib.Dispatcher;
+import org.apache.hadoop.hive.ql.lib.GraphWalker;
+import org.apache.hadoop.hive.ql.lib.Node;
+import org.apache.hadoop.hive.ql.lib.NodeProcessor;
+import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
+import org.apache.hadoop.hive.ql.lib.Rule;
+import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
@@ -49,11 +65,13 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPNotNull;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -562,5 +580,192 @@ public class TestAccumuloPredicateHandler {
     assertTrue("Did not find LongCompare op", foundLong);
     assertTrue("Did not find IntCompare op", foundInt);
     assertTrue("Did not find StringCompare op", foundString);
+  }
+
+  @Test
+  public void testRowRangeIntersection() throws SerDeException {
+    // rowId >= 'f'
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "f");
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(column);
+    children.add(constant);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrGreaterThan(), children);
+    assertNotNull(node);
+
+    // rowId <= 'm'
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null,
+        false);
+    ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "m");
+    List<ExprNodeDesc> children2 = Lists.newArrayList();
+    children2.add(column2);
+    children2.add(constant2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children2);
+    assertNotNull(node2);
+
+    List<ExprNodeDesc> bothFilters = Lists.newArrayList();
+    bothFilters.add(node);
+    bothFilters.add(node2);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
+
+    String filterExpr = Utilities.serializeExpression(both);
+    conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
+
+    // Should make ['f', 'm']
+    List<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(1, ranges.size());
+    assertEquals(new Range(new Key("f"), true, new Key("m"), true), ranges.get(0));
+  }
+
+  @Test
+  public void testWhatIsGoingOnWithWalkers() throws Exception {
+    // rowId >= 'f'
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "f");
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(column);
+    children.add(constant);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrGreaterThan(), children);
+    assertNotNull(node);
+
+    // rowId <= 'm'
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null,
+        false);
+    ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "m");
+    List<ExprNodeDesc> children2 = Lists.newArrayList();
+    children2.add(column2);
+    children2.add(constant2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children2);
+    assertNotNull(node2);
+
+    List<ExprNodeDesc> bothFilters = Lists.newArrayList();
+    bothFilters.add(node);
+    bothFilters.add(node2);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
+
+    final AtomicInteger counter = new AtomicInteger(0);
+    NodeProcessor nodeProcessor = new NodeProcessor() {
+      @Override
+      public Object process(Node nd, Stack<Node> stack,
+          NodeProcessorCtx procCtx, Object... nodeOutputs)
+              throws SemanticException {
+
+        System.out.println("Node: " + nd);
+        System.out.println("Stack: " + stack);
+        System.out.println("nodeOutputs: " + Arrays.toString(nodeOutputs));
+        System.out.println();
+
+        // If it's not some operator, pass it back
+        if (!(nd instanceof ExprNodeGenericFuncDesc)) {
+          return nd;
+        }
+
+        ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) nd;
+        if (FunctionRegistry.isOpAnd(func)) {
+          Range andRange = null;
+          for (Object nodeOutput : nodeOutputs) {
+            if (!(nodeOutput instanceof Range)) {
+              log.error("Expected Range from " + nd + " but got " + nodeOutput);
+              throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
+            }
+
+            if (null == andRange) {
+              andRange = (Range) nodeOutput;
+            } else {
+              andRange = andRange.clip((Range) nodeOutput);
+            }
+          }
+
+          if (null == andRange) {
+            log.info("Found no range for OPAnd, returning inf range");
+            return new Range();
+          } else {
+            return andRange;
+          }
+        } else if (FunctionRegistry.isOpOr(func)) {
+          List<Range> orRanges = new ArrayList<Range>(nodeOutputs.length);
+          for (Object nodeOutput : nodeOutputs) {
+            if (!(nodeOutput instanceof Range)) {
+              log.error("Expected Range from " + nd + " but got " + nodeOutput);
+              throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
+            }
+
+            orRanges.add((Range) nodeOutput);
+          }
+
+          return Range.mergeOverlapping(orRanges);
+        } else if (FunctionRegistry.isOpNot(func)) {
+          throw new IllegalArgumentException("Not yet implemented");
+        } else {
+          GenericUDF genericUdf = func.getGenericUDF();
+
+          ExprNodeConstantDesc constantDesc = null;
+          for (Object nodeOutput : nodeOutputs) {
+            if (nodeOutput instanceof ExprNodeConstantDesc) {
+              constantDesc = (ExprNodeConstantDesc) nodeOutput;
+              break;
+            }
+          }
+
+          if (null == constantDesc) {
+            throw new IllegalArgumentException("Expected one constant");
+          }
+
+          ConstantObjectInspector objInspector = constantDesc.getWritableObjectInspector();
+          String constant = objInspector.getWritableConstantValue().toString();
+          Text constText = new Text(constant);
+
+          Class<? extends CompareOp> opClz;
+          try {
+            opClz = handler.getCompareOpClass(genericUdf.getUdfName());
+          } catch (NoSuchCompareOpException e) {
+            throw new IllegalArgumentException("Unhandled UDF class: " + genericUdf.getUdfName());
+          }
+
+          CompareOp compareOp;
+          try {
+            compareOp = opClz.newInstance();
+          } catch (InstantiationException e) {
+            throw new IllegalArgumentException("Could not instantiate " + opClz);
+          } catch (IllegalAccessException e) {
+            throw new IllegalArgumentException("Could not instantiate " + opClz);
+          }
+
+          if (compareOp instanceof Equal) {
+            return new Range(constText, true, constText, true); // start inclusive to end inclusive
+          } else if (compareOp instanceof GreaterThanOrEqual) {
+            return new Range(constText, null); // start inclusive to infinity inclusive
+          } else if (compareOp instanceof GreaterThan) {
+            return new Range(constText, false, null, true); // start exclusive to infinity inclusive
+          } else if (compareOp instanceof LessThanOrEqual) {
+            return new Range(null, true, constText, true); // neg-infinity to start inclusive
+          } else if (compareOp instanceof LessThan) {
+            return new Range(null, true, constText, false); // neg-infinity to start exclusive
+          } else {
+            throw new IllegalArgumentException("Could not process " + compareOp);
+          }
+        }
+      }
+    };
+
+    Dispatcher disp = new DefaultRuleDispatcher(nodeProcessor, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    GraphWalker ogw = new DefaultGraphWalker(disp);
+    ArrayList<Node> topNodes = new ArrayList<Node>();
+    topNodes.add(both);
+    HashMap<Node,Object> nodeOutput = new HashMap<Node,Object>();
+
+    try {
+      ogw.startWalking(topNodes, nodeOutput);
+    } catch (SemanticException ex) {
+      throw new RuntimeException(ex);
+    }
+
+    Assert.assertEquals(new Range(new Key("f"), true, new Key("m"), true), nodeOutput.get(both));
   }
 }

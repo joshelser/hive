@@ -2,7 +2,7 @@ package org.apache.hadoop.hive.accumulo.predicate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,6 +35,8 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.udf.UDFLike;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
@@ -168,7 +170,7 @@ public class AccumuloPredicateHandler {
    * Loop through search conditions and build ranges for predicates involving rowID column, if any.
    * 
    */
-  public Collection<Range> getRanges(Configuration conf, ColumnMapper columnMapper)
+  public List<Range> getRanges(Configuration conf, ColumnMapper columnMapper)
       throws SerDeException {
     List<Range> ranges = Lists.newArrayList();
     if (!columnMapper.hasRowIdMapping()) {
@@ -185,6 +187,9 @@ public class AccumuloPredicateHandler {
     // Already verified that we should have the rowId mapping
     String hiveRowIdColumnName = hiveColumnNamesArr[rowIdOffset];
 
+    ExprNodeDesc expr = this.getExpression(conf);
+
+//    return buildRanges(expr, hiveRowIdColumnName);
     for (IndexSearchCondition sc : getSearchConditions(conf)) {
       if (hiveRowIdColumnName.equals(sc.getColumnDesc().getColumn()))
         ranges.add(toRange(sc));
@@ -192,6 +197,16 @@ public class AccumuloPredicateHandler {
     return ranges;
   }
 
+  protected List<Range> buildRanges(ExprNodeDesc expr, String hiveRowIdColumnName) {
+    if (expr instanceof ExprNodeGenericFuncDesc) {
+      ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) expr;
+      GenericUDF udf = func.getGenericUDF();
+      if (udf instanceof GenericUDFOPAnd) {
+        
+      }
+    }
+    return Collections.emptyList();
+  }
   /**
    * Loop through search conditions and build iterator settings for predicates involving columns
    * other than rowID, if any.
@@ -321,6 +336,13 @@ public class AccumuloPredicateHandler {
     return is;
   }
 
+  public ExprNodeDesc getExpression(Configuration conf) {
+    String filteredExprSerialized = conf.get(TableScanDesc.FILTER_EXPR_CONF_STR);
+    if (filteredExprSerialized == null)
+      throw new IllegalArgumentException("Configuration did not contain serialized expression");
+
+    return Utilities.deserializeExpression(filteredExprSerialized);
+  }
   /**
    * 
    * @param conf
@@ -329,10 +351,7 @@ public class AccumuloPredicateHandler {
    */
   public List<IndexSearchCondition> getSearchConditions(Configuration conf) {
     final List<IndexSearchCondition> sConditions = Lists.newArrayList();
-    String filteredExprSerialized = conf.get(TableScanDesc.FILTER_EXPR_CONF_STR);
-    if (filteredExprSerialized == null)
-      return sConditions;
-    ExprNodeDesc filterExpr = Utilities.deserializeExpression(filteredExprSerialized);
+    ExprNodeDesc filterExpr = getExpression(conf);
     IndexPredicateAnalyzer analyzer = newAnalyzer(conf);
     ExprNodeDesc residual = analyzer.analyzePredicate(filterExpr, sConditions);
     if (residual != null)

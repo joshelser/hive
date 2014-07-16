@@ -68,6 +68,7 @@ import com.google.common.collect.Maps;
  * 
  */
 public class AccumuloPredicateHandler {
+  private static final List<Range> TOTAL_RANGE = Collections.singletonList(new Range());
 
   private static AccumuloPredicateHandler handler = new AccumuloPredicateHandler();
   private static Map<String,Class<? extends CompareOp>> compareOps = Maps.newHashMap();
@@ -181,9 +182,8 @@ public class AccumuloPredicateHandler {
    */
   public List<Range> getRanges(Configuration conf, ColumnMapper columnMapper)
       throws SerDeException {
-    List<Range> ranges = Lists.newArrayList();
     if (!columnMapper.hasRowIdMapping()) {
-      return ranges;
+      return TOTAL_RANGE;
     }
 
     int rowIdOffset = columnMapper.getRowIdOffset();
@@ -197,6 +197,11 @@ public class AccumuloPredicateHandler {
     String hiveRowIdColumnName = hiveColumnNamesArr[rowIdOffset];
 
     ExprNodeDesc root = this.getExpression(conf);
+
+    // No expression, therefore scan the whole table
+    if (null == root) {
+      return TOTAL_RANGE;
+    }
 
     AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, hiveRowIdColumnName);
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
@@ -215,11 +220,15 @@ public class AccumuloPredicateHandler {
 
     if (null == result) {
       log.info("Calculated null set of ranges, scanning full table");
-      return Collections.singletonList(new Range());
+      return TOTAL_RANGE;
     } else if (result instanceof Range) {
+      log.info("Computed a single Range for the query: " + result);
       return Collections.singletonList((Range) result);
     } else if (result instanceof List) {
-      return (List<Range>) result;
+      log.info("Computed a collection of Ranges for the query: " + result);
+      @SuppressWarnings("unchecked")
+      List<Range> ranges = (List<Range>) result;
+      return ranges;
     } else {
       throw new IllegalArgumentException("Unhandled return from Range generation: " + result);
     }
@@ -231,16 +240,6 @@ public class AccumuloPredicateHandler {
 //    return ranges;
   }
 
-  protected List<Range> buildRanges(ExprNodeDesc expr, String hiveRowIdColumnName) {
-    if (expr instanceof ExprNodeGenericFuncDesc) {
-      ExprNodeGenericFuncDesc func = (ExprNodeGenericFuncDesc) expr;
-      GenericUDF udf = func.getGenericUDF();
-      if (udf instanceof GenericUDFOPAnd) {
-        
-      }
-    }
-    return Collections.emptyList();
-  }
   /**
    * Loop through search conditions and build iterator settings for predicates involving columns
    * other than rowID, if any.
@@ -288,50 +287,6 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * Convert search condition to start/stop range.
-   * 
-   * @param sc
-   *          IndexSearchCondition to build into Range.
-   * @throws SerDeException
-   */
-  public Range toRange(IndexSearchCondition sc) throws SerDeException {
-    Range range;
-    final String type = sc.getColumnDesc().getTypeString();
-    final String comparisonOpStr = sc.getComparisonOp();
-    final PrimitiveComparison primitiveComparison;
-    final CompareOp compareOp;
-    try {
-      primitiveComparison = getPrimitiveComparison(type, sc);
-    } catch (NoSuchPrimitiveComparisonException e) {
-      throw new SerDeException("Could not find PrimitiveComparison for " + type, e);
-    }
-
-    try {
-      compareOp = getCompareOp(comparisonOpStr, sc);
-    } catch (NoSuchCompareOpException e) {
-      throw new SerDeException("Could not find CompareOp for " + comparisonOpStr, e);
-    }
-
-    PushdownTuple tuple = new PushdownTuple(sc, primitiveComparison, compareOp);
-    Text constText = new Text(tuple.getConstVal());
-    if (tuple.getcOpt() instanceof Equal) {
-      range = new Range(constText, true, constText, true); // start inclusive to end inclusive
-    } else if (tuple.getcOpt() instanceof GreaterThanOrEqual) {
-      range = new Range(constText, null); // start inclusive to infinity inclusive
-    } else if (tuple.getcOpt() instanceof GreaterThan) {
-      range = new Range(constText, false, null, true); // start exclusive to infinity inclusive
-    } else if (tuple.getcOpt() instanceof LessThanOrEqual) {
-      range = new Range(null, true, constText, true); // neg-infinity to start inclusive
-    } else if (tuple.getcOpt() instanceof LessThan) {
-      range = new Range(null, true, constText, false); // neg-infinity to start exclusive
-    } else {
-      throw new SerDeException("Unsupported comparison operator involving rowid: "
-          + tuple.getcOpt().getClass().getName() + " only =, !=, <, <=, >, >=");
-    }
-    return range;
-  }
-
-  /**
    * Create an IteratorSetting for the right qualifier, constant, CompareOpt, and PrimitiveCompare
    * type.
    * 
@@ -373,7 +328,7 @@ public class AccumuloPredicateHandler {
   public ExprNodeDesc getExpression(Configuration conf) {
     String filteredExprSerialized = conf.get(TableScanDesc.FILTER_EXPR_CONF_STR);
     if (filteredExprSerialized == null)
-      throw new IllegalArgumentException("Configuration did not contain serialized expression");
+      return null;
 
     return Utilities.deserializeExpression(filteredExprSerialized);
   }
@@ -386,6 +341,9 @@ public class AccumuloPredicateHandler {
   public List<IndexSearchCondition> getSearchConditions(Configuration conf) {
     final List<IndexSearchCondition> sConditions = Lists.newArrayList();
     ExprNodeDesc filterExpr = getExpression(conf);
+    if (null == filterExpr) {
+      return sConditions;
+    }
     IndexPredicateAnalyzer analyzer = newAnalyzer(conf);
     ExprNodeDesc residual = analyzer.analyzePredicate(filterExpr, sConditions);
     if (residual != null)

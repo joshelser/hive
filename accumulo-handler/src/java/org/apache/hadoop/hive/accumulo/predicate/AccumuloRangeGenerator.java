@@ -76,6 +76,12 @@ public class AccumuloRangeGenerator implements NodeProcessor {
       List<Range> andRanges = new ArrayList<Range>();
 
       for (Object nodeOutput : nodeOutputs) {
+        // null signifies nodes that are irrelevant to the generation
+        // of Accumulo Ranges
+        if (null == nodeOutput) {
+          continue;
+        }
+
         // The child is a single Range
         if (nodeOutput instanceof Range) {
           Range childRange = (Range) nodeOutput;
@@ -187,6 +193,11 @@ public class AccumuloRangeGenerator implements NodeProcessor {
         }
 
         throw new IllegalArgumentException("Expected a column and a constant but found " + sb.toString());
+      }
+
+      // Reject any clauses that are against a column that isn't the rowId mapping
+      if (!this.hiveRowIdColumnName.equals(columnDesc.getColumn())) {
+        return null;
       }
 
       ConstantObjectInspector objInspector = constantDesc.getWritableObjectInspector();

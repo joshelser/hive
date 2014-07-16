@@ -241,4 +241,57 @@ public class TestAccumuloRangeGenerator {
     Assert.assertEquals(expectedRanges, actualRanges);
   }
 
+  @Test
+  public void testPartialRangeConjunction() throws Exception {
+    // rowId >= 'f'
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "f");
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(column);
+    children.add(constant);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrGreaterThan(), children);
+    assertNotNull(node);
+
+    // anythingElse <= 'foo'
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "anythingElse", null,
+        false);
+    ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "foo");
+    List<ExprNodeDesc> children2 = Lists.newArrayList();
+    children2.add(column2);
+    children2.add(constant2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrLessThan(), children2);
+    assertNotNull(node2);
+
+    // And UDF
+    List<ExprNodeDesc> bothFilters = Lists.newArrayList();
+    bothFilters.add(node);
+    bothFilters.add(node2);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
+
+    // Should generate [f,+inf)
+    List<Range> expectedRanges = Arrays.asList(new Range(new Key("f"), true, null, false));
+
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    GraphWalker ogw = new DefaultGraphWalker(disp);
+    ArrayList<Node> topNodes = new ArrayList<Node>();
+    topNodes.add(both);
+    HashMap<Node,Object> nodeOutput = new HashMap<Node,Object>();
+
+    try {
+      ogw.startWalking(topNodes, nodeOutput);
+    } catch (SemanticException ex) {
+      throw new RuntimeException(ex);
+    }
+
+    Object result = nodeOutput.get(both);
+    Assert.assertNotNull(result);
+    Assert.assertTrue("Result from graph walk was not a List", result instanceof List);
+    @SuppressWarnings("unchecked")
+    List<Range> actualRanges = (List<Range>) result;
+    Assert.assertEquals(expectedRanges, actualRanges);
+  }
 }

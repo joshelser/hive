@@ -198,7 +198,7 @@ public class AccumuloPredicateHandler {
 
     ExprNodeDesc root = this.getExpression(conf);
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, hiveRowIdColumnName);
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> roots = new ArrayList<Node>();

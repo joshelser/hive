@@ -18,6 +18,7 @@ package org.apache.hadoop.hive.accumulo.predicate;
 
 import static org.junit.Assert.assertNotNull;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -41,6 +42,7 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPOr;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.junit.Assert;
@@ -273,6 +275,60 @@ public class TestAccumuloRangeGenerator {
 
     // Should generate [f,+inf)
     List<Range> expectedRanges = Arrays.asList(new Range(new Key("f"), true, null, false));
+
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    GraphWalker ogw = new DefaultGraphWalker(disp);
+    ArrayList<Node> topNodes = new ArrayList<Node>();
+    topNodes.add(both);
+    HashMap<Node,Object> nodeOutput = new HashMap<Node,Object>();
+
+    try {
+      ogw.startWalking(topNodes, nodeOutput);
+    } catch (SemanticException ex) {
+      throw new RuntimeException(ex);
+    }
+
+    Object result = nodeOutput.get(both);
+    Assert.assertNotNull(result);
+    Assert.assertTrue("Result from graph walk was not a List", result instanceof List);
+    @SuppressWarnings("unchecked")
+    List<Range> actualRanges = (List<Range>) result;
+    Assert.assertEquals(expectedRanges, actualRanges);
+  }
+
+  @Test
+  public void testDateRangeConjunction() throws Exception {
+    // rowId >= '2014-01-01'
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.dateTypeInfo, Date.valueOf("2014-01-01"));
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(column);
+    children.add(constant);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrGreaterThan(), children);
+    assertNotNull(node);
+
+    // rowId <= '2014-07-01'
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null,
+        false);
+    ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.dateTypeInfo, Date.valueOf("2014-07-01"));
+    List<ExprNodeDesc> children2 = Lists.newArrayList();
+    children2.add(column2);
+    children2.add(constant2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPLessThan(), children2);
+    assertNotNull(node2);
+
+    // And UDF
+    List<ExprNodeDesc> bothFilters = Lists.newArrayList();
+    bothFilters.add(node);
+    bothFilters.add(node2);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
+
+    // Should generate [2014-01-01, 2014-07-01)
+    List<Range> expectedRanges = Arrays.asList(new Range(new Key("2014-01-01"), true, new Key("2014-07-01"), false));
 
     AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);

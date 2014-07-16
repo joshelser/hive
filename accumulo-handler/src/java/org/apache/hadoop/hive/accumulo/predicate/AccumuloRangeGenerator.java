@@ -47,8 +47,8 @@ import org.slf4j.LoggerFactory;
 public class AccumuloRangeGenerator implements NodeProcessor {
   private static final Logger log = LoggerFactory.getLogger(AccumuloRangeGenerator.class);
 
-  private AccumuloPredicateHandler predicateHandler;
-  private String hiveRowIdColumnName;
+  private final AccumuloPredicateHandler predicateHandler;
+  private final String hiveRowIdColumnName;
 
   public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, String hiveRowIdColumnName) {
     this.predicateHandler = predicateHandler;
@@ -201,6 +201,8 @@ public class AccumuloRangeGenerator implements NodeProcessor {
       }
 
       ConstantObjectInspector objInspector = constantDesc.getWritableObjectInspector();
+
+      // TODO is there a more correct way to get the literal value for the Object?
       String constant = objInspector.getWritableConstantValue().toString();
       Text constText = new Text(constant);
 
@@ -225,11 +227,11 @@ public class AccumuloRangeGenerator implements NodeProcessor {
       } else if (compareOp instanceof GreaterThanOrEqual) {
         return new Range(constText, null); // start inclusive to infinity inclusive
       } else if (compareOp instanceof GreaterThan) {
-        return new Range(constText, false, null, true); // start exclusive to infinity inclusive
+        return new Range(constText, false, null, false); // start exclusive to infinity inclusive
       } else if (compareOp instanceof LessThanOrEqual) {
-        return new Range(null, true, constText, true); // neg-infinity to start inclusive
+        return new Range(null, false, constText, true); // neg-infinity to start inclusive
       } else if (compareOp instanceof LessThan) {
-        return new Range(null, true, constText, false); // neg-infinity to start exclusive
+        return new Range(null, false, constText, false); // neg-infinity to start exclusive
       } else {
         throw new IllegalArgumentException("Could not process " + compareOp);
       }

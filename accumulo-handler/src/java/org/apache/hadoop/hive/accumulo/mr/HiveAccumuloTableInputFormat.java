@@ -149,7 +149,7 @@ public class HiveAccumuloTableInputFormat implements
         rangeSplit.setIterators(iterators);
       }
       final RecordReader<Text,PeekingIterator<Map.Entry<Key,Value>>> recordReader = accumuloInputFormat
-          .getRecordReader(hiveSplit.getSplit(), jobConf, reporter);
+          .getRecordReader(rangeSplit, jobConf, reporter);
 
       return new HiveAccumuloRecordReader(recordReader, iterators.size());
     } catch (SerDeException e) {

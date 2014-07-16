@@ -23,7 +23,6 @@ import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Table;
-import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
@@ -46,6 +45,7 @@ import org.slf4j.LoggerFactory;
 public class AccumuloStorageHandler extends DefaultStorageHandler implements HiveMetaHook,
     HiveStoragePredicateHandler {
   private static final Logger log = LoggerFactory.getLogger(AccumuloStorageHandler.class);
+  private static final String DEFAULT_PREFIX = "default";
 
   protected AccumuloPredicateHandler predicateHandler = AccumuloPredicateHandler.getInstance();
   protected AccumuloConnectionParameters connectionParams;
@@ -84,11 +84,27 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     }
 
     // Use the hive table name, ignoring the default database
-    if ("default".equals(table.getDbName())) {
+    if (DEFAULT_PREFIX.equals(table.getDbName())) {
       return table.getTableName();
     } else {
       return table.getDbName() + "." + table.getTableName();
     }
+  }
+
+  protected String getTableName(TableDesc tableDesc) {
+    Properties props = tableDesc.getProperties();
+    String tableName = props.getProperty(AccumuloSerDeParameters.TABLE_NAME);
+    if (null != tableName) {
+      return tableName;
+    }
+
+    tableName = tableDesc.getTableName();
+
+    if (tableName.startsWith(DEFAULT_PREFIX + ".")) {
+      return tableName.substring(DEFAULT_PREFIX.length() + 1);
+    }
+
+    return tableName;
   }
 
   @Override
@@ -125,8 +141,12 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
         props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
 
+    String tableName = props.getProperty(AccumuloSerDeParameters.TABLE_NAME);
+    if (null == tableName) {
+      tableName = getTableName(tableDesc);
+    }
     jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
-        props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+        tableName);
 
     String useIterators = props.getProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY);
     if (useIterators != null) {
@@ -147,6 +167,8 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     if (null != authValue) {
       jobProperties.put(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, authValue);
     }
+
+    log.info("Computed input job properties of " + jobProperties);
   }
 
   @Override
@@ -155,8 +177,13 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     // Adding these job properties will make them available to the OutputFormat in checkOutputSpecs
     jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
         props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));
+
+    String tableName = props.getProperty(AccumuloSerDeParameters.TABLE_NAME);
+    if (null == tableName) {
+      tableName = getTableName(tableDesc);
+    }
     jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
-        props.getProperty(AccumuloSerDeParameters.TABLE_NAME));
+        tableName);
 
     if (props.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
       jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE,

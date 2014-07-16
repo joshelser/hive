@@ -23,6 +23,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
@@ -67,13 +68,27 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   }
 
   protected String getTableName(Table table) throws MetaException {
-    String tableName = table.getSd().getSerdeInfo().getParameters()
-        .get(AccumuloSerDeParameters.TABLE_NAME);
-    if (tableName == null) {
-      throw new MetaException("Must specify the Accumulo table name using "
-          + AccumuloSerDeParameters.TABLE_NAME + " in TBLPROPERTIES");
+    // Use TBLPROPERTIES
+    String tableName = table.getParameters().get(AccumuloSerDeParameters.TABLE_NAME); 
+
+    if (null != tableName) {
+      return tableName;
     }
-    return tableName;
+
+    // Then try SERDEPROPERTIES
+    tableName = table.getSd().getSerdeInfo().getParameters()
+        .get(AccumuloSerDeParameters.TABLE_NAME);
+
+    if (null != tableName) {
+      return tableName;
+    }
+
+    // Use the hive table name, ignoring the default database
+    if ("default".equals(table.getDbName())) {
+      return table.getTableName();
+    } else {
+      return table.getDbName() + "." + table.getTableName();
+    }
   }
 
   @Override

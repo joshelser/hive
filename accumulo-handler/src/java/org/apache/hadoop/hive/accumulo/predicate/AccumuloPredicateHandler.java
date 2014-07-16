@@ -3,6 +3,7 @@ package org.apache.hadoop.hive.accumulo.predicate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +31,15 @@ import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexPredicateAnalyzer;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
+import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
+import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
+import org.apache.hadoop.hive.ql.lib.Dispatcher;
+import org.apache.hadoop.hive.ql.lib.GraphWalker;
+import org.apache.hadoop.hive.ql.lib.Node;
+import org.apache.hadoop.hive.ql.lib.NodeProcessor;
+import org.apache.hadoop.hive.ql.lib.Rule;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler.DecomposedPredicate;
+import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
@@ -187,14 +196,39 @@ public class AccumuloPredicateHandler {
     // Already verified that we should have the rowId mapping
     String hiveRowIdColumnName = hiveColumnNamesArr[rowIdOffset];
 
-    ExprNodeDesc expr = this.getExpression(conf);
+    ExprNodeDesc root = this.getExpression(conf);
 
-//    return buildRanges(expr, hiveRowIdColumnName);
-    for (IndexSearchCondition sc : getSearchConditions(conf)) {
-      if (hiveRowIdColumnName.equals(sc.getColumnDesc().getColumn()))
-        ranges.add(toRange(sc));
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    GraphWalker ogw = new DefaultGraphWalker(disp);
+    ArrayList<Node> roots = new ArrayList<Node>();
+    roots.add(root);
+    HashMap<Node,Object> nodeOutput = new HashMap<Node,Object>();
+
+    try {
+      ogw.startWalking(roots, nodeOutput);
+    } catch (SemanticException ex) {
+      throw new RuntimeException(ex);
     }
-    return ranges;
+
+    Object result = nodeOutput.get(root);
+
+    if (null == result) {
+      log.info("Calculated null set of ranges, scanning full table");
+      return Collections.singletonList(new Range());
+    } else if (result instanceof Range) {
+      return Collections.singletonList((Range) result);
+    } else if (result instanceof List) {
+      return (List<Range>) result;
+    } else {
+      throw new IllegalArgumentException("Unhandled return from Range generation: " + result);
+    }
+//    return buildRanges(expr, hiveRowIdColumnName);
+//    for (IndexSearchCondition sc : getSearchConditions(conf)) {
+//      if (hiveRowIdColumnName.equals(sc.getColumnDesc().getColumn()))
+//        ranges.add(toRange(sc));
+//    }
+//    return ranges;
   }
 
   protected List<Range> buildRanges(ExprNodeDesc expr, String hiveRowIdColumnName) {

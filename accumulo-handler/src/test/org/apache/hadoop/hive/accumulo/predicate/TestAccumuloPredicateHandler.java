@@ -237,7 +237,7 @@ public class TestAccumuloPredicateHandler {
   }
 
   @Test
-  public void multiRange() throws SerDeException {
+  public void testDisjointRanges() throws SerDeException {
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
     List<ExprNodeDesc> children = Lists.newArrayList();
@@ -267,11 +267,45 @@ public class TestAccumuloPredicateHandler {
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
 
     Collection<Range> ranges = handler.getRanges(conf, columnMapper);
-    assertEquals(ranges.size(), 2);
-    Iterator<Range> itr = ranges.iterator();
-    Range range1 = itr.next();
-    Range range2 = itr.next();
-    assertNull(range1.clip(range2, true));
+
+    // Impossible to get ranges for row <= 'aaa' and row >= 'bbb'
+    assertEquals(0, ranges.size());
+  }
+
+  @Test
+  public void testMultipleRanges() throws SerDeException {
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "aaa");
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(column);
+    children.add(constant);
+    ExprNodeDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrGreaterThan(), children);
+    assertNotNull(node);
+
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null,
+        false);
+    ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "bbb");
+    List<ExprNodeDesc> children2 = Lists.newArrayList();
+    children2.add(column2);
+    children2.add(constant2);
+    ExprNodeDesc node2 = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPLessThan(), children2);
+    assertNotNull(node2);
+
+    List<ExprNodeDesc> bothFilters = Lists.newArrayList();
+    bothFilters.add(node);
+    bothFilters.add(node2);
+    ExprNodeGenericFuncDesc both = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPAnd(), bothFilters);
+
+    String filterExpr = Utilities.serializeExpression(both);
+    conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
+
+    List<Range> ranges = handler.getRanges(conf, columnMapper);
+    assertEquals(1, ranges.size());
+    Range range = ranges.get(0);
+    assertEquals(new Range(new Key("aaa"), true, new Key("bbb"), false), range);
   }
 
   @Test
@@ -614,9 +648,9 @@ public class TestAccumuloPredicateHandler {
     String filterExpr = Utilities.serializeExpression(both);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
 
-    // Should make ['f', 'm']
+    // Should make ['f', 'm\0')
     List<Range> ranges = handler.getRanges(conf, columnMapper);
     assertEquals(1, ranges.size());
-    assertEquals(new Range(new Key("f"), true, new Key("m"), true), ranges.get(0));
+    assertEquals(new Range(new Key("f"), true, new Key("m\0"), false), ranges.get(0));
   }
 }

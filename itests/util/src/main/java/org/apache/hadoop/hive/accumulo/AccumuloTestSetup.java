@@ -65,7 +65,6 @@ public class AccumuloTestSetup extends TestSetup {
       // Setup connection information
       conf.set(AccumuloConnectionParameters.USER_NAME, "root");
       conf.set(AccumuloConnectionParameters.USER_PASS, PASSWORD);
-      conf.set(AccumuloConnectionParameters.TABLE_NAME, TABLE_NAME);
       conf.set(AccumuloConnectionParameters.ZOOKEEPERS, miniCluster.getZooKeepers());
       conf.set(AccumuloConnectionParameters.INSTANCE_NAME, miniCluster.getInstanceName());
 

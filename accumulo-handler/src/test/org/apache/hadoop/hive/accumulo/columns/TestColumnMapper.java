@@ -111,4 +111,30 @@ public class TestColumnMapper {
     Assert.assertEquals(ColumnEncoding.STRING, mappings.get(3).getEncoding());
     Assert.assertEquals(ColumnEncoding.BINARY, mappings.get(4).getEncoding());
   }
+
+  @Test
+  public void testMap() {
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf1:*", "cf2:2*", "cq3:bar\\*");
+    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName());
+
+    List<ColumnMapping> mappings = mapper.getColumnMappings();
+    Assert.assertEquals(4, mappings.size());
+
+    Assert.assertEquals(HiveRowIdColumnMapping.class, mappings.get(0).getClass());
+    Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mappings.get(1).getClass());
+    Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mappings.get(2).getClass());
+    Assert.assertEquals(HiveAccumuloColumnMapping.class, mappings.get(3).getClass());
+
+    HiveAccumuloMapColumnMapping map = (HiveAccumuloMapColumnMapping) mappings.get(1);
+    Assert.assertEquals("cf1", map.getColumnFamily());
+    Assert.assertEquals("", map.getColumnQualifierPrefix());
+
+    map = (HiveAccumuloMapColumnMapping) mappings.get(2);
+    Assert.assertEquals("cf2", map.getColumnFamily());
+    Assert.assertEquals("2", map.getColumnQualifierPrefix());
+
+    HiveAccumuloColumnMapping column = (HiveAccumuloColumnMapping) mappings.get(3);
+    Assert.assertEquals("cq3", column.getColumnFamily());
+    Assert.assertEquals("bar*", column.getColumnQualifier());
+  }
 }

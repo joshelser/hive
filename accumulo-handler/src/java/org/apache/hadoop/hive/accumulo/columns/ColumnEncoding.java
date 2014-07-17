@@ -17,10 +17,12 @@
 package org.apache.hadoop.hive.accumulo.columns;
 
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 /**
  * Encapsulate the encoding of values within the given column in Accumulo
@@ -78,17 +80,26 @@ public enum ColumnEncoding {
     return NAME_CACHE.get(name);
   }
 
-  public static ColumnEncoding parseCode(String columnMapping) {
-    Preconditions.checkNotNull(columnMapping);
-
-    int offset = columnMapping.lastIndexOf(AccumuloHiveConstants.POUND);
-    if (-1 == offset
-        || (0 < offset && AccumuloHiveConstants.ESCAPE == columnMapping.charAt(offset - 1))) {
-      throw new IllegalArgumentException(
-          "Provided column mapping does not define a column encoding");
+  public static ColumnEncoding get(String nameOrCode) {
+    ColumnEncoding encoding = CODE_CACHE.get(nameOrCode);
+    if (null != encoding) {
+      return encoding;
     }
 
-    return fromCode(columnMapping.substring(offset + 1));
+    encoding = NAME_CACHE.get(nameOrCode);
+    if (null != encoding) {
+      return encoding;
+    }
+
+    throw new IllegalArgumentException("No ColumnEncoding defined for " + nameOrCode);
+  }
+
+  public static ColumnEncoding getFromMapping(String columnMapping) {
+    Preconditions.checkNotNull(columnMapping);
+
+    String encoding = getColumnEncoding(columnMapping);
+
+    return get(encoding);
   }
 
   /**
@@ -105,10 +116,22 @@ public enum ColumnEncoding {
 
     // Make sure that the '#' wasn't escaped
     if (0 < offset && AccumuloHiveConstants.ESCAPE == columnMapping.charAt(offset - 1)) {
+      // The encoding name/codes don't contain pound signs
       return false;
     }
 
     return -1 != offset;
+  }
+
+  public static String getColumnEncoding(String columnMapping) {
+    int offset = columnMapping.lastIndexOf(AccumuloHiveConstants.POUND);
+
+    // Make sure that the '#' wasn't escaped
+    if (0 < offset && AccumuloHiveConstants.ESCAPE == columnMapping.charAt(offset - 1)) {
+      throw new IllegalArgumentException("Column mapping did not contain a column encoding: " + columnMapping);
+    }
+
+    return columnMapping.substring(offset+1);
   }
 
   public static ColumnEncoding getDefault() {
@@ -134,5 +157,23 @@ public enum ColumnEncoding {
     }
 
     return columnMapping.substring(0, offset);
+  }
+
+  public static boolean isMapEncoding(String columnEncoding) {
+    return -1 != columnEncoding.indexOf(AccumuloHiveConstants.COLON);
+  }
+
+  public static Entry<ColumnEncoding,ColumnEncoding> getMapEncoding(String columnEncoding) {
+    int index = columnEncoding.indexOf(AccumuloHiveConstants.COLON);
+    if (-1 == index) {
+      throw new IllegalArgumentException(
+          "Serialized column encoding did not contain a pair of encodings to split");
+    }
+
+    String encoding1 = columnEncoding.substring(0, index), encoding2 = columnEncoding
+        .substring(index + 1);
+
+    
+    return Maps.immutableEntry(get(encoding1), get(encoding2));
   }
 }

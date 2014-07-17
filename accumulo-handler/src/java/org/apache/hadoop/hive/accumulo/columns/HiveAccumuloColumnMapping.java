@@ -19,6 +19,8 @@ package org.apache.hadoop.hive.accumulo.columns;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Charsets;
+
 /**
  * A Hive column which maps to a column family and column qualifier pair in Accumulo
  */
@@ -26,6 +28,7 @@ public class HiveAccumuloColumnMapping extends ColumnMapping {
   private static final Logger log = Logger.getLogger(HiveAccumuloColumnMapping.class);
 
   protected String columnFamily, columnQualifier;
+  protected byte[] columnFamilyBytes, columnQualifierBytes;
 
   public HiveAccumuloColumnMapping(String cf, String cq, ColumnEncoding encoding) {
     super(cf + AccumuloHiveConstants.COLON + cq, encoding);
@@ -38,8 +41,36 @@ public class HiveAccumuloColumnMapping extends ColumnMapping {
     return this.columnFamily;
   }
 
+  /**
+   * Cached bytes for the columnFamily. Modifications to the bytes
+   * will affect those stored in this ColumnMapping -- such modifications
+   * are highly recommended against.
+   * @return UTF8 formatted bytes
+   */
+  public byte[] getColumnFamilyBytes() {
+    if (null == columnFamilyBytes) {
+      columnFamilyBytes = columnFamily.getBytes(Charsets.UTF_8);
+    }
+
+    return columnFamilyBytes;
+  }
+
   public String getColumnQualifier() {
     return this.columnQualifier;
+  }
+
+  /**
+   * Cached bytes for the columnQualifier. Modifications to the bytes
+   * will affect those stored in this ColumnMapping -- such modifications
+   * are highly recommended against.
+   * @return UTF8 formatted bytes
+   */
+  public byte[] getColumnQualifierBytes() {
+    if (null == columnQualifierBytes) {
+      columnQualifierBytes = columnQualifier.getBytes(Charsets.UTF_8);
+    }
+
+    return columnQualifierBytes;
   }
 
   public String serialize() {

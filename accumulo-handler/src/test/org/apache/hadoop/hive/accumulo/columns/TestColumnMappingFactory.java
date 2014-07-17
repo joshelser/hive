@@ -80,4 +80,72 @@ public class TestColumnMappingFactory {
     Assert.assertEquals("c:f", pair.getKey());
     Assert.assertEquals("cq1:cq2", pair.getValue());
   }
+
+  @Test
+  public void testGetMap() {
+    String mappingStr = "cf:*";
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault());
+
+    Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mapping.getClass());
+    HiveAccumuloMapColumnMapping mapMapping = (HiveAccumuloMapColumnMapping) mapping;
+
+    Assert.assertEquals("cf", mapMapping.getColumnFamily());
+    Assert.assertEquals("", mapMapping.getColumnQualifierPrefix());
+    Assert.assertEquals(ColumnEncoding.getDefault(), mapMapping.getKeyEncoding());
+    Assert.assertEquals(ColumnEncoding.getDefault(), mapMapping.getValueEncoding());
+  }
+
+  @Test
+  public void testGetMapWithPrefix() {
+    String mappingStr = "cf:foo*";
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault());
+
+    Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mapping.getClass());
+    HiveAccumuloMapColumnMapping mapMapping = (HiveAccumuloMapColumnMapping) mapping;
+
+    Assert.assertEquals("cf", mapMapping.getColumnFamily());
+    Assert.assertEquals("foo", mapMapping.getColumnQualifierPrefix());
+    Assert.assertEquals(ColumnEncoding.getDefault(), mapMapping.getKeyEncoding());
+    Assert.assertEquals(ColumnEncoding.getDefault(), mapMapping.getValueEncoding());
+  }
+
+  @Test
+  public void testEscapedAsterisk() {
+    String mappingStr = "cf:\\*";
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault());
+
+    Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
+    HiveAccumuloColumnMapping colMapping = (HiveAccumuloColumnMapping) mapping;
+
+    Assert.assertEquals("cf", colMapping.getColumnFamily());
+    Assert.assertEquals("*", colMapping.getColumnQualifier());
+    Assert.assertEquals(ColumnEncoding.getDefault(), colMapping.getEncoding());
+  }
+
+  @Test
+  public void testPrefixWithEscape() {
+    String mappingStr = "cf:foo\\*bar*";
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault());
+
+    Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mapping.getClass());
+    HiveAccumuloMapColumnMapping mapMapping = (HiveAccumuloMapColumnMapping) mapping;
+
+    Assert.assertEquals("cf", mapMapping.getColumnFamily());
+    Assert.assertEquals("foo*bar", mapMapping.getColumnQualifierPrefix());
+    Assert.assertEquals(ColumnEncoding.getDefault(), mapMapping.getKeyEncoding());
+    Assert.assertEquals(ColumnEncoding.getDefault(), mapMapping.getValueEncoding());
+  }
+
+  @Test
+  public void testInlineEncodingOverridesDefault() {
+    String mappingStr = "cf:foo#s";
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.BINARY);
+
+    Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
+    HiveAccumuloColumnMapping colMapping = (HiveAccumuloColumnMapping) mapping;
+
+    Assert.assertEquals("cf", colMapping.getColumnFamily());
+    Assert.assertEquals("foo", colMapping.getColumnQualifier());
+    Assert.assertEquals(ColumnEncoding.STRING, colMapping.getEncoding());
+  }
 }

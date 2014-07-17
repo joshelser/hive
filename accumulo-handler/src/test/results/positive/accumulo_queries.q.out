@@ -4,13 +4,13 @@ POSTHOOK: query: DROP TABLE accumulo_table_1
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE accumulo_table_1(key int, value string) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "cf:string")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,cf:string")
 TBLPROPERTIES ("accumulo.table.name" = "accumulo_table_0")
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE accumulo_table_1(key int, value string) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "cf:string")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,cf:string")
 TBLPROPERTIES ("accumulo.table.name" = "accumulo_table_0")
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -58,9 +58,9 @@ STAGE PLANS:
                   compressed: false
                   Statistics: Num rows: 14 Data size: 2805 Basic stats: COMPLETE Column stats: NONE
                   table:
-                      input format: org.apache.hadoop.hive.accumulo.HiveAccumuloTableInputFormat
-                      output format: org.apache.hadoop.hive.accumulo.HiveAccumuloTableOutputFormat
-                      serde: org.apache.hadoop.hive.accumulo.AccumuloSerDe
+                      input format: org.apache.hadoop.hive.accumulo.mr.HiveAccumuloTableInputFormat
+                      output format: org.apache.hadoop.hive.accumulo.mr.HiveAccumuloTableOutputFormat
+                      serde: org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe
                       name: default.accumulo_table_1
 
 PREHOOK: query: FROM src INSERT OVERWRITE TABLE accumulo_table_1 SELECT * WHERE (key%2)=0
@@ -77,13 +77,13 @@ POSTHOOK: query: DROP TABLE accumulo_table_2
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE EXTERNAL TABLE accumulo_table_2(key int, value string) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "cf:string")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,cf:string")
 TBLPROPERTIES ("accumulo.table.name" = "accumulo_table_0")
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE EXTERNAL TABLE accumulo_table_2(key int, value string) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "cf:string")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,cf:string")
 TBLPROPERTIES ("accumulo.table.name" = "accumulo_table_0")
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -375,12 +375,12 @@ POSTHOOK: query: DROP TABLE empty_accumulo_table
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE empty_accumulo_table(key int, value string) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "cf:string")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,cf:string")
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE empty_accumulo_table(key int, value string) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "cf:string")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,cf:string")
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@empty_accumulo_table
@@ -446,14 +446,14 @@ POSTHOOK: Input: default@src
 PREHOOK: query: CREATE TABLE accumulo_table_3(key int, value string, count int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "cf:val,cf2:count"
+"accumulo.columns.mapping" = ":rowID,cf:val,cf2:count"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE accumulo_table_3(key int, value string, count int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "cf:val,cf2:count"
+"accumulo.columns.mapping" = ":rowID,cf:val,cf2:count"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -567,9 +567,9 @@ STAGE PLANS:
               compressed: false
               Statistics: Num rows: 15 Data size: 1542 Basic stats: COMPLETE Column stats: NONE
               table:
-                  input format: org.apache.hadoop.hive.accumulo.HiveAccumuloTableInputFormat
-                  output format: org.apache.hadoop.hive.accumulo.HiveAccumuloTableOutputFormat
-                  serde: org.apache.hadoop.hive.accumulo.AccumuloSerDe
+                  input format: org.apache.hadoop.hive.accumulo.mr.HiveAccumuloTableInputFormat
+                  output format: org.apache.hadoop.hive.accumulo.mr.HiveAccumuloTableOutputFormat
+                  serde: org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe
                   name: default.accumulo_table_3
 
 PREHOOK: query: INSERT OVERWRITE TABLE accumulo_table_3
@@ -636,14 +636,14 @@ POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE accumulo_table_4(key int, value1 string, value2 int, value3 int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "a:b,a:c,d:e"
+"accumulo.columns.mapping" = ":rowID,a:b,a:c,d:e"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE accumulo_table_4(key int, value1 string, value2 int, value3 int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "a:b,a:c,d:e"
+"accumulo.columns.mapping" = ":rowID,a:b,a:c,d:e"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -674,13 +674,13 @@ POSTHOOK: query: DROP TABLE accumulo_table_5
 POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE EXTERNAL TABLE accumulo_table_5(key int, value map<string,string>) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "a:")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,a:*")
 TBLPROPERTIES ("accumulo.table.name" = "accumulo_table_4")
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE EXTERNAL TABLE accumulo_table_5(key int, value map<string,string>) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = "a:")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,a:*")
 TBLPROPERTIES ("accumulo.table.name" = "accumulo_table_4")
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -702,14 +702,14 @@ POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE accumulo_table_6(key int, value map<string,string>) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":key,cf:"
+"accumulo.columns.mapping" = ":rowID,cf:*"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE accumulo_table_6(key int, value map<string,string>) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":key,cf:"
+"accumulo.columns.mapping" = ":rowID,cf:*"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -741,14 +741,14 @@ POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE accumulo_table_7(value map<string,string>, key int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "cf:,:key"
+"accumulo.columns.mapping" = "cf:*,:rowID"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE accumulo_table_7(value map<string,string>, key int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "cf:,:key"
+"accumulo.columns.mapping" = "cf:*,:rowID"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -782,14 +782,14 @@ POSTHOOK: type: DROPTABLE
 PREHOOK: query: CREATE TABLE accumulo_table_8(key int, value1 string, value2 int, value3 int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "a:b,a:c,d:e"
+"accumulo.columns.mapping" = ":rowID,a:b,a:c,d:e"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE accumulo_table_8(key int, value1 string, value2 int, value3 int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = "a:b,a:c,d:e"
+"accumulo.columns.mapping" = ":rowID,a:b,a:c,d:e"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default

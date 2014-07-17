@@ -32,45 +32,112 @@ public class ColumnMappingFactory {
 
   /**
    * Generate the proper instance of a ColumnMapping
-   * @param columnSpec Specification for mapping this column to Accumulo
-   * @param encoding The manner in which the value should be encoded to Accumulo
+   * 
+   * @param columnSpec
+   *          Specification for mapping this column to Accumulo
+   * @param defaultEncoding
+   *          The default encoding in which values should be encoded to Accumulo
    */
-  public static ColumnMapping get(String columnSpec, ColumnEncoding encoding) {
+  public static ColumnMapping get(String columnSpec, ColumnEncoding defaultEncoding) {
     Preconditions.checkNotNull(columnSpec);
+    ColumnEncoding encoding = defaultEncoding;
 
-    if (AccumuloHiveConstants.ROWID.equals(columnSpec)) {
-      return new HiveRowIdColumnMapping(columnSpec, encoding);
+    // Check for column encoding specification
+    if (ColumnEncoding.hasColumnEncoding(columnSpec)) {
+      String columnEncodingStr = ColumnEncoding.getColumnEncoding(columnSpec);
+      columnSpec = ColumnEncoding.stripCode(columnSpec);
+
+      if (AccumuloHiveConstants.ROWID.equals(columnSpec)) {
+        return new HiveRowIdColumnMapping(columnSpec, ColumnEncoding.get(columnEncodingStr));
+      } else {
+        Entry<String,String> pair = parseMapping(columnSpec);
+
+        if (isPrefix(pair.getValue())) {
+          // Sanity check that, for a map, we got 2 encodings
+          if (!ColumnEncoding.isMapEncoding(columnEncodingStr)) {
+            throw new IllegalArgumentException("Expected map encoding for a map specification, "
+                + columnSpec + " with encoding " + columnEncodingStr);
+          }
+
+          Entry<ColumnEncoding,ColumnEncoding> encodings = ColumnEncoding
+              .getMapEncoding(columnEncodingStr);
+
+          return new HiveAccumuloMapColumnMapping(pair.getKey(), pair.getValue(),
+              encodings.getKey(), encodings.getValue());
+        } else {
+          return new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(), ColumnEncoding.getFromMapping(columnEncodingStr));
+        }
+      }
     } else {
-      Entry<String,String> pair = parseMapping(columnSpec);
-      return new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(), encoding);
+      if (AccumuloHiveConstants.ROWID.equals(columnSpec)) {
+        return new HiveRowIdColumnMapping(columnSpec, defaultEncoding);
+      } else {
+        Entry<String,String> pair = parseMapping(columnSpec);
+        boolean isPrefix = isPrefix(pair.getValue());
+
+        String cq = pair.getValue();
+
+        // Replace any \* that appear in the prefix with a regular *
+        if (-1 != cq.indexOf(AccumuloHiveConstants.ESCAPED_ASTERISK)) {
+          cq = cq.replaceAll(AccumuloHiveConstants.ESCAPED_ASERTISK_REGEX,
+              Character.toString(AccumuloHiveConstants.ASTERISK));
+        }
+
+        if (isPrefix) {
+          return new HiveAccumuloMapColumnMapping(pair.getKey(), cq.substring(0,
+              cq.length() - 1), defaultEncoding, defaultEncoding);
+        } else {
+          return new HiveAccumuloColumnMapping(pair.getKey(), cq, encoding);
+        }
+      }
     }
   }
 
-  public static ColumnMapping getMap(String columnSpec, ColumnEncoding keyEncoding, ColumnEncoding valueEncoding) {
+  public static ColumnMapping getMap(String columnSpec, ColumnEncoding keyEncoding,
+      ColumnEncoding valueEncoding) {
     Entry<String,String> pair = parseMapping(columnSpec);
-    return new HiveAccumuloMapColumnMapping(pair.getKey(), pair.getValue(), keyEncoding, valueEncoding);
-    
+    return new HiveAccumuloMapColumnMapping(pair.getKey(), pair.getValue(), keyEncoding,
+        valueEncoding);
+
+  }
+
+  public static boolean isPrefix(String maybePrefix) {
+    Preconditions.checkNotNull(maybePrefix);
+
+    if (AccumuloHiveConstants.ASTERISK == maybePrefix.charAt(maybePrefix.length() - 1)) {
+      if (maybePrefix.length() > 1) {
+        return AccumuloHiveConstants.ESCAPE != maybePrefix.charAt(maybePrefix.length() - 2);
+      } else {
+        return true;
+      }
+    }
+
+    // If we couldn't find an asterisk, it's not a prefix
+    return false;
   }
 
   /**
-   * Consumes the column mapping specification and breaks it into column family
-   * and column qualifier. 
+   * Consumes the column mapping specification and breaks it into column family and column
+   * qualifier.
    */
-  public static Entry<String,String> parseMapping(String columnSpec) throws InvalidColumnMappingException {
+  public static Entry<String,String> parseMapping(String columnSpec)
+      throws InvalidColumnMappingException {
     int index = 0;
     while (true) {
       if (index >= columnSpec.length()) {
         log.error("Cannot parse '" + columnSpec + "' as colon-separated column configuration");
-        throw new InvalidColumnMappingException("Columns must be provided as colon-separated family and qualifier pairs");
+        throw new InvalidColumnMappingException(
+            "Columns must be provided as colon-separated family and qualifier pairs");
       }
-  
+
       index = columnSpec.indexOf(AccumuloHiveConstants.COLON, index);
-      
+
       if (-1 == index) {
         log.error("Cannot parse '" + columnSpec + "' as colon-separated column configuration");
-        throw new InvalidColumnMappingException("Columns must be provided as colon-separated family and qualifier pairs");
+        throw new InvalidColumnMappingException(
+            "Columns must be provided as colon-separated family and qualifier pairs");
       }
-  
+
       // Check for an escape character before the colon
       if (index - 1 > 0) {
         char testChar = columnSpec.charAt(index - 1);
@@ -91,12 +158,14 @@ public class ColumnMappingFactory {
 
     // Check for the escaped colon to remove before doing the expensive regex replace
     if (-1 != cf.indexOf(AccumuloHiveConstants.ESCAPED_COLON)) {
-      cf = cf.replaceAll(AccumuloHiveConstants.ESCAPED_COLON_REGEX, Character.toString(AccumuloHiveConstants.COLON));
+      cf = cf.replaceAll(AccumuloHiveConstants.ESCAPED_COLON_REGEX,
+          Character.toString(AccumuloHiveConstants.COLON));
     }
 
     // Check for the escaped colon to remove before doing the expensive regex replace
     if (-1 != cq.indexOf(AccumuloHiveConstants.ESCAPED_COLON)) {
-      cq = cq.replaceAll(AccumuloHiveConstants.ESCAPED_COLON_REGEX, Character.toString(AccumuloHiveConstants.COLON));
+      cq = cq.replaceAll(AccumuloHiveConstants.ESCAPED_COLON_REGEX,
+          Character.toString(AccumuloHiveConstants.COLON));
     }
 
     return Maps.immutableEntry(cf, cq);

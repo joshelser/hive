@@ -1,5 +1,3 @@
-select * from src;
-
 DROP TABLE accumulo_table_1;
 CREATE TABLE accumulo_table_1(key int, value string) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
@@ -108,7 +106,7 @@ SELECT * FROM accumulo_table_4 ORDER BY key;
 DROP TABLE accumulo_table_5;
 CREATE EXTERNAL TABLE accumulo_table_5(key int, value map<string,string>) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,a:")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,a:*")
 TBLPROPERTIES ("accumulo.table.name" = "accumulo_table_4");
 
 SELECT * FROM accumulo_table_5 ORDER BY key;
@@ -117,7 +115,7 @@ DROP TABLE accumulo_table_6;
 CREATE TABLE accumulo_table_6(key int, value map<string,string>) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowID,cf:"
+"accumulo.columns.mapping" = ":rowID,cf:*"
 );
 INSERT OVERWRITE TABLE accumulo_table_6 SELECT key, map(value, key) FROM src
 WHERE key=98 OR key=100;
@@ -128,7 +126,7 @@ DROP TABLE accumulo_table_7;
 CREATE TABLE accumulo_table_7(value map<string,string>, key int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowID,cf:,:key"
+"accumulo.columns.mapping" = "cf:*,:rowID"
 );
 INSERT OVERWRITE TABLE accumulo_table_7 
 SELECT map(value, key, upper(value), key+1), key FROM src

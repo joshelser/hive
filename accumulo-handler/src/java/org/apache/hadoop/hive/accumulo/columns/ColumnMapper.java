@@ -55,30 +55,19 @@ public class ColumnMapper {
     columnMappings = new ArrayList<ColumnMapping>(parsedColumnMappingValue.length);
     rowIdOffset = -1;
 
-    // Determine the default encoding type (specified on the table, or the default
+    // Determine the default encoding type (specified on the table, or the global default
     // if none was provided)
     if (null == defaultStorageType || "".equals(defaultStorageType)) {
       defaultEncoding = ColumnEncoding.getDefault();
     } else {
-      defaultEncoding = ColumnEncoding.fromName(defaultStorageType.toLowerCase());
+      defaultEncoding = ColumnEncoding.get(defaultStorageType.toLowerCase());
     }
 
-    // Use the default encoding, but let columns override the default
-    ColumnEncoding encoding;
-
     for (int i = 0; i < parsedColumnMappingValue.length; i++) {
-      encoding = defaultEncoding;
       String columnMappingStr = parsedColumnMappingValue[i];
 
-      // If the mapping has an encoding specified, construct the ColumnEncoding
-      // and remove the encoding information from the original mapping information
-      if (ColumnEncoding.hasColumnEncoding(columnMappingStr)) {
-        encoding = ColumnEncoding.parseCode(columnMappingStr);
-        columnMappingStr = ColumnEncoding.stripCode(columnMappingStr);
-      }
-
       // Create the mapping for this column, with configured encoding
-      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr, encoding);
+      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr, defaultEncoding);
 
       if (columnMapping instanceof HiveRowIdColumnMapping) {
         if (-1 != rowIdOffset) {
@@ -126,13 +115,16 @@ public class ColumnMapper {
         sb.append(AccumuloHiveConstants.COLON);
       }
 
-      // TODO Handle map<x,y>
       if (columnMapping instanceof HiveRowIdColumnMapping) {
         // the rowID column is a string
         sb.append(serdeConstants.STRING_TYPE_NAME);
       } else if (columnMapping instanceof HiveAccumuloColumnMapping) {
         // a normal column is also a string
         sb.append(serdeConstants.STRING_TYPE_NAME);
+      } else if (columnMapping instanceof HiveAccumuloMapColumnMapping) {
+        // TODO can we be more precise than string,string?
+        sb.append(serdeConstants.MAP_TYPE_NAME).append("<").append(serdeConstants.STRING_TYPE_NAME)
+            .append(",").append(serdeConstants.STRING_TYPE_NAME).append(">");
       } else {
         throw new IllegalArgumentException("Cannot process ColumnMapping of type "
             + columnMapping.getClass().getName());

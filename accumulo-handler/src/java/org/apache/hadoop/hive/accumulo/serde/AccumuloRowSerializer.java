@@ -18,22 +18,26 @@ package org.apache.hadoop.hive.accumulo.serde;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloMapColumnMapping;
 import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
 import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector.Category;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
-import org.apache.hadoop.io.Writable;
 
 import com.google.common.base.Charsets;
 
@@ -98,23 +102,77 @@ public class AccumuloRowSerializer {
 
       // Make sure we got the right implementation of a ColumnMapping
       ColumnMapping mapping = mappings.get(i);
-      if (!(mapping instanceof HiveAccumuloColumnMapping)) {
+      if (mapping instanceof HiveAccumuloColumnMapping) {
+        serializeColumnMapping((HiveAccumuloColumnMapping) mapping, objInspector, fieldObjectInspector, value, mutation);
+      } else if (mapping instanceof HiveAccumuloMapColumnMapping) {
+        serializeColumnMapping((HiveAccumuloMapColumnMapping) mapping, objInspector, fieldObjectInspector, value, mutation);
+      } else {
         throw new IllegalArgumentException("Mapping for " + field.getFieldName()
             + " was not a HiveColumnMapping, but was " + mapping.getClass());
       }
 
-      // We need to be able to get a colfam/colqual
-      HiveAccumuloColumnMapping hiveColumnMapping = (HiveAccumuloColumnMapping) mapping;
 
-      // Get the serialized value for the column
-      byte[] serializedValue = getSerializedValue(objInspector, fieldObjectInspector, value, output, hiveColumnMapping);
-
-      // Put it all in the Mutation
-      mutation.put(hiveColumnMapping.getColumnFamily().getBytes(Charsets.UTF_8), hiveColumnMapping
-          .getColumnQualifier().getBytes(Charsets.UTF_8), visibility, serializedValue);
     }
 
     return mutation;
+  }
+
+  protected void serializeColumnMapping(HiveAccumuloColumnMapping columnMapping,
+      ObjectInspector objInspector, ObjectInspector fieldObjectInspector, Object value,
+      Mutation mutation) throws IOException {
+    // Get the serialized value for the column
+    byte[] serializedValue = getSerializedValue(objInspector, fieldObjectInspector, value, output,
+        columnMapping);
+
+    // Put it all in the Mutation
+    mutation.put(columnMapping.getColumnFamilyBytes(), columnMapping.getColumnQualifierBytes(),
+        visibility, serializedValue);
+  }
+
+  protected void serializeColumnMapping(HiveAccumuloMapColumnMapping columnMapping,
+      ObjectInspector objInspector, ObjectInspector fieldObjectInspector, Object value,
+      Mutation mutation) throws IOException {
+    MapObjectInspector mapObjectInspector = (MapObjectInspector) fieldObjectInspector;
+
+    Map<?, ?> map = mapObjectInspector.getMap(value);
+    if (map == null) {
+      return;
+    }
+
+    ObjectInspector keyObjectInspector = mapObjectInspector.getMapKeyObjectInspector(),
+        valueObjectInspector = mapObjectInspector.getMapValueObjectInspector();
+
+    // TODO allow for nested map keys-values
+    // Need to get the serde information passed down to know the correct
+    // separators for each level of Map,Struct,etc
+    if (Category.PRIMITIVE != keyObjectInspector.getCategory() || 
+        Category.PRIMITIVE != valueObjectInspector.getCategory()) {
+      throw new IOException("Expected Map keys and values to be primitives");
+    }
+
+    byte[] cfBytes = columnMapping.getColumnFamily().getBytes(Charsets.UTF_8), cqPrefixBytes = columnMapping
+        .getColumnQualifierPrefix().getBytes(Charsets.UTF_8);
+    byte[] cqBytes, valueBytes;
+    for (Entry<?,?> entry : map.entrySet()) {
+      output.reset();
+
+      // If the cq prefix is non-empty, add it to the CQ before we set the mutation
+      if (0 < cqPrefixBytes.length) {
+        output.write(cqPrefixBytes, 0, cqPrefixBytes.length);
+      }
+
+      // Write the "suffix" of the cq
+      writeSerializedPrimitive((PrimitiveObjectInspector) keyObjectInspector, output, entry.getKey(), columnMapping.getKeyEncoding());
+      cqBytes = output.toByteArray();
+
+      output.reset();
+
+      // Write the value
+      writeSerializedPrimitive((PrimitiveObjectInspector) valueObjectInspector, output, entry.getValue(), columnMapping.getValueEncoding());
+      valueBytes = output.toByteArray();
+
+      mutation.put(cfBytes, cqBytes, visibility, valueBytes);
+    }
   }
 
   /**
@@ -143,11 +201,7 @@ public class AccumuloRowSerializer {
     // Start by only serializing primitives as-is
     if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
       // TODO Allow configuration of escaped characters
-      if (ColumnEncoding.BINARY == mapping.getEncoding()) {
-        writeBinary(output, value, (PrimitiveObjectInspector) fieldObjectInspector);
-      } else {
-        writeString(output, value, (PrimitiveObjectInspector) fieldObjectInspector);
-      }
+      writeSerializedPrimitive((PrimitiveObjectInspector) fieldObjectInspector, output, value, mapping.getEncoding());
     } else {
       // Or serializing complex types as json
       String asJson = SerDeUtils.getJSONString(value, objectInspector);
@@ -156,6 +210,22 @@ public class AccumuloRowSerializer {
     }
 
     return output.toByteArray();
+  }
+
+  /**
+   * Serialize the given primitive to the given output buffer, using the provided encoding mechanism.
+   * @param objectInspector The PrimitiveObjectInspector for this Object
+   * @param output A buffer to write the serialized value to
+   * @param value The Object being serialized
+   * @param encoding The means in which the Object should be serialized
+   * @throws IOException
+   */
+  protected void writeSerializedPrimitive(PrimitiveObjectInspector objectInspector, ByteStream.Output output, Object value, ColumnEncoding encoding) throws IOException {
+    if (ColumnEncoding.BINARY == encoding) {
+      writeBinary(output, value, objectInspector);
+    } else {
+      writeString(output, value, objectInspector);
+    }
   }
 
   protected void writeBinary(ByteStream.Output output, Object value,

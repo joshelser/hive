@@ -90,7 +90,7 @@ public class TestLazyAccumuloMap {
     HiveAccumuloMapColumnMapping mapping = new HiveAccumuloMapColumnMapping("cf1", null,
         ColumnEncoding.STRING, ColumnEncoding.STRING);
 
-    // Map of Integer to String
+    // Map of Integer to Integer
     Text nullSequence = new Text("\\N");
     ObjectInspector oi = LazyFactory.createLazyObjectInspector(
       TypeInfoUtils.getTypeInfosFromTypeString("map<int,int>").get(0),

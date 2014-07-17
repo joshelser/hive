@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloMapColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -37,7 +38,10 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyStringObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
@@ -69,11 +73,11 @@ public class TestAccumuloRowSerializer {
 
     String object = "hello";
 
-    Mockito
-        .when(
-            serializer.getSerializedValue(Mockito.any(ObjectInspector.class),
-                Mockito.any(ObjectInspector.class), Mockito.any(),
-                Mockito.any(ByteStream.Output.class), Mockito.any(ColumnMapping.class))).thenCallRealMethod();
+    Mockito.when(
+        serializer.getSerializedValue(Mockito.any(ObjectInspector.class),
+            Mockito.any(ObjectInspector.class), Mockito.any(),
+            Mockito.any(ByteStream.Output.class), Mockito.any(ColumnMapping.class)))
+        .thenCallRealMethod();
 
     Mockito.when(fieldObjectInspector.getCategory()).thenReturn(ObjectInspector.Category.PRIMITIVE);
     Mockito.when(fieldObjectInspector.getPrimitiveCategory()).thenReturn(PrimitiveCategory.STRING);
@@ -107,14 +111,15 @@ public class TestAccumuloRowSerializer {
         .createLazyStructInspector(columns, types, new byte[] {' '}, new Text("\\N"), false, false,
             (byte) '\\');
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings, new ColumnVisibility());
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings,
+        new ColumnVisibility());
 
     // Create the LazyStruct from the LazyStruct...Inspector
     LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(oi);
 
     ByteArrayRef byteRef = new ByteArrayRef();
-    byteRef.setData(new byte[] {'r', 'o', 'w', '1', ' ', '1', '0', ' ', '2', '0', ' ', 'v',
-        'a', 'l', 'u', 'e'});
+    byteRef.setData(new byte[] {'r', 'o', 'w', '1', ' ', '1', '0', ' ', '2', '0', ' ', 'v', 'a',
+        'l', 'u', 'e'});
     obj.init(byteRef, 0, byteRef.getData().length);
 
     Mutation m = (Mutation) serializer.serialize(obj, oi);
@@ -168,14 +173,15 @@ public class TestAccumuloRowSerializer {
         .createLazyStructInspector(columns, types, new byte[] {' '}, new Text("\\N"), false, false,
             (byte) '\\');
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings, new ColumnVisibility("foo"));
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings, new ColumnVisibility(
+        "foo"));
 
     // Create the LazyStruct from the LazyStruct...Inspector
     LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(oi);
 
     ByteArrayRef byteRef = new ByteArrayRef();
-    byteRef.setData(new byte[] {'r', 'o', 'w', '1', ' ', '1', '0', ' ', '2', '0', ' ', 'v',
-        'a', 'l', 'u', 'e'});
+    byteRef.setData(new byte[] {'r', 'o', 'w', '1', ' ', '1', '0', ' ', '2', '0', ' ', 'v', 'a',
+        'l', 'u', 'e'});
     obj.init(byteRef, 0, byteRef.getData().length);
 
     Mutation m = (Mutation) serializer.serialize(obj, oi);
@@ -210,6 +216,59 @@ public class TestAccumuloRowSerializer {
     Assert.assertEquals("cq3", new String(update.getColumnQualifier()));
     Assert.assertEquals("foo", new String(update.getColumnVisibility()));
 
+    Assert.assertEquals("value", new String(update.getValue()));
+  }
+
+  @Test
+  public void testMapSerialization() throws IOException, SerDeException {
+    ArrayList<ColumnMapping> mappings = new ArrayList<ColumnMapping>();
+    mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloMapColumnMapping("cf", "", ColumnEncoding.STRING,
+        ColumnEncoding.STRING));
+
+    List<String> columns = Arrays.asList("row", "data");
+
+    TypeInfo stringTypeInfo = TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME);
+    LazyStringObjectInspector stringOI = (LazyStringObjectInspector) LazyFactory
+        .createLazyObjectInspector(stringTypeInfo, new byte[] {0}, 0, new Text("\\N"), false,
+            (byte) '\\');
+    LazyMapObjectInspector mapOI = LazyObjectInspectorFactory.getLazySimpleMapObjectInspector(
+        stringOI, stringOI, (byte) ',', (byte) ':', new Text("\\N"), false, (byte) '\\');
+
+    LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) LazyObjectInspectorFactory
+        .getLazySimpleStructObjectInspector(columns,
+            Arrays.asList(stringOI, mapOI), (byte) ' ', new Text("\\N"), false, false, (byte) '\\');
+
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings,
+        new ColumnVisibility());
+
+    // Create the LazyStruct from the LazyStruct...Inspector
+    LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(structOI);
+
+    ByteArrayRef byteRef = new ByteArrayRef();
+    byteRef.setData("row1 cq1:10,cq2:20,cq3:value".getBytes());
+    obj.init(byteRef, 0, byteRef.getData().length);
+
+    Mutation m = (Mutation) serializer.serialize(obj, structOI);
+
+    Assert.assertArrayEquals("row1".getBytes(), m.getRow());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+    Assert.assertEquals(3, updates.size());
+
+    ColumnUpdate update = updates.get(0);
+    Assert.assertEquals("cf", new String(update.getColumnFamily()));
+    Assert.assertEquals("cq1", new String(update.getColumnQualifier()));
+    Assert.assertEquals("10", new String(update.getValue()));
+
+    update = updates.get(1);
+    Assert.assertEquals("cf", new String(update.getColumnFamily()));
+    Assert.assertEquals("cq2", new String(update.getColumnQualifier()));
+    Assert.assertEquals("20", new String(update.getValue()));
+
+    update = updates.get(2);
+    Assert.assertEquals("cf", new String(update.getColumnFamily()));
+    Assert.assertEquals("cq3", new String(update.getColumnQualifier()));
     Assert.assertEquals("value", new String(update.getValue()));
   }
 }

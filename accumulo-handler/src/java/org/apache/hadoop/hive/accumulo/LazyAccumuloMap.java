@@ -81,6 +81,8 @@ public class LazyAccumuloMap extends LazyMap {
       keyRef.setData(tuple.getCq().getBytes());
       key.init(keyRef, 0, keyRef.getData().length);
 
+      //TODO Strip the colqual prefix from the CQ before passing it into the LazyFactory
+
       // Value can be anything, use the obj inspector and respect binary
       LazyObject<?> value =
           LazyFactory.createLazyObject(lazyMoi.getMapValueObjectInspector(),

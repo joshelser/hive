@@ -41,7 +41,12 @@ import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.primitive.LazyStringObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaStringObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
@@ -262,4 +267,84 @@ public class TestHiveAccumuloTableOutputFormat {
     Assert.assertFalse("Iterator unexpectedly had more data", iter.hasNext());
   }
 
+
+  @Test
+  public void testWriteMap() throws Exception {
+    Instance inst = new MockInstance(test.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+    
+    HiveAccumuloTableOutputFormat outputFormat = new HiveAccumuloTableOutputFormat();
+    String table = test.getMethodName();
+    conn.tableOperations().create(table);
+
+    JobConf conf = new JobConf();
+    conf.set(AccumuloConnectionParameters.INSTANCE_NAME, inst.getInstanceName());
+    conf.set(AccumuloConnectionParameters.USER_NAME, "root");
+    conf.set(AccumuloConnectionParameters.USER_PASS, "");
+    conf.setBoolean(AccumuloConnectionParameters.USE_MOCK_INSTANCE, true);
+    conf.set(AccumuloConnectionParameters.TABLE_NAME, test.getMethodName());
+
+    FileSystem local = FileSystem.getLocal(conf);
+    outputFormat.checkOutputSpecs(local, conf);
+
+    RecordWriter<Text,Mutation> recordWriter = outputFormat.getRecordWriter(local, conf, null, null);
+
+    ColumnMapper mapper = new ColumnMapper(":rowID,cf:*", ColumnEncoding.STRING.getName());
+
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mapper.getColumnMappings(),
+        AccumuloSerDeParameters.DEFAULT_VISIBILITY_LABEL);
+
+    TypeInfo stringTypeInfo = TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME);
+    LazyStringObjectInspector stringOI = (LazyStringObjectInspector) LazyFactory.createLazyObjectInspector(stringTypeInfo, new byte[]{0}, 0, new Text("\\N"), false, (byte) '\\');
+
+    LazyMapObjectInspector mapOI = LazyObjectInspectorFactory.getLazySimpleMapObjectInspector(
+        stringOI, stringOI, (byte) ',', (byte) ':', new Text("\\N"), false, (byte) '\\');
+
+    LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) LazyObjectInspectorFactory
+        .getLazySimpleStructObjectInspector(Arrays.asList("row", "data"),
+            Arrays.asList(stringOI, mapOI), (byte) ' ', new Text("\\N"), false, false,
+            (byte) '\\');
+
+    LazyStruct struct = (LazyStruct) LazyFactory.createLazyObject(structOI);
+
+    ByteArrayRef bytes = new ByteArrayRef();
+    bytes.setData("row cq1:value1,cq2:value2".getBytes());
+    struct.init(bytes, 0, bytes.getData().length);
+
+    // Serialize the struct into a mutation
+    Mutation m = serializer.serialize(struct, structOI);
+
+    // Write the mutation
+    recordWriter.write(new Text(table), m);
+
+    // Close the writer
+    recordWriter.close(null);
+
+    Iterator<Entry<Key,Value>> iter = conn.createScanner(table, new Authorizations()).iterator();
+    Assert.assertTrue("Iterator did not have an element as expected", iter.hasNext());
+
+    Entry<Key,Value> entry = iter.next();
+    Key k = entry.getKey();
+    Value v = entry.getValue();
+
+    Assert.assertEquals("row", k.getRow().toString());
+    Assert.assertEquals("cf", k.getColumnFamily().toString());
+    Assert.assertEquals("cq1", k.getColumnQualifier().toString());
+    Assert.assertEquals(AccumuloSerDeParameters.DEFAULT_VISIBILITY_LABEL, k.getColumnVisibilityParsed());
+    Assert.assertEquals("value1", new String(v.get()));
+
+    Assert.assertTrue("Iterator did not have an element as expected", iter.hasNext());
+
+    entry = iter.next();
+    k = entry.getKey();
+    v = entry.getValue();
+
+    Assert.assertEquals("row", k.getRow().toString());
+    Assert.assertEquals("cf", k.getColumnFamily().toString());
+    Assert.assertEquals("cq2", k.getColumnQualifier().toString());
+    Assert.assertEquals(AccumuloSerDeParameters.DEFAULT_VISIBILITY_LABEL, k.getColumnVisibilityParsed());
+    Assert.assertEquals("value2", new String(v.get()));
+
+    Assert.assertFalse("Iterator unexpectedly had more data", iter.hasNext());
+  }
 }

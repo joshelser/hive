@@ -225,17 +225,28 @@ public class HiveAccumuloTableInputFormat implements
   // verify were correctly called via Mockito
 
   protected void setMockInstance(JobConf conf, String instanceName) {
-    AccumuloInputFormat.setMockInstance(conf, instanceName);
+    try {
+      AccumuloInputFormat.setMockInstance(conf, instanceName);
+    } catch (IllegalStateException e) {
+      log.debug("Ignoring exception setting mock instance of " + instanceName, e);
+    }
   }
 
   protected void setZooKeeperInstance(JobConf conf, String instanceName, String zkHosts) {
-    AccumuloInputFormat.setZooKeeperInstance(conf,
-        new ClientConfiguration().withInstance(instanceName).withZkHosts(zkHosts));
+    try {
+      AccumuloInputFormat.setZooKeeperInstance(conf,
+          new ClientConfiguration().withInstance(instanceName).withZkHosts(zkHosts));
+    } catch (IllegalStateException e) {
+      log.debug("Ignoring exception setting ZooKeeper instance of " + instanceName + " at " + zkHosts, e);
+    }
   }
 
   protected void setConnectorInfo(JobConf conf, String user, AuthenticationToken token)
       throws AccumuloSecurityException {
-    AccumuloInputFormat.setConnectorInfo(conf, user, token);
+    try {
+      AccumuloInputFormat.setConnectorInfo(conf, user, token);
+    } catch (IllegalStateException e) {
+    }
   }
 
   protected void setInputTableName(JobConf conf, String tableName) {

@@ -53,6 +53,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FsShell;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.StatsSetupConst;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
@@ -150,6 +151,7 @@ import org.apache.hadoop.hive.ql.plan.RevokeDesc;
 import org.apache.hadoop.hive.ql.plan.RoleDDLDesc;
 import org.apache.hadoop.hive.ql.plan.ShowColumnsDesc;
 import org.apache.hadoop.hive.ql.plan.ShowCompactionsDesc;
+import org.apache.hadoop.hive.ql.plan.ShowConfDesc;
 import org.apache.hadoop.hive.ql.plan.ShowCreateTableDesc;
 import org.apache.hadoop.hive.ql.plan.ShowDatabasesDesc;
 import org.apache.hadoop.hive.ql.plan.ShowFunctionsDesc;
@@ -430,6 +432,11 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         return showCreateTable(db, showCreateTbl);
       }
 
+      ShowConfDesc showConf = work.getShowConfDesc();
+      if (showConf != null) {
+        return showConf(db, showConf);
+      }
+
       RoleDDLDesc roleDDLDesc = work.getRoleDDLDesc();
       if (roleDDLDesc != null) {
         return roleDDL(roleDDLDesc);
@@ -492,6 +499,38 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
     return 0;
   }
 
+  private int showConf(Hive db, ShowConfDesc showConf) throws Exception {
+    ConfVars conf = HiveConf.getConfVars(showConf.getConfName());
+    if (conf == null) {
+      throw new HiveException("invalid configuration name " + showConf.getConfName());
+    }
+    String description = conf.getDescription();
+    String defaltValue = conf.getDefaultValue();
+    DataOutputStream output = getOutputStream(showConf.getResFile());
+    try {
+      if (description != null) {
+        if (defaltValue != null) {
+          output.write(defaltValue.getBytes());
+        }
+        output.write(separator);
+        output.write(conf.typeString().getBytes());
+        output.write(separator);
+        if (description != null) {
+          output.write(description.replaceAll(" *\n *", " ").getBytes());
+        }
+        output.write(terminator);
+      }
+    } finally {
+      output.close();
+    }
+    return 0;
+  }
+
+  private DataOutputStream getOutputStream(Path outputFile) throws Exception {
+    FileSystem fs = outputFile.getFileSystem(conf);
+    return fs.create(outputFile);
+  }
+
   /**
    * First, make sure the source table/partition is not
    * archived/indexes/non-rcfile. If either of these is true, throw an
@@ -542,7 +581,8 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
                 grantOrRevokeRoleDDL.getGrantor(), grantOrRevokeRoleDDL
                 .getGrantorType(), grantOrRevokeRoleDDL.isGrantOption());
           } else {
-            db.revokeRole(roleName, userName, principal.getType());
+            db.revokeRole(roleName, userName, principal.getType(),
+                grantOrRevokeRoleDDL.isGrantOption());
           }
         }
       }
@@ -2193,6 +2233,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
   private int showCreateTable(Hive db, ShowCreateTableDesc showCreateTbl) throws HiveException {
     // get the create table statement for the table and populate the output
     final String EXTERNAL = "external";
+    final String TEMPORARY = "temporary";
     final String LIST_COLUMNS = "columns";
     final String TBL_COMMENT = "tbl_comment";
     final String LIST_PARTITIONS = "partitions";
@@ -2224,7 +2265,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         return 0;
       }
 
-      createTab_str.append("CREATE <" + EXTERNAL + "> TABLE `");
+      createTab_str.append("CREATE <" + TEMPORARY + "><" + EXTERNAL + ">TABLE `");
       createTab_str.append(tableName + "`(\n");
       createTab_str.append("<" + LIST_COLUMNS + ">)\n");
       createTab_str.append("<" + TBL_COMMENT + ">\n");
@@ -2239,11 +2280,17 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       createTab_str.append("<" + TBL_PROPERTIES + ">)\n");
       ST createTab_stmt = new ST(createTab_str.toString());
 
+      // For cases where the table is temporary
+      String tbl_temp = "";
+      if (tbl.isTemporary()) {
+        duplicateProps.add("TEMPORARY");
+        tbl_temp = "TEMPORARY ";
+      }
       // For cases where the table is external
       String tbl_external = "";
       if (tbl.getTableType() == TableType.EXTERNAL_TABLE) {
         duplicateProps.add("EXTERNAL");
-        tbl_external = "EXTERNAL";
+        tbl_external = "EXTERNAL ";
       }
 
       // Columns
@@ -2399,6 +2446,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         tbl_properties += StringUtils.join(realProps, ", \n");
       }
 
+      createTab_stmt.add(TEMPORARY, tbl_temp);
       createTab_stmt.add(EXTERNAL, tbl_external);
       createTab_stmt.add(LIST_COLUMNS, tbl_columns);
       createTab_stmt.add(TBL_COMMENT, tbl_comment);
@@ -3745,8 +3793,7 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
           tbl.getTTable().getSd().getSerdeInfo().getParameters().putAll(
               alterTbl.getProps());
         }
-        if (!conf.getStringCollection(ConfVars.SERDESUSINGMETASTOREFORSCHEMA.varname)
-            .contains(serdeName)) {
+        if (!Table.hasMetastoreBasedSchema(conf, serdeName)) {
           tbl.setFields(Hive.getFieldsFromDeserializer(tbl.getTableName(), tbl.
               getDeserializer()));
         }
@@ -4246,6 +4293,8 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
       tbl.setSkewedColValues(crtTbl.getSkewedColValues());
     }
 
+    tbl.getTTable().setTemporary(crtTbl.isTemporary());
+
     tbl.setStoredAsSubDirectories(crtTbl.isStoredAsSubDirectories());
 
     tbl.setInputFormatClass(crtTbl.getInputFormat());
@@ -4393,6 +4442,8 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
         params.putAll(crtTbl.getTblProps());
       }
 
+      tbl.getTTable().setTemporary(crtTbl.isTemporary());
+
       if (crtTbl.isExternal()) {
         tbl.setProperty("EXTERNAL", "TRUE");
         tbl.setTableType(TableType.EXTERNAL_TABLE);
@@ -4517,22 +4568,47 @@ public class DDLTask extends Task<DDLWork> implements Serializable {
   }
 
   private List<Path> getLocations(Hive db, Table table, Map<String, String> partSpec)
-      throws HiveException {
+      throws HiveException, InvalidOperationException {
     List<Path> locations = new ArrayList<Path>();
     if (partSpec == null) {
       if (table.isPartitioned()) {
         for (Partition partition : db.getPartitions(table)) {
           locations.add(partition.getDataLocation());
+          if (needToUpdateStats(partition.getParameters())) {
+            db.alterPartition(table.getDbName(), table.getTableName(), partition);
+          }
         }
       } else {
         locations.add(table.getPath());
+        if (needToUpdateStats(table.getParameters())) {
+          db.alterTable(table.getDbName()+"."+table.getTableName(), table);
+        }
       }
     } else {
       for (Partition partition : db.getPartitionsByNames(table, partSpec)) {
         locations.add(partition.getDataLocation());
+        if (needToUpdateStats(partition.getParameters())) {
+          db.alterPartition(table.getDbName(), table.getTableName(), partition);
+        }
       }
     }
     return locations;
+  }
+
+  private boolean needToUpdateStats(Map<String,String> props) {
+    if (null == props) {
+      return false;
+    }
+    boolean statsPresent = false;
+    for (String stat : StatsSetupConst.supportedStats) {
+      String statVal = props.get(stat);
+      if (statVal != null && Long.parseLong(statVal) > 0) {
+        statsPresent = true;
+        props.put(statVal, "0");
+        props.put(StatsSetupConst.COLUMN_STATS_ACCURATE, "false");
+      }
+    }
+    return statsPresent;
   }
 
   private String escapeHiveCommand(String str) {

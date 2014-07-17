@@ -136,12 +136,15 @@ public class HiveAccumuloTableInputFormat implements
       HiveAccumuloSplit hiveSplit = (HiveAccumuloSplit) inputSplit;
       RangeInputSplit rangeSplit = hiveSplit.getSplit();
 
+      // The RangeInputSplit *should* have all of the necesary information contained in it
+      // which alleviates us from re-parsing our configuration from the AccumuloStorageHandler
+      // and re-setting it into the Configuration (like we did in getSplits(...)). Thus, it should
+      // be unnecessary to re-invoke configure(...)
+
       // ACCUMULO-2962 Iterators weren't getting serialized into the InputSplit, but we can
       // compensate because we still have that info.
       // Should be fixed in Accumulo 1.5.2 and 1.6.1
-      if (iterators.size() > 0
-          && (null == rangeSplit.getIterators() || rangeSplit.getIterators().size() != iterators
-              .size())) {
+      if (null == rangeSplit.getIterators() || (rangeSplit.getIterators().isEmpty() && !iterators.isEmpty())) {
         log.debug("Re-setting iterators on InputSplit due to Accumulo bug.");
         rangeSplit.setIterators(iterators);
       }

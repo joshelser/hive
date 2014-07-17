@@ -23,6 +23,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.metastore.MetaStoreUtils;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
 import org.apache.hadoop.hive.ql.metadata.HiveException;
 import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
@@ -98,7 +99,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
       return tableName;
     }
 
-    tableName = tableDesc.getTableName();
+    tableName = props.getProperty(hive_metastoreConstants.META_TABLE_NAME);
 
     if (tableName.startsWith(DEFAULT_PREFIX + ".")) {
       return tableName.substring(DEFAULT_PREFIX.length() + 1);
@@ -182,8 +183,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     if (null == tableName) {
       tableName = getTableName(tableDesc);
     }
-    jobProperties.put(AccumuloSerDeParameters.TABLE_NAME,
-        tableName);
+    jobProperties.put(AccumuloSerDeParameters.TABLE_NAME, tableName);
 
     if (props.containsKey(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE)) {
       jobProperties.put(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE,

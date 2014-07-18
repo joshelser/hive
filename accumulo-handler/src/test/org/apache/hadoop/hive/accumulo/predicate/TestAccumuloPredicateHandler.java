@@ -4,21 +4,14 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
@@ -41,21 +34,11 @@ import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.ql.exec.FunctionRegistry;
 import org.apache.hadoop.hive.ql.exec.Utilities;
 import org.apache.hadoop.hive.ql.index.IndexSearchCondition;
-import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
-import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
-import org.apache.hadoop.hive.ql.lib.Dispatcher;
-import org.apache.hadoop.hive.ql.lib.GraphWalker;
-import org.apache.hadoop.hive.ql.lib.Node;
-import org.apache.hadoop.hive.ql.lib.NodeProcessor;
-import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
-import org.apache.hadoop.hive.ql.lib.Rule;
-import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
@@ -65,7 +48,9 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPNotNull;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
+import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaIntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.JobConf;
@@ -652,5 +637,70 @@ public class TestAccumuloPredicateHandler {
     List<Range> ranges = handler.getRanges(conf, columnMapper);
     assertEquals(1, ranges.size());
     assertEquals(new Range(new Key("f"), true, new Key("m\0"), false), ranges.get(0));
+  }
+
+  @Test
+  public void testRowRangeGeneration() throws SerDeException {
+    conf.set(serdeConstants.LIST_COLUMNS, "key,column");
+    conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string");
+
+    String columnMappingStr = ":rowID,cf:f1";
+    conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr, null);
+
+    // 100 < key
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "key", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, 100);
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(constant);
+    children.add(column);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPLessThan(), children);
+    assertNotNull(node);
+
+    String filterExpr = Utilities.serializeExpression(node);
+    conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
+
+    // Should make (100, +inf)
+    List<Range> ranges = handler.getRanges(conf, columnMapper);
+    Assert.assertEquals(1, ranges.size());
+    Assert.assertEquals(new Range(new Text("100"), false, null, false), ranges.get(0));
+  }
+
+  @Test
+  public void testBinaryRangeGeneration() throws Exception {
+    conf.set(serdeConstants.LIST_COLUMNS, "key,column");
+    conf.set(serdeConstants.LIST_COLUMN_TYPES, "int,string");
+
+    String columnMappingStr = ":rowID#b,cf:f1";
+    conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
+    columnMapper = new ColumnMapper(columnMappingStr, null);
+
+    int intValue = 100;
+
+    // Make binary integer value in the bytearray
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    JavaIntObjectInspector intOI = (JavaIntObjectInspector) PrimitiveObjectInspectorFactory
+        .getPrimitiveJavaObjectInspector(TypeInfoFactory
+            .getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME));
+    LazyUtils.writePrimitive(baos, intValue, intOI);
+
+    // 100 < key
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "key", null, false);
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, intValue);
+    List<ExprNodeDesc> children = Lists.newArrayList();
+    children.add(constant);
+    children.add(column);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPLessThan(), children);
+    assertNotNull(node);
+
+    String filterExpr = Utilities.serializeExpression(node);
+    conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
+
+    // Should make (100, +inf)
+    List<Range> ranges = handler.getRanges(conf, columnMapper);
+    Assert.assertEquals(1, ranges.size());
+    Assert.assertEquals(new Range(new Text(baos.toByteArray()), false, null, false), ranges.get(0));
   }
 }

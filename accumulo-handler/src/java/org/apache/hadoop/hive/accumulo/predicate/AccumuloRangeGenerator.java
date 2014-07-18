@@ -34,6 +34,7 @@ import org.apache.hadoop.hive.ql.lib.NodeProcessorCtx;
 import org.apache.hadoop.hive.ql.parse.SemanticException;
 import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
+import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
@@ -171,10 +172,21 @@ public class AccumuloRangeGenerator implements NodeProcessor {
       // Find the argument to the operator which is a constant
       ExprNodeConstantDesc constantDesc = null;
       ExprNodeColumnDesc columnDesc = null;
+      ExprNodeDesc leftHandNode = null;
       for (Object nodeOutput : nodeOutputs) {
         if (nodeOutput instanceof ExprNodeConstantDesc) {
+          // Ordering of constant and column in expression is important in correct range generation
+          if (null == leftHandNode) {
+            leftHandNode = (ExprNodeDesc) nodeOutput;
+          }
+
           constantDesc = (ExprNodeConstantDesc) nodeOutput;
         } else if (nodeOutput instanceof ExprNodeColumnDesc) {
+          // Ordering of constant and column in expression is important in correct range generation
+          if (null == leftHandNode) {
+            leftHandNode = (ExprNodeDesc) nodeOutput;
+          }
+
           columnDesc = (ExprNodeColumnDesc) nodeOutput;
         }
       }
@@ -213,28 +225,50 @@ public class AccumuloRangeGenerator implements NodeProcessor {
         throw new IllegalArgumentException("Unhandled UDF class: " + genericUdf.getUdfName());
       }
 
-      CompareOp compareOp;
-      try {
-        compareOp = opClz.newInstance();
-      } catch (InstantiationException e) {
-        throw new IllegalArgumentException("Could not instantiate " + opClz);
-      } catch (IllegalAccessException e) {
-        throw new IllegalArgumentException("Could not instantiate " + opClz);
-      }
-
-      if (compareOp instanceof Equal) {
-        return new Range(constText, true, constText, true); // start inclusive to end inclusive
-      } else if (compareOp instanceof GreaterThanOrEqual) {
-        return new Range(constText, null); // start inclusive to infinity inclusive
-      } else if (compareOp instanceof GreaterThan) {
-        return new Range(constText, false, null, false); // start exclusive to infinity inclusive
-      } else if (compareOp instanceof LessThanOrEqual) {
-        return new Range(null, false, constText, true); // neg-infinity to start inclusive
-      } else if (compareOp instanceof LessThan) {
-        return new Range(null, false, constText, false); // neg-infinity to start exclusive
+      if (leftHandNode instanceof ExprNodeConstantDesc) {
+        return getConstantOpColumnRange(opClz, constText);
+      } else if (leftHandNode instanceof ExprNodeColumnDesc) {
+        return getColumnOpConstantRange(opClz, constText);
       } else {
-        throw new IllegalArgumentException("Could not process " + compareOp);
+        throw new IllegalStateException("Expected column or constant on LHS of expression");
       }
+    }
+  }
+
+  protected Range getConstantOpColumnRange(Class<? extends CompareOp> opClz, Text constText) {
+    if (opClz.equals(Equal.class)) {
+      // 100 == x
+      return new Range(constText); // single row
+    } else if (opClz.equals(GreaterThanOrEqual.class)) {
+      // 100 >= x
+      return new Range(null, constText); // neg-infinity to end inclusive
+    } else if (opClz.equals(GreaterThan.class)) {
+      // 100 > x
+      return new Range(null, false, constText, false); // neg-infinity to end exclusive
+    } else if (opClz.equals(LessThanOrEqual.class)) {
+      // 100 <= x
+      return new Range(constText, true, null, false); // start inclusive to infinity
+    } else if (opClz.equals(LessThan.class)) {
+      // 100 < x
+      return new Range(constText, false, null, false); // start exclusive to infinity
+    } else {
+      throw new IllegalArgumentException("Could not process " + opClz);
+    }
+  }
+
+  protected Range getColumnOpConstantRange(Class<? extends CompareOp> opClz, Text constText) {
+    if (opClz.equals(Equal.class)) {
+      return new Range(constText); // start inclusive to end inclusive
+    } else if (opClz.equals(GreaterThanOrEqual.class)) {
+      return new Range(constText, null); // start inclusive to infinity inclusive
+    } else if (opClz.equals(GreaterThan.class)) {
+      return new Range(constText, false, null, false); // start exclusive to infinity inclusive
+    } else if (opClz.equals(LessThanOrEqual.class)) {
+      return new Range(null, false, constText, true); // neg-infinity to start inclusive
+    } else if (opClz.equals(LessThan.class)) {
+      return new Range(null, false, constText, false); // neg-infinity to start exclusive
+    } else {
+      throw new IllegalArgumentException("Could not process " + opClz);
     }
   }
 }

@@ -203,7 +203,7 @@ public class AccumuloPredicateHandler {
       return TOTAL_RANGE;
     }
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, hiveRowIdColumnName);
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, columnMapper, hiveRowIdColumnName);
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> roots = new ArrayList<Node>();

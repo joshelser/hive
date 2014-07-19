@@ -369,6 +369,7 @@ POSTHOOK: Input: default@accumulo_table_2
 114	val_114
 116	val_116
 118	val_118
+12  val_12
 PREHOOK: query: DROP TABLE empty_accumulo_table
 PREHOOK: type: DROPTABLE
 POSTHOOK: query: DROP TABLE empty_accumulo_table

@@ -16,11 +16,15 @@
  */
 package org.apache.hadoop.hive.accumulo.predicate;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
 import org.apache.accumulo.core.data.Range;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
+import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Equal;
 import org.apache.hadoop.hive.accumulo.predicate.compare.GreaterThan;
@@ -37,10 +41,20 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
+import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ConstantObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantBooleanObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantByteObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantDoubleObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantFloatObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantIntObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantLongObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.primitive.WritableConstantShortObjectInspector;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * 
@@ -49,21 +63,22 @@ public class AccumuloRangeGenerator implements NodeProcessor {
   private static final Logger log = LoggerFactory.getLogger(AccumuloRangeGenerator.class);
 
   private final AccumuloPredicateHandler predicateHandler;
+  @SuppressWarnings("unused")
+  private final ColumnMapper mapper;
+  private final HiveRowIdColumnMapping rowIdMapping;
   private final String hiveRowIdColumnName;
 
-  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, String hiveRowIdColumnName) {
+  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, ColumnMapper mapper, String hiveRowIdColumnName) {
     this.predicateHandler = predicateHandler;
+    this.mapper = mapper;
+    Preconditions.checkArgument(mapper.hasRowIdMapping(), "ColumnMapper doesn't have a rowID mapping");
+    this.rowIdMapping = mapper.getRowIdMapping();
     this.hiveRowIdColumnName = hiveRowIdColumnName;
   }
 
   @Override
   public Object process(Node nd, Stack<Node> stack, NodeProcessorCtx procCtx, Object... nodeOutputs)
       throws SemanticException {
-//    System.out.println("Node: " + nd);
-//    System.out.println("Stack: " + stack);
-//    System.out.println("nodeOutputs: " + Arrays.toString(nodeOutputs));
-//    System.out.println();
-
     // If it's not some operator, pass it back
     if (!(nd instanceof ExprNodeGenericFuncDesc)) {
       return nd;
@@ -73,165 +88,190 @@ public class AccumuloRangeGenerator implements NodeProcessor {
 
     // 'and' nodes need to be intersected
     if (FunctionRegistry.isOpAnd(func)) {
-      // We might have multiple ranges coming from children
-      List<Range> andRanges = new ArrayList<Range>();
+      return processAndOpNode(nd, nodeOutputs);
+    // 'or' nodes need to be merged
+    } else if (FunctionRegistry.isOpOr(func)) {
+      return processOrOpNode(nd, nodeOutputs);
+    } else if (FunctionRegistry.isOpNot(func)) {
+      // TODO handle negations
+      throw new IllegalArgumentException("Negations not yet implemented");
+    } else {
+      return processExpression(func, nodeOutputs);
+    }
+  }
 
-      for (Object nodeOutput : nodeOutputs) {
-        // null signifies nodes that are irrelevant to the generation
-        // of Accumulo Ranges
-        if (null == nodeOutput) {
-          continue;
+  protected Object processAndOpNode(Node nd, Object[] nodeOutputs) {
+    // We might have multiple ranges coming from children
+    List<Range> andRanges = new ArrayList<Range>();
+
+    for (Object nodeOutput : nodeOutputs) {
+      // null signifies nodes that are irrelevant to the generation
+      // of Accumulo Ranges
+      if (null == nodeOutput) {
+        continue;
+      }
+
+      // The child is a single Range
+      if (nodeOutput instanceof Range) {
+        Range childRange = (Range) nodeOutput;
+
+        // No existing ranges, just accept the current
+        if (andRanges.isEmpty()) {
+          andRanges.add(childRange);
+        } else {
+          // For each range we have, intersect them. If they don't overlap
+          // the range can be discarded
+          List<Range> newRanges = new ArrayList<Range>();
+          for (Range andRange : andRanges) {
+            Range intersectedRange = andRange.clip(childRange, true);
+            if (null != intersectedRange) {
+              newRanges.add(intersectedRange);
+            }
+          }
+
+          // Set the newly-constructed ranges as the current state
+          andRanges = newRanges;
         }
+      } else if (nodeOutput instanceof List) {
+        @SuppressWarnings("unchecked")
+        List<Range> childRanges = (List<Range>) nodeOutput;
 
-        // The child is a single Range
-        if (nodeOutput instanceof Range) {
-          Range childRange = (Range) nodeOutput;
+        // No ranges, use the ranges from the child
+        if (andRanges.isEmpty()) {
+          andRanges.addAll(childRanges);
+        } else {
+          List<Range> newRanges = new ArrayList<Range>();
 
-          // No existing ranges, just accept the current
-          if (andRanges.isEmpty()) {
-            andRanges.add(childRange);
-          } else {
-            // For each range we have, intersect them. If they don't overlap
-            // the range can be discarded
-            List<Range> newRanges = new ArrayList<Range>();
-            for (Range andRange : andRanges) {
+          // Cartesian product of our ranges, to the child ranges
+          for (Range andRange : andRanges) {
+            for (Range childRange : childRanges) {
               Range intersectedRange = andRange.clip(childRange, true);
+
+              // Retain only valid intersections (discard disjoint ranges)
               if (null != intersectedRange) {
                 newRanges.add(intersectedRange);
               }
             }
-
-            // Set the newly-constructed ranges as the current state
-            andRanges = newRanges;
           }
-        } else if (nodeOutput instanceof List) {
-          @SuppressWarnings("unchecked")
-          List<Range> childRanges = (List<Range>) nodeOutput;
 
-          // No ranges, use the ranges from the child
-          if (andRanges.isEmpty()) {
-            andRanges.addAll(childRanges);
-          } else {
-            List<Range> newRanges = new ArrayList<Range>();
-
-            // Cartesian product of our ranges, to the child ranges
-            for (Range andRange : andRanges) {
-              for (Range childRange : childRanges) {
-                Range intersectedRange = andRange.clip(childRange, true);
-
-                // Retain only valid intersections (discard disjoint ranges)
-                if (null != intersectedRange) {
-                  newRanges.add(intersectedRange);
-                }
-              }
-            }
-
-            // Set the newly-constructed ranges as the current state
-            andRanges = newRanges;
-          }
-        } else {
-          log.error("Expected Range from {} but got {}", nd, nodeOutput);
-          throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
+          // Set the newly-constructed ranges as the current state
+          andRanges = newRanges;
         }
-      }
-
-      return andRanges;
-    // 'or' nodes need to be merged
-    } else if (FunctionRegistry.isOpOr(func)) {
-      List<Range> orRanges = new ArrayList<Range>(nodeOutputs.length);
-      for (Object nodeOutput : nodeOutputs) {
-        if (nodeOutput instanceof Range) {
-          orRanges.add((Range) nodeOutput);
-        } else if (nodeOutput instanceof List) {
-          @SuppressWarnings("unchecked")
-          List<Range> childRanges = (List<Range>) nodeOutput;
-          orRanges.addAll(childRanges);
-        } else {
-          log.error("Expected Range from " + nd + " but got " + nodeOutput);
-          throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
-        }
-      }
-
-      // Try to merge multiple ranges together
-      if (orRanges.size() > 1) {
-        return Range.mergeOverlapping(orRanges);
-      } else if (1 == orRanges.size()){
-        // Return just the single Range
-        return orRanges.get(0);
       } else {
-        // No ranges, just return the empty list
-        return orRanges;
+        log.error("Expected Range from {} but got {}", nd, nodeOutput);
+        throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
       }
-    } else if (FunctionRegistry.isOpNot(func)) {
-      // TODO handle negations
-      throw new IllegalArgumentException("Not yet implemented");
+    }
+
+    return andRanges;
+  }
+
+  protected Object processOrOpNode(Node nd, Object[] nodeOutputs) {
+    List<Range> orRanges = new ArrayList<Range>(nodeOutputs.length);
+    for (Object nodeOutput : nodeOutputs) {
+      if (nodeOutput instanceof Range) {
+        orRanges.add((Range) nodeOutput);
+      } else if (nodeOutput instanceof List) {
+        @SuppressWarnings("unchecked")
+        List<Range> childRanges = (List<Range>) nodeOutput;
+        orRanges.addAll(childRanges);
+      } else {
+        log.error("Expected Range from " + nd + " but got " + nodeOutput);
+        throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
+      }
+    }
+
+    // Try to merge multiple ranges together
+    if (orRanges.size() > 1) {
+      return Range.mergeOverlapping(orRanges);
+    } else if (1 == orRanges.size()){
+      // Return just the single Range
+      return orRanges.get(0);
     } else {
-      // a binary operator (gt, lt, ge, le, eq, ne)
-      GenericUDF genericUdf = func.getGenericUDF();
+      // No ranges, just return the empty list
+      return orRanges;
+    }
+  }
 
-      // Find the argument to the operator which is a constant
-      ExprNodeConstantDesc constantDesc = null;
-      ExprNodeColumnDesc columnDesc = null;
-      ExprNodeDesc leftHandNode = null;
-      for (Object nodeOutput : nodeOutputs) {
-        if (nodeOutput instanceof ExprNodeConstantDesc) {
-          // Ordering of constant and column in expression is important in correct range generation
-          if (null == leftHandNode) {
-            leftHandNode = (ExprNodeDesc) nodeOutput;
-          }
+  protected Object processExpression(ExprNodeGenericFuncDesc func, Object[] nodeOutputs)
+      throws SemanticException {
+    // a binary operator (gt, lt, ge, le, eq, ne)
+    GenericUDF genericUdf = func.getGenericUDF();
 
-          constantDesc = (ExprNodeConstantDesc) nodeOutput;
-        } else if (nodeOutput instanceof ExprNodeColumnDesc) {
-          // Ordering of constant and column in expression is important in correct range generation
-          if (null == leftHandNode) {
-            leftHandNode = (ExprNodeDesc) nodeOutput;
-          }
-
-          columnDesc = (ExprNodeColumnDesc) nodeOutput;
+    // Find the argument to the operator which is a constant
+    ExprNodeConstantDesc constantDesc = null;
+    ExprNodeColumnDesc columnDesc = null;
+    ExprNodeDesc leftHandNode = null;
+    for (Object nodeOutput : nodeOutputs) {
+      if (nodeOutput instanceof ExprNodeConstantDesc) {
+        // Ordering of constant and column in expression is important in correct range generation
+        if (null == leftHandNode) {
+          leftHandNode = (ExprNodeDesc) nodeOutput;
         }
-      }
 
-      // TODO What if it's actually constant = constant or column = column
-      if (null == constantDesc || null == columnDesc) {
-        StringBuilder sb = new StringBuilder(32);
+        constantDesc = (ExprNodeConstantDesc) nodeOutput;
+      } else if (nodeOutput instanceof ExprNodeColumnDesc) {
+        // Ordering of constant and column in expression is important in correct range generation
+        if (null == leftHandNode) {
+          leftHandNode = (ExprNodeDesc) nodeOutput;
+        }
+
+        columnDesc = (ExprNodeColumnDesc) nodeOutput;
+      }
+    }
+
+    // TODO What if it's actually constant = constant or column = column
+    if (null == constantDesc || null == columnDesc) {
+      StringBuilder sb = new StringBuilder(32);
+      if (null == constantDesc) {
+        sb.append("no constant");
+      }
+      if (null == columnDesc) {
         if (null == constantDesc) {
-          sb.append("no constant");
+          sb.append(" and ");
         }
-        if (null == columnDesc) {
-          if (null == constantDesc) {
-            sb.append(" and ");
-          }
-          sb.append("no column");
+        sb.append("no column");
+      }
+
+      throw new IllegalArgumentException("Expected a column and a constant but found " + sb.toString());
+    }
+
+    // Reject any clauses that are against a column that isn't the rowId mapping
+    if (!this.hiveRowIdColumnName.equals(columnDesc.getColumn())) {
+      return null;
+    }
+
+    ConstantObjectInspector objInspector = constantDesc.getWritableObjectInspector();
+
+    Text constText;
+    switch (rowIdMapping.getEncoding()) {
+      case STRING:
+        constText = getUtf8Value(objInspector);
+        break;
+      case BINARY:
+        try {
+          constText = getBinaryValue(objInspector);
+        } catch (IOException e) {
+          throw new SemanticException(e);
         }
+        break;
+      default:
+        throw new SemanticException("Unable to parse unknown encoding: "+ rowIdMapping.getEncoding());
+    }
 
-        throw new IllegalArgumentException("Expected a column and a constant but found " + sb.toString());
-      }
+    Class<? extends CompareOp> opClz;
+    try {
+      opClz = predicateHandler.getCompareOpClass(genericUdf.getUdfName());
+    } catch (NoSuchCompareOpException e) {
+      throw new IllegalArgumentException("Unhandled UDF class: " + genericUdf.getUdfName());
+    }
 
-      // Reject any clauses that are against a column that isn't the rowId mapping
-      if (!this.hiveRowIdColumnName.equals(columnDesc.getColumn())) {
-        return null;
-      }
-
-      ConstantObjectInspector objInspector = constantDesc.getWritableObjectInspector();
-
-      // TODO is there a more correct way to get the literal value for the Object?
-      String constant = objInspector.getWritableConstantValue().toString();
-      Text constText = new Text(constant);
-
-      Class<? extends CompareOp> opClz;
-      try {
-        opClz = predicateHandler.getCompareOpClass(genericUdf.getUdfName());
-      } catch (NoSuchCompareOpException e) {
-        throw new IllegalArgumentException("Unhandled UDF class: " + genericUdf.getUdfName());
-      }
-
-      if (leftHandNode instanceof ExprNodeConstantDesc) {
-        return getConstantOpColumnRange(opClz, constText);
-      } else if (leftHandNode instanceof ExprNodeColumnDesc) {
-        return getColumnOpConstantRange(opClz, constText);
-      } else {
-        throw new IllegalStateException("Expected column or constant on LHS of expression");
-      }
+    if (leftHandNode instanceof ExprNodeConstantDesc) {
+      return getConstantOpColumnRange(opClz, constText);
+    } else if (leftHandNode instanceof ExprNodeColumnDesc) {
+      return getColumnOpConstantRange(opClz, constText);
+    } else {
+      throw new IllegalStateException("Expected column or constant on LHS of expression");
     }
   }
 
@@ -270,5 +310,47 @@ public class AccumuloRangeGenerator implements NodeProcessor {
     } else {
       throw new IllegalArgumentException("Could not process " + opClz);
     }
+  }
+
+  protected Text getUtf8Value(ConstantObjectInspector objInspector) {
+    // TODO is there a more correct way to get the literal value for the Object?
+    return new Text(objInspector.getWritableConstantValue().toString());
+  }
+
+  /**
+   * Attempts to construct the binary value from the given inspector. Falls back
+   * to UTF8 encoding when the value cannot be coerced into binary.
+   * @return Binary value when possible, utf8 otherwise
+   * @throws IOException 
+   */
+  protected Text getBinaryValue(ConstantObjectInspector objInspector) throws IOException {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    if (objInspector instanceof WritableConstantBooleanObjectInspector) {
+      LazyUtils.writePrimitive(out, objInspector.getWritableConstantValue(),
+          (WritableConstantBooleanObjectInspector) objInspector);
+    } else if (objInspector instanceof WritableConstantByteObjectInspector) {
+      LazyUtils.writePrimitive(out, objInspector.getWritableConstantValue(),
+          (WritableConstantByteObjectInspector) objInspector);
+    } else if (objInspector instanceof WritableConstantShortObjectInspector) {
+      LazyUtils.writePrimitive(out, objInspector.getWritableConstantValue(),
+          (WritableConstantShortObjectInspector) objInspector);
+    } else if (objInspector instanceof WritableConstantIntObjectInspector) {
+      LazyUtils.writePrimitive(out, objInspector.getWritableConstantValue(),
+          (WritableConstantIntObjectInspector) objInspector);
+    } else if (objInspector instanceof WritableConstantLongObjectInspector) {
+      LazyUtils.writePrimitive(out, objInspector.getWritableConstantValue(),
+          (WritableConstantLongObjectInspector) objInspector);
+    } else if (objInspector instanceof WritableConstantDoubleObjectInspector) {
+      LazyUtils.writePrimitive(out, objInspector.getWritableConstantValue(),
+          (WritableConstantDoubleObjectInspector) objInspector);
+    } else if (objInspector instanceof WritableConstantFloatObjectInspector) {
+      LazyUtils.writePrimitive(out, objInspector.getWritableConstantValue(),
+          (WritableConstantDoubleObjectInspector) objInspector);
+    } else {
+      return getUtf8Value(objInspector);
+    }
+
+    out.close();
+    return new Text(out.toByteArray());
   }
 }

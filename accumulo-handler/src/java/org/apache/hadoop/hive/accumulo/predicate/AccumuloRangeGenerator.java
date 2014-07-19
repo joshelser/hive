@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Stack;
 
 import org.apache.accumulo.core.data.Range;
-import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Equal;
@@ -54,8 +53,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
 /**
  * 
  */
@@ -63,16 +60,12 @@ public class AccumuloRangeGenerator implements NodeProcessor {
   private static final Logger log = LoggerFactory.getLogger(AccumuloRangeGenerator.class);
 
   private final AccumuloPredicateHandler predicateHandler;
-  @SuppressWarnings("unused")
-  private final ColumnMapper mapper;
   private final HiveRowIdColumnMapping rowIdMapping;
   private final String hiveRowIdColumnName;
 
-  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, ColumnMapper mapper, String hiveRowIdColumnName) {
+  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, HiveRowIdColumnMapping rowIdMapping, String hiveRowIdColumnName) {
     this.predicateHandler = predicateHandler;
-    this.mapper = mapper;
-    Preconditions.checkArgument(mapper.hasRowIdMapping(), "ColumnMapper doesn't have a rowID mapping");
-    this.rowIdMapping = mapper.getRowIdMapping();
+    this.rowIdMapping = rowIdMapping;
     this.hiveRowIdColumnName = hiveRowIdColumnName;
   }
 

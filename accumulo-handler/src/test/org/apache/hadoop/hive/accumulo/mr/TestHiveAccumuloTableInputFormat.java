@@ -24,7 +24,6 @@ import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ZooKeeperInstance;
-import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.mock.MockInstance;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
@@ -61,11 +60,14 @@ import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.mockito.Mockito;
+
+import com.google.common.collect.Sets;
 
 public class TestHiveAccumuloTableInputFormat {
   public static final String USER = "user";
@@ -587,6 +589,60 @@ public class TestHiveAccumuloTableInputFormat {
   }
 
   @Test
+  public void testConfigureAccumuloInputFormatWithEmptyColumns() throws Exception {
+    AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
+    ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+    HashSet<Pair<Text,Text>> cfCqPairs = Sets.newHashSet();
+    List<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
+    Set<Range> ranges = Collections.singleton(new Range());
+    String instanceName = "realInstance";
+    String zookeepers = "host1:2181,host2:2181,host3:2181";
+
+    IteratorSetting cfg = new IteratorSetting(50, PrimitiveComparisonFilter.class);
+    cfg.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, StringCompare.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.CONST_VAL, "dave");
+    cfg.addOption(PrimitiveComparisonFilter.COLUMN, "person:name");
+    iterators.add(cfg);
+
+    cfg = new IteratorSetting(50, PrimitiveComparisonFilter.class);
+    cfg.addOption(PrimitiveComparisonFilter.P_COMPARE_CLASS, IntCompare.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.COMPARE_OPT_CLASS, Equal.class.getName());
+    cfg.addOption(PrimitiveComparisonFilter.CONST_VAL, "50");
+    cfg.addOption(PrimitiveComparisonFilter.COLUMN, "person:age");
+    iterators.add(cfg);
+
+
+    ZooKeeperInstance zkInstance = Mockito.mock(ZooKeeperInstance.class);
+    HiveAccumuloTableInputFormat mockInputFormat = Mockito.mock(HiveAccumuloTableInputFormat.class);
+
+    // Stub out the ZKI mock
+    Mockito.when(zkInstance.getInstanceName()).thenReturn(instanceName);
+    Mockito.when(zkInstance.getZooKeepers()).thenReturn(zookeepers);
+    Mockito.when(mockInputFormat.getPairCollection(columnMapper.getColumnMappings())).thenReturn(cfCqPairs);
+
+    // Call out to the real configure method
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Also compute the correct cf:cq pairs so we can assert the right argument was passed
+    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+
+    // Verify that the correct methods are invoked on AccumuloInputFormat
+    Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
+    Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
+    Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).addIterators(conf, iterators);
+    Mockito.verify(mockInputFormat).setRanges(conf, ranges);
+
+    // fetchColumns is not called because we had no columns to fetch
+  }
+
+  @Test
   public void testGetProtectedField() throws Exception {
     FileInputFormat.addInputPath(conf, new Path("unused"));
 
@@ -636,5 +692,18 @@ public class TestHiveAccumuloTableInputFormat {
     assertArrayEquals(row.getValue(COLUMN_FAMILY, NAME), "frank".getBytes());
 
     assertFalse(reader.next(rowId, row));
+  }
+
+  @Test
+  public void testMapColumnPairs() {
+    ColumnMapper columnMapper = new ColumnMapper(":rowID,cf:*",
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+    Set<Pair<Text,Text>> pairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+
+    Assert.assertEquals(1, pairs.size());
+
+    Pair<Text,Text> cfCq = pairs.iterator().next();
+    Assert.assertEquals("cf", cfCq.getFirst().toString());
+    Assert.assertNull(cfCq.getSecond());
   }
 }

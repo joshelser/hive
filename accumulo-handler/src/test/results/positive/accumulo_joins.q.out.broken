@@ -19,7 +19,7 @@ PREHOOK: query: -- From HIVE-1257
 CREATE TABLE users(key string, state string, country string, country_id int)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowId,info:state,info:country,info:country_id"
+"accumulo.columns.mapping" = ":rowID,info:state,info:country,info:country_id"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
@@ -28,7 +28,7 @@ POSTHOOK: query: -- From HIVE-1257
 CREATE TABLE users(key string, state string, country string, country_id int)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowId,info:state,info:country,info:country_id"
+"accumulo.columns.mapping" = ":rowID,info:state,info:country,info:country_id"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -36,14 +36,14 @@ POSTHOOK: Output: default@users
 PREHOOK: query: CREATE TABLE states(key string, name string)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowId,state:name"
+"accumulo.columns.mapping" = ":rowID,state:name"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE states(key string, name string)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowId,state:name"
+"accumulo.columns.mapping" = ":rowID,state:name"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -51,14 +51,14 @@ POSTHOOK: Output: default@states
 PREHOOK: query: CREATE TABLE countries(key string, name string, country string, country_id int)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowId,info:name,info:country,info:country_id"
+"accumulo.columns.mapping" = ":rowID,info:name,info:country,info:country_id"
 )
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE countries(key string, name string, country string, country_id int)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
 WITH SERDEPROPERTIES (
-"accumulo.columns.mapping" = ":rowId,info:name,info:country,info:country_id"
+"accumulo.columns.mapping" = ":rowID,info:name,info:country,info:country_id"
 )
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
@@ -221,23 +221,23 @@ POSTHOOK: Input: default@countries
 POSTHOOK: Output: default@countries
 PREHOOK: query: CREATE TABLE users(key int, userid int, username string, created int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowId,f:userid,f:nickname,f:created")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,f:userid,f:nickname,f:created")
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE users(key int, userid int, username string, created int) 
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowId,f:userid,f:nickname,f:created")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,f:userid,f:nickname,f:created")
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@users
 PREHOOK: query: CREATE TABLE users_level(key int, userid int, level int)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowId,f:userid,f:level")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,f:userid,f:level")
 PREHOOK: type: CREATETABLE
 PREHOOK: Output: database:default
 POSTHOOK: query: CREATE TABLE users_level(key int, userid int, level int)
 STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
-WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowId,f:userid,f:level")
+WITH SERDEPROPERTIES ("accumulo.columns.mapping" = ":rowID,f:userid,f:level")
 POSTHOOK: type: CREATETABLE
 POSTHOOK: Output: database:default
 POSTHOOK: Output: default@users_level

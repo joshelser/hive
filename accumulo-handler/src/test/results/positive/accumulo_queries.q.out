@@ -266,10 +266,27 @@ STAGE PLANS:
     Map Reduce
       Map Operator Tree:
           TableScan
-            alias: accumulo_table_2
+            alias: accumulo_table_1
+            filterExpr: (100 < key) (type: boolean)
             Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
             Filter Operator
-              predicate: ((key < 120) and key is not null) (type: boolean)
+              predicate: key is not null (type: boolean)
+              Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+              Select Operator
+                expressions: key (type: int)
+                outputColumnNames: _col0
+                Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+                Reduce Output Operator
+                  key expressions: _col0 (type: int)
+                  sort order: +
+                  Map-reduce partition columns: _col0 (type: int)
+                  Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+          TableScan
+            alias: accumulo_table_2
+            filterExpr: (key < 120) (type: boolean)
+            Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
+            Filter Operator
+              predicate: key is not null (type: boolean)
               Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
               Select Operator
                 expressions: key (type: int), value (type: string)
@@ -281,21 +298,6 @@ STAGE PLANS:
                   Map-reduce partition columns: _col0 (type: int)
                   Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
                   value expressions: _col1 (type: string)
-          TableScan
-            alias: accumulo_table_1
-            Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
-            Filter Operator
-              predicate: ((100 < key) and key is not null) (type: boolean)
-              Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
-              Select Operator
-                expressions: key (type: int)
-                outputColumnNames: _col0
-                Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
-                Reduce Output Operator
-                  key expressions: _col0 (type: int)
-                  sort order: +
-                  Map-reduce partition columns: _col0 (type: int)
-                  Statistics: Num rows: 0 Data size: 0 Basic stats: NONE Column stats: NONE
       Reduce Operator Tree:
         Join Operator
           condition map:
@@ -365,11 +367,11 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@accumulo_table_1
 POSTHOOK: Input: default@accumulo_table_2
 #### A masked pattern was here ####
+12	val_12
 104	val_104
 114	val_114
 116	val_116
 118	val_118
-12  val_12
 PREHOOK: query: DROP TABLE empty_accumulo_table
 PREHOOK: type: DROPTABLE
 POSTHOOK: query: DROP TABLE empty_accumulo_table
@@ -410,13 +412,13 @@ POSTHOOK: Input: default@empty_normal_table
 0
 PREHOOK: query: select * from (select count(1) c from empty_normal_table union all select count(1) as c from accumulo_table_1) x order by c
 PREHOOK: type: QUERY
-PREHOOK: Input: default@empty_normal_table
 PREHOOK: Input: default@accumulo_table_1
+PREHOOK: Input: default@empty_normal_table
 #### A masked pattern was here ####
 POSTHOOK: query: select * from (select count(1) c from empty_normal_table union all select count(1) as c from accumulo_table_1) x order by c
 POSTHOOK: type: QUERY
-POSTHOOK: Input: default@empty_normal_table
 POSTHOOK: Input: default@accumulo_table_1
+POSTHOOK: Input: default@empty_normal_table
 #### A masked pattern was here ####
 0
 155

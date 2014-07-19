@@ -31,6 +31,7 @@ import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloMapColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
@@ -136,6 +137,8 @@ public class HiveAccumuloTableInputFormat implements
       HiveAccumuloSplit hiveSplit = (HiveAccumuloSplit) inputSplit;
       RangeInputSplit rangeSplit = hiveSplit.getSplit();
 
+      log.info("Split: " + rangeSplit);
+
       // The RangeInputSplit *should* have all of the necesary information contained in it
       // which alleviates us from re-parsing our configuration from the AccumuloStorageHandler
       // and re-setting it into the Configuration (like we did in getSplits(...)). Thus, it should
@@ -218,7 +221,10 @@ public class HiveAccumuloTableInputFormat implements
     }
 
     // Restrict the set of columns that we want to read from the Accumulo table
-    fetchColumns(conf, getPairCollection(columnMapper.getColumnMappings()));
+    HashSet<Pair<Text,Text>> pairs = getPairCollection(columnMapper.getColumnMappings());
+    if (null != pairs && !pairs.isEmpty()) {
+      fetchColumns(conf, pairs);
+    }
   }
 
   // Wrap the static AccumuloInputFormat methods with methods that we can
@@ -295,8 +301,16 @@ public class HiveAccumuloTableInputFormat implements
         }
 
         pairs.add(new Pair<Text,Text>(cf, cq));
+      } else if (columnMapping instanceof HiveAccumuloMapColumnMapping) {
+        HiveAccumuloMapColumnMapping mapMapping = (HiveAccumuloMapColumnMapping) columnMapping;
+
+        // Can't fetch prefix on colqual, must pull the entire qualifier
+        // TODO use an iterator to do the filter, server-side.
+        pairs.add(new Pair<Text,Text>(new Text(mapMapping.getColumnFamily()), null));
       }
     }
+
+    log.info("Computed columns to fetch (" + pairs + ") from " + columnMappings);
 
     return pairs;
   }

@@ -27,6 +27,9 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
+import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
 import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
 import org.apache.hadoop.hive.ql.lib.Dispatcher;
@@ -57,10 +60,12 @@ import com.google.common.collect.Lists;
 public class TestAccumuloRangeGenerator {
 
   private AccumuloPredicateHandler handler;
+  private HiveRowIdColumnMapping rowIdMapping;
 
   @Before
   public void setup() {
     handler = AccumuloPredicateHandler.getInstance();
+    rowIdMapping = new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING);
   }
 
   @Test
@@ -96,7 +101,7 @@ public class TestAccumuloRangeGenerator {
     // Should generate [f,m]
     List<Range> expectedRanges = Arrays.asList(new Range(new Key("f"), true, new Key("m\0"), false));
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
@@ -150,7 +155,7 @@ public class TestAccumuloRangeGenerator {
     // Should generate (-inf,+inf)
     List<Range> expectedRanges = Arrays.asList(new Range());
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
@@ -222,7 +227,7 @@ public class TestAccumuloRangeGenerator {
     // Should generate ['q', +inf)
     List<Range> expectedRanges = Arrays.asList(new Range(new Key("q"), true, null, false));
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
@@ -276,7 +281,7 @@ public class TestAccumuloRangeGenerator {
     // Should generate [f,+inf)
     List<Range> expectedRanges = Arrays.asList(new Range(new Key("f"), true, null, false));
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
@@ -330,7 +335,7 @@ public class TestAccumuloRangeGenerator {
     // Should generate [2014-01-01, 2014-07-01)
     List<Range> expectedRanges = Arrays.asList(new Range(new Key("2014-01-01"), true, new Key("2014-07-01"), false));
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, "rid");
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();

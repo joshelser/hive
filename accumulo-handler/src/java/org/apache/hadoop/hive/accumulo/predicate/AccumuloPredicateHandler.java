@@ -44,8 +44,6 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 import org.apache.hadoop.hive.ql.plan.TableScanDesc;
 import org.apache.hadoop.hive.ql.udf.UDFLike;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDF;
-import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqual;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
@@ -54,7 +52,6 @@ import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPNotEqual;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
-import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -203,7 +200,7 @@ public class AccumuloPredicateHandler {
       return TOTAL_RANGE;
     }
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, columnMapper, hiveRowIdColumnName);
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, columnMapper.getRowIdMapping(), hiveRowIdColumnName);
     Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> roots = new ArrayList<Node>();

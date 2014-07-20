@@ -35,6 +35,6 @@ public class HiveRowIdColumnMapping extends ColumnMapping {
 
   @Override
   public String toString() {
-    return "[RowIDMapping, " + this.mappingSpec + ", encoding " + encoding + "]";
+    return "[" + this.getClass().getSimpleName() + ", " + this.mappingSpec + ", encoding " + encoding + "]";
   }
 }

@@ -40,6 +40,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 
 /**
  * 
@@ -50,7 +51,11 @@ public class AccumuloRowSerializer {
   private final List<ColumnMapping> mappings;
   private final ColumnVisibility visibility;
 
-  public AccumuloRowSerializer(int primaryKeyOffset, List<ColumnMapping> mappings, ColumnVisibility visibility) {
+  public AccumuloRowSerializer(int primaryKeyOffset, List<ColumnMapping> mappings,
+      ColumnVisibility visibility) {
+    Preconditions.checkArgument(primaryKeyOffset >= 0,
+        "A valid offset to the mapping for the Accumulo RowID is required, received "
+            + primaryKeyOffset);
     this.rowIdOffset = primaryKeyOffset;
     this.output = new ByteStream.Output();
     this.mappings = mappings;
@@ -68,6 +73,13 @@ public class AccumuloRowSerializer {
     StructObjectInspector soi = (StructObjectInspector) objInspector;
     List<? extends StructField> fields = soi.getAllStructFieldRefs();
     List<Object> columnValues = soi.getStructFieldsDataAsList(obj);
+
+    // Fail if we try to access an offset out of bounds
+    if (rowIdOffset >= fields.size()) {
+      throw new IllegalStateException(
+          "Attempted to access field outside of definition for struct. Have " + fields.size()
+              + " fields and tried to access offset " + rowIdOffset);
+    }
 
     StructField field = fields.get(rowIdOffset);
     Object value = columnValues.get(rowIdOffset);

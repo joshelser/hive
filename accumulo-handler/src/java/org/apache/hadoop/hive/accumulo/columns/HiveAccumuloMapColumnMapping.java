@@ -16,13 +16,14 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
+import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 
 import com.google.common.base.Preconditions;
 
 /**
- * ColumnMapping for combining Accumulo columns into a single Hive Map. Expects
- * ColumnEncoding values for both the Key and Value of the Map.
+ * ColumnMapping for combining Accumulo columns into a single Hive Map. Expects ColumnEncoding
+ * values for both the Key and Value of the Map.
  */
 public class HiveAccumuloMapColumnMapping extends ColumnMapping {
 
@@ -39,8 +40,8 @@ public class HiveAccumuloMapColumnMapping extends ColumnMapping {
    * @param valueEncoding
    *          The encoding scheme for the Accumulo values
    */
-  public HiveAccumuloMapColumnMapping(String columnFamily,
-      String columnQualifierPrefix, ColumnEncoding keyEncoding, ColumnEncoding valueEncoding) {
+  public HiveAccumuloMapColumnMapping(String columnFamily, String columnQualifierPrefix,
+      ColumnEncoding keyEncoding, ColumnEncoding valueEncoding) {
     // Try to make something reasonable to pass up to the base class
     super((null == columnFamily ? "" : columnFamily) + AccumuloHiveConstants.COLON, valueEncoding);
 
@@ -66,5 +67,31 @@ public class HiveAccumuloMapColumnMapping extends ColumnMapping {
 
   public ColumnEncoding getValueEncoding() {
     return valueEncoding;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o instanceof HiveAccumuloMapColumnMapping) {
+      HiveAccumuloMapColumnMapping other = (HiveAccumuloMapColumnMapping) o;
+      return columnFamily.equals(other.columnFamily)
+          && columnQualifierPrefix.equals(other.columnQualifierPrefix)
+          && keyEncoding.equals(other.keyEncoding) && valueEncoding.equals(other.valueEncoding);
+    }
+
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    HashCodeBuilder hcb = new HashCodeBuilder(23, 31);
+    hcb.append(columnFamily).append(columnQualifierPrefix).append(keyEncoding)
+        .append(valueEncoding);
+    return hcb.toHashCode();
+  }
+
+  @Override
+  public String toString() {
+    return "[" + this.getClass().getSimpleName() + ": " + columnFamily + ":" + columnQualifierPrefix
+        + "* encoding: " + keyEncoding + ":" + valueEncoding + "]";
   }
 }

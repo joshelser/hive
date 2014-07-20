@@ -153,4 +153,13 @@ public class ColumnMapper {
     throw new IllegalArgumentException("Could not find offset for Hive column with name "
         + hiveColumnName);
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder(32);
+    sb.append("[").append(this.getClass().getSimpleName()).append(" ");
+    sb.append(columnMappings).append(", rowIdOffset: ").append(this.rowIdOffset).append(", defaultEncoding: ");
+    sb.append(this.defaultEncoding).append("]");
+    return sb.toString();
+  }
 }

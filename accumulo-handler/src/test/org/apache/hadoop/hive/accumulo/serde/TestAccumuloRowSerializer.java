@@ -271,4 +271,14 @@ public class TestAccumuloRowSerializer {
     Assert.assertEquals("cq3", new String(update.getColumnQualifier()));
     Assert.assertEquals("value", new String(update.getValue()));
   }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidRowIdOffset() {
+    ArrayList<ColumnMapping> mappings = new ArrayList<ColumnMapping>();
+    mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloMapColumnMapping("cf", "", ColumnEncoding.STRING,
+        ColumnEncoding.STRING));
+
+    new AccumuloRowSerializer(-1, mappings, new ColumnVisibility());
+  }
 }

@@ -33,6 +33,7 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 
@@ -40,6 +41,8 @@ import com.google.common.base.Preconditions;
  * 
  */
 public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
+  private static final Logger log = Logger.getLogger(AccumuloSerDeParameters.class);
+
   public static final String COLUMN_MAPPINGS = "accumulo.columns.mapping";
   public static final String ITERATOR_PUSHDOWN_KEY = "accumulo.iterator.pushdown";
   public static final boolean ITERATOR_PUSHDOWN_DEFAULT = true;
@@ -68,6 +71,8 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     String defaultStorage = tableProperties.getProperty(DEFAULT_STORAGE_TYPE);
 
     columnMapper = new ColumnMapper(getColumnMappingValue(), defaultStorage);
+
+    log.info("Constructed column mapping " + columnMapper);
 
     // Generate types for column mapping
     if (null == getColumnTypeValue()) {

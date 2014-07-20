@@ -47,7 +47,7 @@ public class ColumnMappingFactory {
       String columnEncodingStr = ColumnEncoding.getColumnEncoding(columnSpec);
       columnSpec = ColumnEncoding.stripCode(columnSpec);
 
-      if (AccumuloHiveConstants.ROWID.equals(columnSpec)) {
+      if (AccumuloHiveConstants.ROWID.equalsIgnoreCase(columnSpec)) {
         return new HiveRowIdColumnMapping(columnSpec, ColumnEncoding.get(columnEncodingStr));
       } else {
         Entry<String,String> pair = parseMapping(columnSpec);
@@ -69,7 +69,7 @@ public class ColumnMappingFactory {
         }
       }
     } else {
-      if (AccumuloHiveConstants.ROWID.equals(columnSpec)) {
+      if (AccumuloHiveConstants.ROWID.equalsIgnoreCase(columnSpec)) {
         return new HiveRowIdColumnMapping(columnSpec, defaultEncoding);
       } else {
         Entry<String,String> pair = parseMapping(columnSpec);

@@ -30,7 +30,7 @@ public class HiveRowIdColumnMapping extends ColumnMapping {
     super(columnSpec, encoding);
 
     // Ensure that we have the correct identifier as the column name
-    Preconditions.checkArgument(columnSpec.equals(AccumuloHiveConstants.ROWID));
+    Preconditions.checkArgument(columnSpec.equalsIgnoreCase(AccumuloHiveConstants.ROWID));
   }
 
   @Override

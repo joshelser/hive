@@ -148,4 +148,17 @@ public class TestColumnMappingFactory {
     Assert.assertEquals("foo", colMapping.getColumnQualifier());
     Assert.assertEquals(ColumnEncoding.STRING, colMapping.getEncoding());
   }
+
+  @Test
+  public void testCaseInsensitiveRowId() {
+    String mappingStr = ":rowid";
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault());
+
+    Assert.assertEquals(HiveRowIdColumnMapping.class, mapping.getClass());
+
+    mappingStr = ":rowid#b";
+    mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault());
+
+    Assert.assertEquals(HiveRowIdColumnMapping.class, mapping.getClass());
+  }
 }

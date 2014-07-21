@@ -33,6 +33,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
+import com.google.common.base.Charsets;
+
 /**
  * A Hive Map created from some collection of Key-Values from one to many column families
  * with one to many column qualifiers.
@@ -64,9 +66,10 @@ public class LazyAccumuloMap extends LazyMap {
 
     Text cf = new Text(columnMapping.getColumnFamily());
     for (ColumnTuple tuple : sourceRow.getTuples()) {
+      String cq = tuple.getCq().toString();
 
       if (!cf.equals(tuple.getCf()) ||
-          !tuple.getCq().toString().startsWith(columnMapping.getColumnQualifierPrefix())){
+          !cq.startsWith(columnMapping.getColumnQualifierPrefix())){
         // A column family or qualifier we don't want to include in the map
         continue;
       }
@@ -77,11 +80,10 @@ public class LazyAccumuloMap extends LazyMap {
               (PrimitiveObjectInspector) lazyMoi.getMapKeyObjectInspector(),
             ColumnEncoding.BINARY == columnMapping.getKeyEncoding());
 
-      ByteArrayRef keyRef = new ByteArrayRef();
-      keyRef.setData(tuple.getCq().getBytes());
-      key.init(keyRef, 0, keyRef.getData().length);
 
-      //TODO Strip the colqual prefix from the CQ before passing it into the LazyFactory
+      ByteArrayRef keyRef = new ByteArrayRef();
+      keyRef.setData(cq.getBytes(Charsets.UTF_8));
+      key.init(keyRef, 0, keyRef.getData().length);
 
       // Value can be anything, use the obj inspector and respect binary
       LazyObject<?> value =

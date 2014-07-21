@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
@@ -37,6 +38,8 @@ import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
 import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyObjectInspectorFactory;
@@ -100,6 +103,11 @@ public class TestAccumuloRowSerializer {
     mappings.add(new HiveAccumuloColumnMapping("cf", "cq2", ColumnEncoding.BINARY));
     mappings.add(new HiveAccumuloColumnMapping("cf", "cq3", ColumnEncoding.STRING));
 
+    Properties tableProperties = new Properties();
+    tableProperties.setProperty(serdeConstants.FIELD_DELIM, " ");
+    SerDeParameters serDeParams = LazySimpleSerDe.initSerdeParams(null, tableProperties,
+        AccumuloSerDe.class.getSimpleName());
+
     List<String> columns = Arrays.asList("row", "cq1", "cq2", "cq3");
     List<TypeInfo> types = Arrays.<TypeInfo> asList(
         TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
@@ -108,10 +116,11 @@ public class TestAccumuloRowSerializer {
         TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME));
 
     LazySimpleStructObjectInspector oi = (LazySimpleStructObjectInspector) LazyFactory
-        .createLazyStructInspector(columns, types, new byte[] {' '}, new Text("\\N"), false, false,
-            (byte) '\\');
+        .createLazyStructInspector(columns, types, serDeParams.getSeparators(),
+            serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
+            serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings,
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams, mappings,
         new ColumnVisibility());
 
     // Create the LazyStruct from the LazyStruct...Inspector
@@ -162,6 +171,11 @@ public class TestAccumuloRowSerializer {
     mappings.add(new HiveAccumuloColumnMapping("cf", "cq2", ColumnEncoding.BINARY));
     mappings.add(new HiveAccumuloColumnMapping("cf", "cq3", ColumnEncoding.STRING));
 
+    Properties tableProperties = new Properties();
+    tableProperties.setProperty(serdeConstants.FIELD_DELIM, " ");
+    SerDeParameters serDeParams = LazySimpleSerDe.initSerdeParams(null, tableProperties,
+        AccumuloSerDe.class.getSimpleName());
+
     List<String> columns = Arrays.asList("row", "cq1", "cq2", "cq3");
     List<TypeInfo> types = Arrays.<TypeInfo> asList(
         TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
@@ -170,11 +184,12 @@ public class TestAccumuloRowSerializer {
         TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME));
 
     LazySimpleStructObjectInspector oi = (LazySimpleStructObjectInspector) LazyFactory
-        .createLazyStructInspector(columns, types, new byte[] {' '}, new Text("\\N"), false, false,
-            (byte) '\\');
+        .createLazyStructInspector(columns, types, serDeParams.getSeparators(),
+            serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
+            serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings, new ColumnVisibility(
-        "foo"));
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams, mappings,
+        new ColumnVisibility("foo"));
 
     // Create the LazyStruct from the LazyStruct...Inspector
     LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(oi);
@@ -228,18 +243,28 @@ public class TestAccumuloRowSerializer {
 
     List<String> columns = Arrays.asList("row", "data");
 
+    Properties tableProperties = new Properties();
+    tableProperties.setProperty(serdeConstants.FIELD_DELIM, " ");
+    tableProperties.setProperty(serdeConstants.COLLECTION_DELIM, ",");
+    tableProperties.setProperty(serdeConstants.MAPKEY_DELIM, ":");
+    SerDeParameters serDeParams = LazySimpleSerDe.initSerdeParams(null, tableProperties,
+        AccumuloSerDe.class.getSimpleName());
+
     TypeInfo stringTypeInfo = TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME);
     LazyStringObjectInspector stringOI = (LazyStringObjectInspector) LazyFactory
-        .createLazyObjectInspector(stringTypeInfo, new byte[] {0}, 0, new Text("\\N"), false,
-            (byte) '\\');
+        .createLazyObjectInspector(stringTypeInfo, new byte[] {0}, 0, serDeParams.getNullSequence(),
+            serDeParams.isEscaped(), serDeParams.getEscapeChar());
+
     LazyMapObjectInspector mapOI = LazyObjectInspectorFactory.getLazySimpleMapObjectInspector(
-        stringOI, stringOI, (byte) ',', (byte) ':', new Text("\\N"), false, (byte) '\\');
+        stringOI, stringOI, (byte) ',', (byte) ':', serDeParams.getNullSequence(), serDeParams.isEscaped(),
+        serDeParams.getEscapeChar());
 
     LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) LazyObjectInspectorFactory
-        .getLazySimpleStructObjectInspector(columns,
-            Arrays.asList(stringOI, mapOI), (byte) ' ', new Text("\\N"), false, false, (byte) '\\');
+        .getLazySimpleStructObjectInspector(columns, Arrays.asList(stringOI, mapOI), (byte) ' ',
+            serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
+            serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, mappings,
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams, mappings,
         new ColumnVisibility());
 
     // Create the LazyStruct from the LazyStruct...Inspector
@@ -273,12 +298,15 @@ public class TestAccumuloRowSerializer {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testInvalidRowIdOffset() {
+  public void testInvalidRowIdOffset() throws SerDeException {
     ArrayList<ColumnMapping> mappings = new ArrayList<ColumnMapping>();
     mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
     mappings.add(new HiveAccumuloMapColumnMapping("cf", "", ColumnEncoding.STRING,
         ColumnEncoding.STRING));
 
-    new AccumuloRowSerializer(-1, mappings, new ColumnVisibility());
+    SerDeParameters serDeParams = LazySimpleSerDe.initSerdeParams(null, new Properties(),
+        AccumuloSerDe.class.getSimpleName());
+
+    new AccumuloRowSerializer(-1, serDeParams, mappings, new ColumnVisibility());
   }
 }

@@ -44,6 +44,7 @@ public class AccumuloSerDe implements SerDe {
     cachedRow = new LazyAccumuloRow((LazySimpleStructObjectInspector) cachedObjectInspector);
 
     serializer = new AccumuloRowSerializer(accumuloSerDeParameters.getRowIdOffset(),
+        accumuloSerDeParameters.getSerDeParameters(),
         accumuloSerDeParameters.getColumnMappings(),
         accumuloSerDeParameters.getTableVisibilityLabel());
 

@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloMapColumnMapping;
 import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
 import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
@@ -48,16 +49,18 @@ import com.google.common.base.Preconditions;
 public class AccumuloRowSerializer {
   private final int rowIdOffset;
   private final ByteStream.Output output;
+  private final SerDeParameters serDeParams;
   private final List<ColumnMapping> mappings;
   private final ColumnVisibility visibility;
 
-  public AccumuloRowSerializer(int primaryKeyOffset, List<ColumnMapping> mappings,
+  public AccumuloRowSerializer(int primaryKeyOffset, SerDeParameters serDeParams, List<ColumnMapping> mappings,
       ColumnVisibility visibility) {
     Preconditions.checkArgument(primaryKeyOffset >= 0,
         "A valid offset to the mapping for the Accumulo RowID is required, received "
             + primaryKeyOffset);
     this.rowIdOffset = primaryKeyOffset;
     this.output = new ByteStream.Output();
+    this.serDeParams = serDeParams;
     this.mappings = mappings;
     this.visibility = visibility;
   }
@@ -212,7 +215,6 @@ public class AccumuloRowSerializer {
 
     // Start by only serializing primitives as-is
     if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
-      // TODO Allow configuration of escaped characters
       writeSerializedPrimitive((PrimitiveObjectInspector) fieldObjectInspector, output, value, mapping.getEncoding());
     } else {
       // Or serializing complex types as json
@@ -247,7 +249,7 @@ public class AccumuloRowSerializer {
 
   protected void writeString(ByteStream.Output output, Object value,
       PrimitiveObjectInspector inspector) throws IOException {
-    LazyUtils.writePrimitiveUTF8(output, value, inspector, false, (byte) '\'', new boolean[128]);
+    LazyUtils.writePrimitiveUTF8(output, value, inspector, serDeParams.isEscaped(), serDeParams.getEscapeChar(), serDeParams.getNeedsEscape());
   }
 
   protected ColumnVisibility getVisibility() {

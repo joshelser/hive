@@ -136,10 +136,20 @@ public class TestColumnMapper {
     Assert.assertEquals(5, mappings.size());
 
     Assert.assertEquals(ColumnEncoding.BINARY, mappings.get(0).getEncoding());
+    Assert.assertEquals(columnTypes.get(0), mappings.get(0).getColumnType());
+
     Assert.assertEquals(ColumnEncoding.BINARY, mappings.get(1).getEncoding());
+    Assert.assertEquals(columnTypes.get(1), mappings.get(1).getColumnType());
+
     Assert.assertEquals(ColumnEncoding.STRING, mappings.get(2).getEncoding());
+    Assert.assertEquals(columnTypes.get(2), mappings.get(2).getColumnType());
+
     Assert.assertEquals(ColumnEncoding.STRING, mappings.get(3).getEncoding());
+    Assert.assertEquals(columnTypes.get(3), mappings.get(3).getColumnType());
+
     Assert.assertEquals(ColumnEncoding.BINARY, mappings.get(4).getEncoding());
+    Assert.assertEquals(columnTypes.get(4), mappings.get(4).getColumnType());
+
   }
 
   @Test
@@ -164,16 +174,30 @@ public class TestColumnMapper {
     Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mappings.get(2).getClass());
     Assert.assertEquals(HiveAccumuloColumnMapping.class, mappings.get(3).getClass());
 
+    HiveAccumuloRowIdColumnMapping row = (HiveAccumuloRowIdColumnMapping) mappings.get(0);
+    Assert.assertEquals(ColumnEncoding.BINARY, row.getEncoding());
+    Assert.assertEquals(hiveColumns.get(0), row.getColumnName());
+    Assert.assertEquals(columnTypes.get(0), row.getColumnType());
+
     HiveAccumuloMapColumnMapping map = (HiveAccumuloMapColumnMapping) mappings.get(1);
     Assert.assertEquals("cf1", map.getColumnFamily());
     Assert.assertEquals("", map.getColumnQualifierPrefix());
+    Assert.assertEquals(ColumnEncoding.BINARY, map.getEncoding());
+    Assert.assertEquals(hiveColumns.get(1), map.getColumnName());
+    Assert.assertEquals(columnTypes.get(1), map.getColumnType());
 
     map = (HiveAccumuloMapColumnMapping) mappings.get(2);
     Assert.assertEquals("cf2", map.getColumnFamily());
     Assert.assertEquals("2", map.getColumnQualifierPrefix());
+    Assert.assertEquals(ColumnEncoding.BINARY, map.getEncoding());
+    Assert.assertEquals(hiveColumns.get(2), map.getColumnName());
+    Assert.assertEquals(columnTypes.get(2), map.getColumnType());
 
     HiveAccumuloColumnMapping column = (HiveAccumuloColumnMapping) mappings.get(3);
     Assert.assertEquals("cq3", column.getColumnFamily());
     Assert.assertEquals("bar*", column.getColumnQualifier());
+    Assert.assertEquals(ColumnEncoding.BINARY, column.getEncoding());
+    Assert.assertEquals(hiveColumns.get(3), column.getColumnName());
+    Assert.assertEquals(columnTypes.get(3), column.getColumnType());
   }
 }

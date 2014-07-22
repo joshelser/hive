@@ -16,6 +16,7 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.junit.Test;
 
 /**
@@ -25,7 +26,7 @@ public class TestHiveRowIdColumnMapping {
 
   @Test(expected = IllegalArgumentException.class)
   public void testNonRowIdMappingFails() {
-    new HiveRowIdColumnMapping("foo", ColumnEncoding.STRING);
+    new HiveAccumuloRowIdColumnMapping("foo", ColumnEncoding.STRING, "col", TypeInfoFactory.stringTypeInfo);
   }
 
 }

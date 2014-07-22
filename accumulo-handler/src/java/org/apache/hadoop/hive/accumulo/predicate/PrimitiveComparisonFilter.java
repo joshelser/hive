@@ -19,6 +19,7 @@ import org.apache.hadoop.hive.accumulo.columns.ColumnMappingFactory;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.PrimitiveComparison;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
@@ -33,6 +34,7 @@ import com.google.common.collect.Lists;
  * 
  */
 public class PrimitiveComparisonFilter extends WholeRowIterator {
+  @SuppressWarnings("unused")
   private static final Logger log = Logger.getLogger(PrimitiveComparisonFilter.class);
 
   public static final String FILTER_PREFIX = "accumulo.filter.compare.iterator.";
@@ -87,8 +89,9 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
     String serializedColumnMapping = options.get(COLUMN);
     Entry<String,String> pair = ColumnMappingFactory.parseMapping(serializedColumnMapping);
 
-    // The ColumnEncoding is irrelevant at this point, just need the cf:[cq]
-    columnMapping = new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(), ColumnEncoding.STRING);
+    // The ColumnEncoding, column name and type are all irrelevant at this point, just need the cf:[cq]
+    columnMapping = new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(),
+        ColumnEncoding.STRING, "column", TypeInfoFactory.stringTypeInfo);
     columnMappingFamily = new Text(columnMapping.getColumnFamily());
     columnMappingQualifier = new Text(columnMapping.getColumnQualifier());
     cfHolder = new Text();

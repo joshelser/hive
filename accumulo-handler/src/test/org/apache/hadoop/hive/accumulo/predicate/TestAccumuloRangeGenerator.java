@@ -29,7 +29,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
-import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
 import org.apache.hadoop.hive.ql.lib.DefaultGraphWalker;
 import org.apache.hadoop.hive.ql.lib.DefaultRuleDispatcher;
 import org.apache.hadoop.hive.ql.lib.Dispatcher;
@@ -60,12 +60,13 @@ import com.google.common.collect.Lists;
 public class TestAccumuloRangeGenerator {
 
   private AccumuloPredicateHandler handler;
-  private HiveRowIdColumnMapping rowIdMapping;
+  private HiveAccumuloRowIdColumnMapping rowIdMapping;
 
   @Before
   public void setup() {
     handler = AccumuloPredicateHandler.getInstance();
-    rowIdMapping = new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING);
+    rowIdMapping = new HiveAccumuloRowIdColumnMapping(AccumuloHiveConstants.ROWID,
+        ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo);
   }
 
   @Test

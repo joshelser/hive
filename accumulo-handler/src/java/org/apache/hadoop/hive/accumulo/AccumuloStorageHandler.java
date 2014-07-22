@@ -30,6 +30,7 @@ import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.mapred.InputFormat;
@@ -138,6 +139,9 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
   @Override
   public void configureInputJobProperties(TableDesc tableDesc, Map<String,String> jobProperties) {
     Properties props = tableDesc.getProperties();
+
+//    jobProperties.put(serdeConstants.LIST_COLUMNS, props.getProperty(serdeConstants.LIST_COLUMNS));
+//    jobProperties.put(serdeConstants.LIST_TYPE_NAME, props.getProperty(serdeConstants.LIST_TYPE_NAME));
 
     jobProperties.put(AccumuloSerDeParameters.COLUMN_MAPPINGS,
         props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS));

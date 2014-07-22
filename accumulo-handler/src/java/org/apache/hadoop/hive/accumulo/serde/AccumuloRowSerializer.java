@@ -52,9 +52,10 @@ public class AccumuloRowSerializer {
   private final SerDeParameters serDeParams;
   private final List<ColumnMapping> mappings;
   private final ColumnVisibility visibility;
+  private final AccumuloRowIdFactory rowIdFactory;
 
   public AccumuloRowSerializer(int primaryKeyOffset, SerDeParameters serDeParams, List<ColumnMapping> mappings,
-      ColumnVisibility visibility) {
+      ColumnVisibility visibility, AccumuloRowIdFactory rowIdFactory) {
     Preconditions.checkArgument(primaryKeyOffset >= 0,
         "A valid offset to the mapping for the Accumulo RowID is required, received "
             + primaryKeyOffset);
@@ -63,6 +64,7 @@ public class AccumuloRowSerializer {
     this.serDeParams = serDeParams;
     this.mappings = mappings;
     this.visibility = visibility;
+    this.rowIdFactory = rowIdFactory;
   }
 
   public Mutation serialize(Object obj, ObjectInspector objInspector) throws SerDeException,
@@ -92,7 +94,8 @@ public class AccumuloRowSerializer {
     ObjectInspector fieldObjectInspector = field.getFieldObjectInspector();
 
     // Serialize the row component
-    byte[] data = getSerializedValue(objInspector, fieldObjectInspector, value, output, rowMapping);
+    byte[] data = rowIdFactory.serializeKey(value, objInspector, field, output);
+    // byte[] data = getSerializedValue(objInspector, fieldObjectInspector, value, output, rowMapping);
 
     // Set that as the row id in the mutation
     Mutation mutation = new Mutation(data);
@@ -189,6 +192,25 @@ public class AccumuloRowSerializer {
       mutation.put(cfBytes, cqBytes, visibility, valueBytes);
     }
   }
+
+//  protected byte[] serializeRowId(Object rowId, StructField keyField, ColumnMapping keyMapping)
+//      throws IOException {
+//    if (rowId == null) {
+//      throw new IOException("Accumulo rowId cannot be NULL");
+//    }
+//    ObjectInspector keyFieldOI = keyField.getFieldObjectInspector();
+//
+//    if (!keyFieldOI.getCategory().equals(ObjectInspector.Category.PRIMITIVE) &&
+//        keyMapping.isCategory(ObjectInspector.Category.PRIMITIVE)) {
+//      // we always serialize the String type using the escaped algorithm for LazyString
+//      return serialize(SerDeUtils.getJSONString(keyValue, keyFieldOI),
+//          PrimitiveObjectInspectorFactory.javaStringObjectInspector, 1, false);
+//    }
+//    // use the serialization option switch to write primitive values as either a variable
+//    // length UTF8 string or a fixed width bytes if serializing in binary format
+//    boolean writeBinary = keyMapping.binaryStorage.get(0);
+//    return serialize(keyValue, keyFieldOI, 1, writeBinary);
+//  }
 
   /**
    * Compute the serialized value from the given element and object inspectors. Based on the Hive

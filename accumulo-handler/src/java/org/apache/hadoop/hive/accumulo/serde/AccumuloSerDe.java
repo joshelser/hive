@@ -46,7 +46,8 @@ public class AccumuloSerDe implements SerDe {
     serializer = new AccumuloRowSerializer(accumuloSerDeParameters.getRowIdOffset(),
         accumuloSerDeParameters.getSerDeParameters(),
         accumuloSerDeParameters.getColumnMappings(),
-        accumuloSerDeParameters.getTableVisibilityLabel());
+        accumuloSerDeParameters.getTableVisibilityLabel(),
+        accumuloSerDeParameters.getRowIdFactory());
 
     if (log.isInfoEnabled()) {
       log.info("Initialized with {} type: {}", accumuloSerDeParameters.getSerDeParameters()

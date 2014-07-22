@@ -16,6 +16,8 @@
  */
 package org.apache.hadoop.hive.accumulo.columns;
 
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+
 import com.google.common.base.Preconditions;
 
 /**
@@ -29,13 +31,21 @@ public abstract class ColumnMapping {
   // The manner in which the values in this column are de/serialized from/to Accumulo
   protected final ColumnEncoding encoding;
 
-  protected ColumnMapping(String mappingSpec, ColumnEncoding encoding) {
+  // The name of the Hive column
+  protected final String columnName;
+
+  // The type of the Hive column
+  protected final TypeInfo columnType;
+
+  protected ColumnMapping(String mappingSpec, ColumnEncoding encoding, String columnName,
+      TypeInfo columnType) {
     Preconditions.checkNotNull(mappingSpec);
     Preconditions.checkNotNull(encoding);
 
     this.mappingSpec = mappingSpec;
     this.encoding = encoding;
-    
+    this.columnName = columnName;
+    this.columnType = columnType;
   }
 
   /**
@@ -52,4 +62,17 @@ public abstract class ColumnMapping {
     return encoding;
   }
 
+  /**
+   * The name of the Hive column this is mapping
+   */
+  public String getColumnName() {
+    return columnName;
+  }
+
+  /**
+   * The @{link TypeInfo} of the Hive column this is mapping
+   */
+  public TypeInfo getColumnType() {
+    return columnType;
+  }
 }

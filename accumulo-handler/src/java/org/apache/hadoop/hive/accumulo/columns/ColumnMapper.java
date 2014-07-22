@@ -21,7 +21,9 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.accumulo.serde.TooManyAccumuloColumnsException;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -35,7 +37,7 @@ public class ColumnMapper {
 
   private List<ColumnMapping> columnMappings;
   private int rowIdOffset;
-  private HiveRowIdColumnMapping rowIdMapping = null;
+  private HiveAccumuloRowIdColumnMapping rowIdMapping = null;
   private final ColumnEncoding defaultEncoding;
 
   /**
@@ -46,8 +48,10 @@ public class ColumnMapper {
    * @param serializedColumnMappings
    *          Comma-separated list of designators that map to Accumulo columns whose offsets
    *          correspond to the Hive table schema
+   * @throws TooManyAccumuloColumnsException 
    */
-  public ColumnMapper(String serializedColumnMappings, String defaultStorageType) {
+  public ColumnMapper(String serializedColumnMappings, String defaultStorageType,
+      List<String> columnNames, List<TypeInfo> columnTypes) throws TooManyAccumuloColumnsException {
     Preconditions.checkNotNull(serializedColumnMappings);
 
     String[] parsedColumnMappingValue = StringUtils.split(serializedColumnMappings,
@@ -63,13 +67,22 @@ public class ColumnMapper {
       defaultEncoding = ColumnEncoding.get(defaultStorageType.toLowerCase());
     }
 
+    if (parsedColumnMappingValue.length > columnNames.size()) {
+      throw new TooManyAccumuloColumnsException("Found " + parsedColumnMappingValue.length + " columns, but only know of " + columnNames.size() + " Hive column names");
+    }
+
+    if (parsedColumnMappingValue.length > columnTypes.size()) {
+      throw new TooManyAccumuloColumnsException("Found " + parsedColumnMappingValue.length + " columns, but only know of " + columnNames.size() + " Hive column types");
+    }
+
     for (int i = 0; i < parsedColumnMappingValue.length; i++) {
       String columnMappingStr = parsedColumnMappingValue[i];
 
       // Create the mapping for this column, with configured encoding
-      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr, defaultEncoding);
+      ColumnMapping columnMapping = ColumnMappingFactory.get(columnMappingStr, defaultEncoding,
+          columnNames.get(i), columnTypes.get(i));
 
-      if (columnMapping instanceof HiveRowIdColumnMapping) {
+      if (columnMapping instanceof HiveAccumuloRowIdColumnMapping) {
         if (-1 != rowIdOffset) {
           throw new IllegalArgumentException(
               "Column mapping should only have one definition with a value of "
@@ -77,7 +90,7 @@ public class ColumnMapper {
         }
 
         rowIdOffset = i;
-        rowIdMapping = (HiveRowIdColumnMapping) columnMapping;
+        rowIdMapping = (HiveAccumuloRowIdColumnMapping) columnMapping;
       }
 
       columnMappings.add(columnMapping);
@@ -100,7 +113,7 @@ public class ColumnMapper {
     return null != rowIdMapping;
   }
 
-  public HiveRowIdColumnMapping getRowIdMapping() {
+  public HiveAccumuloRowIdColumnMapping getRowIdMapping() {
     return rowIdMapping;
   }
 
@@ -115,7 +128,7 @@ public class ColumnMapper {
         sb.append(AccumuloHiveConstants.COLON);
       }
 
-      if (columnMapping instanceof HiveRowIdColumnMapping) {
+      if (columnMapping instanceof HiveAccumuloRowIdColumnMapping) {
         // the rowID column is a string
         sb.append(serdeConstants.STRING_TYPE_NAME);
       } else if (columnMapping instanceof HiveAccumuloColumnMapping) {

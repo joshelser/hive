@@ -8,7 +8,7 @@ import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloMapColumnMapping;
-import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
@@ -76,7 +76,7 @@ public class LazyAccumuloRow extends LazyStruct {
         LazyAccumuloMap map = (LazyAccumuloMap) getFields()[id];
         map.init(row, mapColumnMapping);
       } else {
-        if (columnMapping instanceof HiveRowIdColumnMapping) {
+        if (columnMapping instanceof HiveAccumuloRowIdColumnMapping) {
           // Use the rowID directly
           ref = new ByteArrayRef();
           ref.setData(row.getRowId().getBytes());

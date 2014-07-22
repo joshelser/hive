@@ -229,12 +229,6 @@ public class AccumuloPredicateHandler {
     } else {
       throw new IllegalArgumentException("Unhandled return from Range generation: " + result);
     }
-//    return buildRanges(expr, hiveRowIdColumnName);
-//    for (IndexSearchCondition sc : getSearchConditions(conf)) {
-//      if (hiveRowIdColumnName.equals(sc.getColumnDesc().getColumn()))
-//        ranges.add(toRange(sc));
-//    }
-//    return ranges;
   }
 
   /**

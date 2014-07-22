@@ -17,11 +17,15 @@
 package org.apache.hadoop.hive.accumulo.columns;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.accumulo.serde.TooManyAccumuloColumnsException;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.util.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -34,9 +38,16 @@ import com.google.common.base.Joiner;
 public class TestColumnMapper {
 
   @Test
-  public void testNormalMapping() {
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_", "cf:qual");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
+  public void testNormalMapping() throws TooManyAccumuloColumnsException {
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_",
+        "cf:qual");
+    List<String> columnNames = Arrays.asList("row", "col1", "col2", "col3");
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo);
+    ColumnMapper mapper = new ColumnMapper(
+        Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.STRING.getName(),
+        columnNames, columnTypes);
 
     List<ColumnMapping> mappings = mapper.getColumnMappings();
 
@@ -55,7 +66,7 @@ public class TestColumnMapper {
 
       // Ensure that we get the right concrete ColumnMapping
       if (AccumuloHiveConstants.ROWID.equals(rawMapping)) {
-        Assert.assertEquals(HiveRowIdColumnMapping.class, mapping.getClass());
+        Assert.assertEquals(HiveAccumuloRowIdColumnMapping.class, mapping.getClass());
       } else {
         Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
       }
@@ -66,15 +77,21 @@ public class TestColumnMapper {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void testMultipleRowIDsFails() {
-    new ColumnMapper(AccumuloHiveConstants.ROWID + AccumuloHiveConstants.COMMA + AccumuloHiveConstants.ROWID, null);
+  public void testMultipleRowIDsFails() throws TooManyAccumuloColumnsException {
+    new ColumnMapper(AccumuloHiveConstants.ROWID + AccumuloHiveConstants.COMMA
+        + AccumuloHiveConstants.ROWID, null, Arrays.asList("row", "row2"), Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo));
   }
 
   @Test
-  public void testGetMappingFromHiveColumn() {
+  public void testGetMappingFromHiveColumn() throws TooManyAccumuloColumnsException {
     List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3");
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_", "cf:qual");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo);
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_",
+        "cf:qual");
+    ColumnMapper mapper = new ColumnMapper(
+        Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null, hiveColumns, columnTypes);
 
     for (int i = 0; i < hiveColumns.size(); i++) {
       String hiveColumn = hiveColumns.get(i), accumuloMapping = rawMappings.get(i);
@@ -85,9 +102,15 @@ public class TestColumnMapper {
   }
 
   @Test
-  public void testGetTypesString() {
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_", "cf:qual");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null);
+  public void testGetTypesString() throws TooManyAccumuloColumnsException {
+    List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3");
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_",
+        "cf:qual");
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo);
+    ColumnMapper mapper = new ColumnMapper(
+        Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), null, hiveColumns, columnTypes);
 
     String typeString = mapper.getTypesString();
     String[] types = StringUtils.split(typeString, AccumuloHiveConstants.COLON);
@@ -98,9 +121,16 @@ public class TestColumnMapper {
   }
 
   @Test
-  public void testDefaultBinary() {
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_#s", "cf:qual#s", "cf:qual2");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName());
+  public void testDefaultBinary() throws TooManyAccumuloColumnsException {
+    List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3", "col4");
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf:cq", "cf:_#s",
+        "cf:qual#s", "cf:qual2");
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo);
+    ColumnMapper mapper = new ColumnMapper(
+        Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName(),
+        hiveColumns, columnTypes);
 
     List<ColumnMapping> mappings = mapper.getColumnMappings();
     Assert.assertEquals(5, mappings.size());
@@ -113,14 +143,21 @@ public class TestColumnMapper {
   }
 
   @Test
-  public void testMap() {
-    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf1:*", "cf2:2*", "cq3:bar\\*");
-    ColumnMapper mapper = new ColumnMapper(Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName());
+  public void testMap() throws TooManyAccumuloColumnsException {
+    List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3");
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.getMapTypeInfo(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo),
+        TypeInfoFactory.getMapTypeInfo(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo),
+        TypeInfoFactory.stringTypeInfo);
+    List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf1:*", "cf2:2*",
+        "cq3:bar\\*");
+    ColumnMapper mapper = new ColumnMapper(
+        Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName(), hiveColumns, columnTypes);
 
     List<ColumnMapping> mappings = mapper.getColumnMappings();
     Assert.assertEquals(4, mappings.size());
 
-    Assert.assertEquals(HiveRowIdColumnMapping.class, mappings.get(0).getClass());
+    Assert.assertEquals(HiveAccumuloRowIdColumnMapping.class, mappings.get(0).getClass());
     Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mappings.get(1).getClass());
     Assert.assertEquals(HiveAccumuloMapColumnMapping.class, mappings.get(2).getClass());
     Assert.assertEquals(HiveAccumuloColumnMapping.class, mappings.get(3).getClass());

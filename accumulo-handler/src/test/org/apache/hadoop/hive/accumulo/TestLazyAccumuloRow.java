@@ -64,7 +64,7 @@ public class TestLazyAccumuloRow {
     hiveRow.add("personal", "height", "72".getBytes());
 
     List<String> fetchedCols = Arrays.asList("personal:given_name", "personal:surname", "personal:age", "personal:weight", "personal:height");
-    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.STRING.getName());
+    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.STRING.getName(), columns, types);
 
     lazyRow.init(hiveRow, columnMapper.getColumnMappings());
 
@@ -119,7 +119,7 @@ public class TestLazyAccumuloRow {
     hiveRow.add("personal", "height", baos.toByteArray());
 
     List<String> fetchedCols = Arrays.asList("personal:given_name#s", "personal:surname#s", "personal:age", "personal:weight", "personal:height");
-    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.BINARY.getName());
+    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.BINARY.getName(), columns, types);
 
     lazyRow.init(hiveRow, columnMapper.getColumnMappings());
 
@@ -159,7 +159,7 @@ public class TestLazyAccumuloRow {
         LazySimpleSerDe.DefaultSeparators, new Text("\\N"), false, false, (byte) '\\');
 
     List<String> fetchedCols = Arrays.asList("cf:cq1", "cf:cq2", "cf:cq3");
-    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.STRING.getName());
+    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.STRING.getName(), columns, types);
 
     LazyAccumuloRow lazyRow = new LazyAccumuloRow(objectInspector);
     AccumuloHiveRow hiveRow = new AccumuloHiveRow("1");

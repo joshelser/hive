@@ -139,9 +139,9 @@ public class TestHiveAccumuloTypes {
         + ",cf:string,cf:boolean,cf:tinyint,cf:smallint,cf:int,cf:bigint"
         + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp,cf:char,cf:varchar");
     conf.set(serdeConstants.LIST_COLUMNS,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
     conf.set(serdeConstants.LIST_COLUMN_TYPES,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
     conf.set(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, "binary");
 
     conn.tableOperations().create(tableName);
@@ -488,9 +488,9 @@ public class TestHiveAccumuloTypes {
         + ",cf:string,cf:boolean,cf:tinyint,cf:smallint,cf:int,cf:bigint"
         + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp,cf:char,cf:varchar");
     conf.set(serdeConstants.LIST_COLUMNS,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
     conf.set(serdeConstants.LIST_COLUMN_TYPES,
-        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char,varchar");
+        "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
 
     conn.tableOperations().create(tableName);
     BatchWriterConfig writerConf = new BatchWriterConfig();

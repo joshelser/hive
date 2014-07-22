@@ -1,6 +1,8 @@
 package org.apache.hadoop.hive.accumulo.mr;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +27,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
@@ -34,8 +37,12 @@ import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloMapColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
+import org.apache.hadoop.hive.accumulo.serde.TooManyAccumuloColumnsException;
+import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.ColumnProjectionUtils;
 import org.apache.hadoop.hive.serde2.SerDeException;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.InputSplit;
@@ -66,10 +73,13 @@ public class HiveAccumuloTableInputFormat implements
   @Override
   public InputSplit[] getSplits(JobConf jobConf, int numSplits) throws IOException {
     final AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(jobConf);
-    final String defaultStorageType = jobConf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE);
     final Instance instance = accumuloParams.getInstance();
-    final ColumnMapper columnMapper = new ColumnMapper(
-        jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS), defaultStorageType);
+    final ColumnMapper columnMapper;
+    try {
+      columnMapper = getColumnMapper(jobConf);
+    } catch (TooManyAccumuloColumnsException e) {
+      throw new IOException(e);
+    }
 
     JobContext context = ShimLoader.getHadoopShims().newJobContext(Job.getInstance(jobConf));
     Path[] tablePaths = FileInputFormat.getInputPaths(context);
@@ -127,9 +137,12 @@ public class HiveAccumuloTableInputFormat implements
   @Override
   public RecordReader<Text,AccumuloHiveRow> getRecordReader(InputSplit inputSplit,
       final JobConf jobConf, final Reporter reporter) throws IOException {
-    final String defaultStorageType = jobConf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE);
-    final ColumnMapper columnMapper = new ColumnMapper(
-        jobConf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS), defaultStorageType);
+    final ColumnMapper columnMapper;
+    try {
+      columnMapper = getColumnMapper(jobConf);
+    } catch (TooManyAccumuloColumnsException e) {
+      throw new IOException(e);
+    }
 
     try {
       final List<IteratorSetting> iterators = predicateHandler.getIterators(jobConf, columnMapper);
@@ -147,7 +160,8 @@ public class HiveAccumuloTableInputFormat implements
       // ACCUMULO-2962 Iterators weren't getting serialized into the InputSplit, but we can
       // compensate because we still have that info.
       // Should be fixed in Accumulo 1.5.2 and 1.6.1
-      if (null == rangeSplit.getIterators() || (rangeSplit.getIterators().isEmpty() && !iterators.isEmpty())) {
+      if (null == rangeSplit.getIterators()
+          || (rangeSplit.getIterators().isEmpty() && !iterators.isEmpty())) {
         log.debug("Re-setting iterators on InputSplit due to Accumulo bug.");
         rangeSplit.setIterators(iterators);
       }
@@ -158,6 +172,27 @@ public class HiveAccumuloTableInputFormat implements
     } catch (SerDeException e) {
       throw new IOException(StringUtils.stringifyException(e));
     }
+  }
+
+  protected ColumnMapper getColumnMapper(Configuration conf) throws IOException, TooManyAccumuloColumnsException {
+    final String defaultStorageType = conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE);
+
+    String[] columnNamesArr = conf.getStrings(serdeConstants.LIST_COLUMNS);
+    if (null == columnNamesArr) {
+      throw new IOException(
+          "Hive column names must be provided to InputFormat in the Configuration");
+    }
+    List<String> columnNames = Arrays.asList(columnNamesArr);
+
+    String serializedTypes = conf.get(serdeConstants.LIST_COLUMN_TYPES);
+    if (null == serializedTypes) {
+      throw new IOException(
+          "Hive column types must be provided to InputFormat in the Configuration");
+    }
+    ArrayList<TypeInfo> columnTypes = TypeInfoUtils.getTypeInfosFromTypeString(serializedTypes);
+
+    return new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS), defaultStorageType,
+        columnNames, columnTypes);
   }
 
   /**
@@ -200,7 +235,7 @@ public class HiveAccumuloTableInputFormat implements
     // Read from the given Accumulo table
     setInputTableName(conf, accumuloParams.getAccumuloTableName());
 
-    // Check Configuration for any user-provided Authorization definition 
+    // Check Configuration for any user-provided Authorization definition
     Authorizations auths = AccumuloSerDeParameters.getAuthorizationsFromConf(conf);
 
     if (null == auths) {
@@ -243,7 +278,8 @@ public class HiveAccumuloTableInputFormat implements
       AccumuloInputFormat.setZooKeeperInstance(conf,
           new ClientConfiguration().withInstance(instanceName).withZkHosts(zkHosts));
     } catch (IllegalStateException e) {
-      log.debug("Ignoring exception setting ZooKeeper instance of " + instanceName + " at " + zkHosts, e);
+      log.debug("Ignoring exception setting ZooKeeper instance of " + instanceName + " at "
+          + zkHosts, e);
     }
   }
 
@@ -251,8 +287,7 @@ public class HiveAccumuloTableInputFormat implements
       throws AccumuloSecurityException {
     try {
       AccumuloInputFormat.setConnectorInfo(conf, user, token);
-    } catch (IllegalStateException e) {
-    }
+    } catch (IllegalStateException e) {}
   }
 
   protected void setInputTableName(JobConf conf, String tableName) {

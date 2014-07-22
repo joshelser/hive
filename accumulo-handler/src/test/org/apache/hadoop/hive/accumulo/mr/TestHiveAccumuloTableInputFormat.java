@@ -42,7 +42,7 @@ import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
-import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.AccumuloPredicateHandler;
 import org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter;
 import org.apache.hadoop.hive.accumulo.predicate.compare.DoubleCompare;
@@ -54,7 +54,10 @@ import org.apache.hadoop.hive.accumulo.predicate.compare.LessThan;
 import org.apache.hadoop.hive.accumulo.predicate.compare.LongCompare;
 import org.apache.hadoop.hive.accumulo.predicate.compare.StringCompare;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
+import org.apache.hadoop.hive.accumulo.serde.TooManyAccumuloColumnsException;
 import org.apache.hadoop.hive.serde.serdeConstants;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.InputSplit;
@@ -84,6 +87,8 @@ public class TestHiveAccumuloTableInputFormat {
   private Connector con;
   private HiveAccumuloTableInputFormat inputformat;
   private JobConf conf;
+  private List<String> columnNames;
+  private List<TypeInfo> columnTypes;
 
   @Rule
   public TestName test = new TestName();
@@ -102,6 +107,10 @@ public class TestHiveAccumuloTableInputFormat {
     conf.set(AccumuloSerDeParameters.USER_PASS, PASS);
     conf.set(AccumuloSerDeParameters.ZOOKEEPERS, "localhost:2181"); // not used for mock, but
                                                                     // required by input format.
+
+    columnNames = Arrays.asList("name", "sid", "dgrs", "mills");
+    columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.intTypeInfo, TypeInfoFactory.doubleTypeInfo, TypeInfoFactory.longTypeInfo);
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:name,cf:sid,cf:dgrs,cf:mills");
     conf.set(serdeConstants.LIST_COLUMNS, "name,sid,dgrs,mills");
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,double,bigint");
@@ -412,15 +421,15 @@ public class TestHiveAccumuloTableInputFormat {
     Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
 
     // Row ID
-    mappings.add(new HiveRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo));
 
     // Some cf:cq
-    mappings.add(new HiveAccumuloColumnMapping("person", "name", ColumnEncoding.STRING));
-    mappings.add(new HiveAccumuloColumnMapping("person", "age", ColumnEncoding.STRING));
-    mappings.add(new HiveAccumuloColumnMapping("person", "height", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("person", "name", ColumnEncoding.STRING, "col1", TypeInfoFactory.stringTypeInfo));
+    mappings.add(new HiveAccumuloColumnMapping("person", "age", ColumnEncoding.STRING, "col2", TypeInfoFactory.stringTypeInfo));
+    mappings.add(new HiveAccumuloColumnMapping("person", "height", ColumnEncoding.STRING, "col3", TypeInfoFactory.stringTypeInfo));
 
     // Bare cf
-    mappings.add(new HiveAccumuloColumnMapping("city", "name", ColumnEncoding.STRING));
+    mappings.add(new HiveAccumuloColumnMapping("city", "name", ColumnEncoding.STRING, "col4", TypeInfoFactory.stringTypeInfo));
 
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("name")));
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("age")));
@@ -435,7 +444,7 @@ public class TestHiveAccumuloTableInputFormat {
   public void testConfigureMockAccumuloInputFormat() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
-        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
     Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
@@ -465,7 +474,7 @@ public class TestHiveAccumuloTableInputFormat {
   public void testConfigureAccumuloInputFormat() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
-        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
     Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
@@ -503,7 +512,7 @@ public class TestHiveAccumuloTableInputFormat {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     conf.set(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo,bar");
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
-        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
     Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
@@ -540,7 +549,7 @@ public class TestHiveAccumuloTableInputFormat {
   public void testConfigureAccumuloInputFormatWithIterators() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
-        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
     Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
     Set<Range> ranges = Collections.singleton(new Range());
@@ -592,7 +601,7 @@ public class TestHiveAccumuloTableInputFormat {
   public void testConfigureAccumuloInputFormatWithEmptyColumns() throws Exception {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
-        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
     HashSet<Pair<Text,Text>> cfCqPairs = Sets.newHashSet();
     List<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
     Set<Range> ranges = Collections.singleton(new Range());
@@ -695,9 +704,11 @@ public class TestHiveAccumuloTableInputFormat {
   }
 
   @Test
-  public void testMapColumnPairs() {
+  public void testMapColumnPairs() throws TooManyAccumuloColumnsException {
     ColumnMapper columnMapper = new ColumnMapper(":rowID,cf:*",
-        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE));
+        conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), Arrays.asList("row", "col"),
+        Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.getMapTypeInfo(
+            TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo)));
     Set<Pair<Text,Text>> pairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
 
     Assert.assertEquals(1, pairs.size());

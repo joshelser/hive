@@ -36,8 +36,9 @@ public class TestAccumuloSerDeParameters {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
 
-    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowid,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3");
+    properties.setProperty(serdeConstants.LIST_TYPE_NAME, "string,string,string");
     properties.setProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY, "foo&bar");
    
     AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties, AccumuloSerDe.class.getName());
@@ -61,8 +62,9 @@ public class TestAccumuloSerDeParameters {
     Configuration conf = new Configuration();
     Properties properties = new Properties();
 
-    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowid,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3");
+    properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string,string,string");
     properties.setProperty(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo,bar");
 
     AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties, AccumuloSerDe.class.getName());
@@ -76,8 +78,9 @@ public class TestAccumuloSerDeParameters {
     Configuration conf = new Configuration();
     Properties properties = new Properties();
 
-    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:f1,cf:f2,cf:f3");
+    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowid,cf:f2,cf:f3");
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3");
+    properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string,string,string");
 
     AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties, AccumuloSerDe.class.getName());
 

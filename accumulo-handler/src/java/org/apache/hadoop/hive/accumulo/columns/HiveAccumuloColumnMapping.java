@@ -17,6 +17,7 @@
 package org.apache.hadoop.hive.accumulo.columns;
 
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Charsets;
@@ -25,13 +26,14 @@ import com.google.common.base.Charsets;
  * A Hive column which maps to a column family and column qualifier pair in Accumulo
  */
 public class HiveAccumuloColumnMapping extends ColumnMapping {
+  @SuppressWarnings("unused")
   private static final Logger log = Logger.getLogger(HiveAccumuloColumnMapping.class);
 
   protected String columnFamily, columnQualifier;
   protected byte[] columnFamilyBytes, columnQualifierBytes;
 
-  public HiveAccumuloColumnMapping(String cf, String cq, ColumnEncoding encoding) {
-    super(cf + AccumuloHiveConstants.COLON + cq, encoding);
+  public HiveAccumuloColumnMapping(String cf, String cq, ColumnEncoding encoding, String columnName, TypeInfo columnType) {
+    super(cf + AccumuloHiveConstants.COLON + cq, encoding, columnName, columnType);
 
     columnFamily = cf;
     columnQualifier = cq;

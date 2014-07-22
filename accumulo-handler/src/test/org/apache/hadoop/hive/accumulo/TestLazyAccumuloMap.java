@@ -28,6 +28,7 @@ import org.apache.hadoop.hive.serde2.lazy.LazyInteger;
 import org.apache.hadoop.hive.serde2.lazy.LazyString;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyMapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
@@ -57,7 +58,8 @@ public class TestLazyAccumuloMap {
     row.add("cf3", "bar1", "foo1".getBytes());
 
     HiveAccumuloMapColumnMapping mapping = new HiveAccumuloMapColumnMapping("cf1", null,
-        ColumnEncoding.STRING, ColumnEncoding.STRING);
+        ColumnEncoding.STRING, ColumnEncoding.STRING, "column", TypeInfoFactory.getMapTypeInfo(
+            TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo));
 
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
@@ -88,7 +90,8 @@ public class TestLazyAccumuloMap {
     row.add(new Text("cf1"), new Text("3"), "6".getBytes());
 
     HiveAccumuloMapColumnMapping mapping = new HiveAccumuloMapColumnMapping("cf1", null,
-        ColumnEncoding.STRING, ColumnEncoding.STRING);
+        ColumnEncoding.STRING, ColumnEncoding.STRING, "column", TypeInfoFactory.getMapTypeInfo(
+            TypeInfoFactory.intTypeInfo, TypeInfoFactory.intTypeInfo));
 
     // Map of Integer to Integer
     Text nullSequence = new Text("\\N");
@@ -123,7 +126,8 @@ public class TestLazyAccumuloMap {
     row.add(new Text("cf1"), new Text(toBytes(3)), toBytes(6));
 
     HiveAccumuloMapColumnMapping mapping = new HiveAccumuloMapColumnMapping("cf1", null,
-        ColumnEncoding.BINARY, ColumnEncoding.BINARY);
+        ColumnEncoding.BINARY, ColumnEncoding.BINARY, "column", TypeInfoFactory.getMapTypeInfo(
+            TypeInfoFactory.intTypeInfo, TypeInfoFactory.intTypeInfo));
 
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
@@ -158,7 +162,8 @@ public class TestLazyAccumuloMap {
     row.add(new Text("cf1"), new Text(toBytes(3)), "6".getBytes());
 
     HiveAccumuloMapColumnMapping mapping = new HiveAccumuloMapColumnMapping("cf1", null,
-        ColumnEncoding.BINARY, ColumnEncoding.STRING);
+        ColumnEncoding.BINARY, ColumnEncoding.STRING, "column", TypeInfoFactory.getMapTypeInfo(
+            TypeInfoFactory.intTypeInfo, TypeInfoFactory.intTypeInfo));
 
     // Map of Integer to String
     Text nullSequence = new Text("\\N");

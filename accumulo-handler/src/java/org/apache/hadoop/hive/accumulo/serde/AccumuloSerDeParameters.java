@@ -27,7 +27,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
-import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
@@ -54,11 +54,14 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
   public static final String AUTHORIZATIONS_KEY = "accumulo.authorizations";
 
+  public static final String COMPOSITE_ROWID_FACTORY = "accumulo.composite.rowid.factory";
+
   protected final ColumnMapper columnMapper;
 
   private Properties tableProperties;
   private String serdeName;
   private SerDeParameters lazySerDeParameters;
+  private AccumuloRowIdFactory rowIdFactory;
 
   public AccumuloSerDeParameters(Configuration conf, Properties tableProperties, String serdeName) throws SerDeException {
     super(conf);
@@ -70,7 +73,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     // The default encoding for this table when not otherwise specified
     String defaultStorage = tableProperties.getProperty(DEFAULT_STORAGE_TYPE);
 
-    columnMapper = new ColumnMapper(getColumnMappingValue(), defaultStorage);
+    columnMapper = new ColumnMapper(getColumnMappingValue(), defaultStorage, lazySerDeParameters.getColumnNames(), lazySerDeParameters.getColumnTypes());
 
     log.info("Constructed column mapping " + columnMapper);
 
@@ -84,6 +87,35 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     } else if (columnMapper.size() > lazySerDeParameters.getColumnNames().size()) {
       throw new TooManyAccumuloColumnsException("You have more hive columns than fields mapped with " + COLUMN_MAPPINGS);
     }
+
+    this.rowIdFactory = initRowIdFactory(conf, tableProperties);
+  }
+
+
+  protected AccumuloRowIdFactory initRowIdFactory(Configuration conf, Properties tbl) throws SerDeException {
+    try {
+      AccumuloRowIdFactory keyFactory = createRowIdFactory(conf, tbl);
+      if (keyFactory != null) {
+        keyFactory.init(this, tbl);
+      }
+      return keyFactory;
+    } catch (Exception e) {
+      throw new SerDeException(e);
+    }
+  }
+
+  protected AccumuloRowIdFactory createRowIdFactory(Configuration job, Properties tbl) throws Exception {
+//    String factoryClassName = tbl.getProperty(COMPOSITE_ROWID_FACTORY);
+//    if (factoryClassName != null) {
+//      Class<?> factoryClazz = Class.forName(factoryClassName);
+//      return (HBaseKeyFactory) ReflectionUtils.newInstance(factoryClazz, job);
+//    }
+//    String keyClassName = tbl.getProperty(HBaseSerDe.HBASE_COMPOSITE_KEY_CLASS);
+//    if (keyClassName != null) {
+//      Class<?> keyClass = Class.forName(keyClassName);
+//      return new CompositeHBaseKeyFactory(keyClass);
+//    }
+    return new DefaultAccumuloRowIdFactory();
   }
 
   public SerDeParameters getSerDeParameters() {
@@ -106,7 +138,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     return tableProperties.getProperty(COLUMN_MAPPINGS);
   }
 
-  public HiveRowIdColumnMapping getRowIdColumnMapping() {
+  public HiveAccumuloRowIdColumnMapping getRowIdColumnMapping() {
     return columnMapper.getRowIdMapping();
   }
 
@@ -128,6 +160,10 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
   public List<ColumnMapping> getColumnMappings() {
     return columnMapper.getColumnMappings();
+  }
+
+  public AccumuloRowIdFactory getRowIdFactory() {
+    return rowIdFactory;
   }
 
   public String getRowIdHiveColumnName() {

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Stack;
 
 import org.apache.accumulo.core.data.Range;
-import org.apache.hadoop.hive.accumulo.columns.HiveRowIdColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
 import org.apache.hadoop.hive.accumulo.predicate.compare.CompareOp;
 import org.apache.hadoop.hive.accumulo.predicate.compare.Equal;
 import org.apache.hadoop.hive.accumulo.predicate.compare.GreaterThan;
@@ -60,10 +60,10 @@ public class AccumuloRangeGenerator implements NodeProcessor {
   private static final Logger log = LoggerFactory.getLogger(AccumuloRangeGenerator.class);
 
   private final AccumuloPredicateHandler predicateHandler;
-  private final HiveRowIdColumnMapping rowIdMapping;
+  private final HiveAccumuloRowIdColumnMapping rowIdMapping;
   private final String hiveRowIdColumnName;
 
-  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, HiveRowIdColumnMapping rowIdMapping, String hiveRowIdColumnName) {
+  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, HiveAccumuloRowIdColumnMapping rowIdMapping, String hiveRowIdColumnName) {
     this.predicateHandler = predicateHandler;
     this.rowIdMapping = rowIdMapping;
     this.hiveRowIdColumnName = hiveRowIdColumnName;

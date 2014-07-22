@@ -50,7 +50,6 @@ public class TestAccumuloSerDe {
 
     serde.initialize(conf, properties);
     serde.deserialize(new Text("fail"));
-    fail("Should fail. More hive columns than total Accumulo mapping");
   }
 
   @Test(expected = TooManyAccumuloColumnsException.class)
@@ -64,7 +63,6 @@ public class TestAccumuloSerDe {
 
     serde.initialize(conf, properties);
     serde.deserialize(new Text("fail"));
-    fail("Should fail, More Accumulo mapping than total hive columns.");
   }
 
   @Test(expected = NullPointerException.class)
@@ -117,10 +115,11 @@ public class TestAccumuloSerDe {
     Properties properties = new Properties();
     Configuration conf = new Configuration();
     properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowID,cf:f1,cf:f2,cf:f3");
+    properties.setProperty(serdeConstants.LIST_COLUMNS, "row,col1,col2");
+    properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string,string,string");
 
     serde.initialize(conf, properties);
     serde.deserialize(new Text("fail"));
-    fail("Not instance of AccumuloHiveRow");
   }
 
   @Test

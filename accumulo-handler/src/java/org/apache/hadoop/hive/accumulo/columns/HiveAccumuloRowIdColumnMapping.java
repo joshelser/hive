@@ -18,16 +18,19 @@ package org.apache.hadoop.hive.accumulo.columns;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 import com.google.common.base.Preconditions;
 
 /**
- * {@link ColumnMapping} which corresponds to the Hive column which should be used as the rowID in a {@link Mutation}
+ * {@link ColumnMapping} which corresponds to the Hive column which should be used as the rowID in a
+ * {@link Mutation}
  */
-public class HiveRowIdColumnMapping extends ColumnMapping {
+public class HiveAccumuloRowIdColumnMapping extends ColumnMapping {
 
-  public HiveRowIdColumnMapping(String columnSpec, ColumnEncoding encoding) {
-    super(columnSpec, encoding);
+  public HiveAccumuloRowIdColumnMapping(String columnSpec, ColumnEncoding encoding,
+      String columnName, TypeInfo columnType) {
+    super(columnSpec, encoding, columnName, columnType);
 
     // Ensure that we have the correct identifier as the column name
     Preconditions.checkArgument(columnSpec.equalsIgnoreCase(AccumuloHiveConstants.ROWID));
@@ -35,6 +38,7 @@ public class HiveRowIdColumnMapping extends ColumnMapping {
 
   @Override
   public String toString() {
-    return "[" + this.getClass().getSimpleName() + ", " + this.mappingSpec + ", encoding " + encoding + "]";
+    return "[" + this.getClass().getSimpleName() + ", " + this.mappingSpec + ", encoding "
+        + encoding + "]";
   }
 }

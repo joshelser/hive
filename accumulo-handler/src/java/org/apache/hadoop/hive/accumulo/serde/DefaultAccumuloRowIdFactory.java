@@ -21,6 +21,8 @@ package org.apache.hadoop.hive.accumulo.serde;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hive.accumulo.Utils;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
 import org.apache.hadoop.hive.serde2.ByteStream;
@@ -38,31 +40,41 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
  */
 public class DefaultAccumuloRowIdFactory implements AccumuloRowIdFactory {
 
+  protected AccumuloSerDeParameters accumuloSerDeParams;
   protected LazySimpleSerDe.SerDeParameters serdeParams;
+  protected Properties properties;
   protected HiveAccumuloRowIdColumnMapping rowIdMapping;
   protected AccumuloRowSerializer serializer;
 
   @Override
   public void init(AccumuloSerDeParameters accumuloSerDeParams, Properties properties) throws SerDeException {
+    this.accumuloSerDeParams = accumuloSerDeParams;
     this.serdeParams = accumuloSerDeParams.getSerDeParameters();
+    this.properties = properties;
     this.serializer = new AccumuloRowSerializer(accumuloSerDeParams.getRowIdOffset(), serdeParams,
         accumuloSerDeParams.getColumnMappings(), accumuloSerDeParams.getTableVisibilityLabel(), this);
     this.rowIdMapping = accumuloSerDeParams.getRowIdColumnMapping();
   }
 
   @Override
-  public ObjectInspector createKeyObjectInspector(TypeInfo type) throws SerDeException {
+  public void addDependencyJars(Configuration conf) throws IOException {
+    Utils.addDependencyJars(conf, getClass());
+  }
+
+  @Override
+  public ObjectInspector createRowIdObjectInspector(TypeInfo type) throws SerDeException {
     return LazyFactory.createLazyObjectInspector(type, serdeParams.getSeparators(), 1,
         serdeParams.getNullSequence(), serdeParams.isEscaped(), serdeParams.getEscapeChar());
   }
 
   @Override
-  public LazyObjectBase createKey(ObjectInspector inspector) throws SerDeException {
+  public LazyObjectBase createRowId(ObjectInspector inspector) throws SerDeException {
     return LazyFactory.createLazyObject(inspector, ColumnEncoding.BINARY == rowIdMapping.getEncoding());
   }
 
   @Override
-  public byte[] serializeKey(Object object, ObjectInspector objInspector, StructField field, ByteStream.Output output) throws IOException {
-    return serializer.getSerializedValue(objInspector, field.getFieldObjectInspector(), object, output, rowIdMapping);
+  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output) throws IOException {
+    return serializer.serializeRowId(object, field, rowIdMapping);
   }
+
 }

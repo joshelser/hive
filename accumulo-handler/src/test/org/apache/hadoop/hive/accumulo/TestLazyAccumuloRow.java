@@ -20,9 +20,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.columns.ColumnMapper;
+import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
+import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
+import org.apache.hadoop.hive.accumulo.serde.DefaultAccumuloRowIdFactory;
 import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeUtils;
@@ -47,13 +52,27 @@ public class TestLazyAccumuloRow {
 
   @Test
   public void testExpectedDeserializationOfColumns() throws Exception {
-    List<String> columns = Arrays.asList("given_name", "surname", "age", "weight", "height");
-    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
-        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME), TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME),
-        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME), TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME));
+    List<String> columns = Arrays.asList("row", "given_name", "surname", "age", "weight", "height");
+    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.intTypeInfo, TypeInfoFactory.intTypeInfo, TypeInfoFactory.intTypeInfo);
 
-    LazySimpleStructObjectInspector objectInspector = (LazySimpleStructObjectInspector) LazyFactory.createLazyStructInspector(columns, types,
-        LazySimpleSerDe.DefaultSeparators, new Text("\\N"), false, false, (byte) '\\');
+    LazySimpleStructObjectInspector objectInspector = (LazySimpleStructObjectInspector) LazyFactory
+        .createLazyStructInspector(columns, types, LazySimpleSerDe.DefaultSeparators, new Text(
+            "\\N"), false, false, (byte) '\\');
+
+    DefaultAccumuloRowIdFactory rowIdFactory = new DefaultAccumuloRowIdFactory();
+
+    Properties props = new Properties();
+    props.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+        ":rowid,personal:given_name,personal:surname,personal:age,personal:weight,personal:height");
+    props.setProperty(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columns));
+    props.setProperty(serdeConstants.LIST_COLUMN_TYPES, Joiner.on(',').join(types));
+
+    AccumuloSerDeParameters params = new AccumuloSerDeParameters(new Configuration(), props,
+        AccumuloSerDe.class.getName());
+
+    rowIdFactory.init(params, props);
 
     LazyAccumuloRow lazyRow = new LazyAccumuloRow(objectInspector);
     AccumuloHiveRow hiveRow = new AccumuloHiveRow("1");
@@ -63,41 +82,60 @@ public class TestLazyAccumuloRow {
     hiveRow.add("personal", "weight", "200".getBytes());
     hiveRow.add("personal", "height", "72".getBytes());
 
-    List<String> fetchedCols = Arrays.asList("personal:given_name", "personal:surname", "personal:age", "personal:weight", "personal:height");
-    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.STRING.getName(), columns, types);
+    ColumnMapper columnMapper = params.getColumnMapper();
 
-    lazyRow.init(hiveRow, columnMapper.getColumnMappings());
+    lazyRow.init(hiveRow, columnMapper.getColumnMappings(), rowIdFactory);
 
     Object o = lazyRow.getField(0);
     Assert.assertEquals(LazyString.class, o.getClass());
-    Assert.assertEquals("Bob", ((LazyString) o).toString());
+    Assert.assertEquals("1", ((LazyString) o).toString());
 
     o = lazyRow.getField(1);
     Assert.assertEquals(LazyString.class, o.getClass());
-    Assert.assertEquals("Stevens", ((LazyString) o).toString());
+    Assert.assertEquals("Bob", ((LazyString) o).toString());
 
     o = lazyRow.getField(2);
-    Assert.assertEquals(LazyInteger.class, o.getClass());
-    Assert.assertEquals("30", ((LazyInteger) o).toString());
+    Assert.assertEquals(LazyString.class, o.getClass());
+    Assert.assertEquals("Stevens", ((LazyString) o).toString());
 
     o = lazyRow.getField(3);
     Assert.assertEquals(LazyInteger.class, o.getClass());
-    Assert.assertEquals("200", ((LazyInteger) o).toString());
+    Assert.assertEquals("30", ((LazyInteger) o).toString());
 
     o = lazyRow.getField(4);
+    Assert.assertEquals(LazyInteger.class, o.getClass());
+    Assert.assertEquals("200", ((LazyInteger) o).toString());
+
+    o = lazyRow.getField(5);
     Assert.assertEquals(LazyInteger.class, o.getClass());
     Assert.assertEquals("72", ((LazyInteger) o).toString());
   }
 
   @Test
   public void testDeserializationOfBinaryEncoding() throws Exception {
-    List<String> columns = Arrays.asList("given_name", "surname", "age", "weight", "height");
-    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
-        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME), TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME),
-        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME), TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.INT_TYPE_NAME));
+    List<String> columns = Arrays.asList("row", "given_name", "surname", "age", "weight", "height");
+    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.intTypeInfo, TypeInfoFactory.intTypeInfo, TypeInfoFactory.intTypeInfo);
 
-    LazySimpleStructObjectInspector objectInspector = (LazySimpleStructObjectInspector) LazyFactory.createLazyStructInspector(columns, types,
-        LazySimpleSerDe.DefaultSeparators, new Text("\\N"), false, false, (byte) '\\');
+    LazySimpleStructObjectInspector objectInspector = (LazySimpleStructObjectInspector) LazyFactory
+        .createLazyStructInspector(columns, types, LazySimpleSerDe.DefaultSeparators, new Text(
+            "\\N"), false, false, (byte) '\\');
+
+    DefaultAccumuloRowIdFactory rowIdFactory = new DefaultAccumuloRowIdFactory();
+
+    Properties props = new Properties();
+    props
+        .setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+            ":rowid#s,personal:given_name#s,personal:surname#s,personal:age,personal:weight,personal:height");
+    props.setProperty(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columns));
+    props.setProperty(serdeConstants.LIST_COLUMN_TYPES, Joiner.on(',').join(types));
+    props.setProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, ColumnEncoding.BINARY.getName());
+
+    AccumuloSerDeParameters params = new AccumuloSerDeParameters(new Configuration(), props,
+        AccumuloSerDe.class.getName());
+
+    rowIdFactory.init(params, props);
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
@@ -118,32 +156,36 @@ public class TestLazyAccumuloRow {
     out.writeInt(72);
     hiveRow.add("personal", "height", baos.toByteArray());
 
-    List<String> fetchedCols = Arrays.asList("personal:given_name#s", "personal:surname#s", "personal:age", "personal:weight", "personal:height");
-    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.BINARY.getName(), columns, types);
+    ColumnMapper columnMapper = params.getColumnMapper();
 
-    lazyRow.init(hiveRow, columnMapper.getColumnMappings());
+    lazyRow.init(hiveRow, columnMapper.getColumnMappings(), rowIdFactory);
 
     Object o = lazyRow.getField(0);
     Assert.assertNotNull(o);
     Assert.assertEquals(LazyString.class, o.getClass());
-    Assert.assertEquals("Bob", ((LazyString) o).toString());
+    Assert.assertEquals("1", ((LazyString) o).toString());
 
     o = lazyRow.getField(1);
     Assert.assertNotNull(o);
     Assert.assertEquals(LazyString.class, o.getClass());
-    Assert.assertEquals("Stevens", ((LazyString) o).toString());
+    Assert.assertEquals("Bob", ((LazyString) o).toString());
 
     o = lazyRow.getField(2);
     Assert.assertNotNull(o);
-    Assert.assertEquals(LazyDioInteger.class, o.getClass());
-    Assert.assertEquals("30", ((LazyDioInteger) o).toString());
+    Assert.assertEquals(LazyString.class, o.getClass());
+    Assert.assertEquals("Stevens", ((LazyString) o).toString());
 
     o = lazyRow.getField(3);
     Assert.assertNotNull(o);
     Assert.assertEquals(LazyDioInteger.class, o.getClass());
-    Assert.assertEquals("200", ((LazyDioInteger) o).toString());
+    Assert.assertEquals("30", ((LazyDioInteger) o).toString());
 
     o = lazyRow.getField(4);
+    Assert.assertNotNull(o);
+    Assert.assertEquals(LazyDioInteger.class, o.getClass());
+    Assert.assertEquals("200", ((LazyDioInteger) o).toString());
+
+    o = lazyRow.getField(5);
     Assert.assertNotNull(o);
     Assert.assertEquals(LazyDioInteger.class, o.getClass());
     Assert.assertEquals("72", ((LazyDioInteger) o).toString());
@@ -151,27 +193,44 @@ public class TestLazyAccumuloRow {
 
   @Test
   public void testNullInit() throws SerDeException {
-    List<String> columns = Arrays.asList("1", "2", "3");
-    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
-        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME), TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME));
+    List<String> columns = Arrays.asList("row", "1", "2", "3");
+    List<TypeInfo> types = Arrays.<TypeInfo> asList(
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME),
+        TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME));
 
-    LazySimpleStructObjectInspector objectInspector = (LazySimpleStructObjectInspector) LazyFactory.createLazyStructInspector(columns, types,
-        LazySimpleSerDe.DefaultSeparators, new Text("\\N"), false, false, (byte) '\\');
+    LazySimpleStructObjectInspector objectInspector = (LazySimpleStructObjectInspector) LazyFactory
+        .createLazyStructInspector(columns, types, LazySimpleSerDe.DefaultSeparators, new Text(
+            "\\N"), false, false, (byte) '\\');
 
-    List<String> fetchedCols = Arrays.asList("cf:cq1", "cf:cq2", "cf:cq3");
-    ColumnMapper columnMapper = new ColumnMapper(Joiner.on(',').join(fetchedCols), ColumnEncoding.STRING.getName(), columns, types);
+    DefaultAccumuloRowIdFactory rowIdFactory = new DefaultAccumuloRowIdFactory();
+
+    Properties props = new Properties();
+    props.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowid,cf:cq1,cf:cq2,cf:cq3");
+    props.setProperty(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columns));
+    props.setProperty(serdeConstants.LIST_COLUMN_TYPES, Joiner.on(',').join(types));
+
+    AccumuloSerDeParameters params = new AccumuloSerDeParameters(new Configuration(), props,
+        AccumuloSerDe.class.getName());
+
+    rowIdFactory.init(params, props);
+
+    ColumnMapper columnMapper = params.getColumnMapper();
 
     LazyAccumuloRow lazyRow = new LazyAccumuloRow(objectInspector);
     AccumuloHiveRow hiveRow = new AccumuloHiveRow("1");
     hiveRow.add("cf", "cq1", "foo".getBytes());
     hiveRow.add("cf", "cq3", "bar".getBytes());
 
-    lazyRow.init(hiveRow, columnMapper.getColumnMappings());
+    lazyRow.init(hiveRow, columnMapper.getColumnMappings(), rowIdFactory);
 
     // Noticed that we also suffer from the same issue as HIVE-3179
     // Only want to call a field init'ed when it's non-NULL
     // Check it twice, make sure we get null both times
-    Assert.assertEquals("{'1':'foo','2':null,'3':'bar'}".replace('\'', '"'), SerDeUtils.getJSONString(lazyRow, objectInspector));
-    Assert.assertEquals("{'1':'foo','2':null,'3':'bar'}".replace('\'', '"'), SerDeUtils.getJSONString(lazyRow, objectInspector));
+    Assert.assertEquals("{'row':'1','1':'foo','2':null,'3':'bar'}".replace('\'', '"'),
+        SerDeUtils.getJSONString(lazyRow, objectInspector));
+    Assert.assertEquals("{'row':'1','1':'foo','2':null,'3':'bar'}".replace('\'', '"'),
+        SerDeUtils.getJSONString(lazyRow, objectInspector));
   }
 }

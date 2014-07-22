@@ -33,6 +33,7 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
@@ -55,6 +56,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   public static final String AUTHORIZATIONS_KEY = "accumulo.authorizations";
 
   public static final String COMPOSITE_ROWID_FACTORY = "accumulo.composite.rowid.factory";
+  public static final String COMPOSITE_ROWID_CLASS = "accumulo.composite.rowid";
 
   protected final ColumnMapper columnMapper;
 
@@ -104,17 +106,22 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     }
   }
 
+  @SuppressWarnings({"rawtypes", "unchecked"})
   protected AccumuloRowIdFactory createRowIdFactory(Configuration job, Properties tbl) throws Exception {
-//    String factoryClassName = tbl.getProperty(COMPOSITE_ROWID_FACTORY);
-//    if (factoryClassName != null) {
-//      Class<?> factoryClazz = Class.forName(factoryClassName);
-//      return (HBaseKeyFactory) ReflectionUtils.newInstance(factoryClazz, job);
-//    }
-//    String keyClassName = tbl.getProperty(HBaseSerDe.HBASE_COMPOSITE_KEY_CLASS);
-//    if (keyClassName != null) {
-//      Class<?> keyClass = Class.forName(keyClassName);
-//      return new CompositeHBaseKeyFactory(keyClass);
-//    }
+    // Try to load the composite factory if one was provided
+    String factoryClassName = tbl.getProperty(COMPOSITE_ROWID_FACTORY);
+    if (factoryClassName != null) {
+      Class<?> factoryClazz = Class.forName(factoryClassName);
+      return (AccumuloRowIdFactory) ReflectionUtils.newInstance(factoryClazz, job);
+    }
+
+    // See if a custom CompositeKey class was provided
+    String keyClassName = tbl.getProperty(COMPOSITE_ROWID_CLASS);
+    if (keyClassName != null) {
+      Class<?> keyClass = Class.forName(keyClassName);
+      Class<? extends AccumuloCompositeRowId> compositeRowIdClass = keyClass.asSubclass(AccumuloCompositeRowId.class);
+      return new CompositeAccumuloRowIdFactory(compositeRowIdClass);
+    }
     return new DefaultAccumuloRowIdFactory();
   }
 
@@ -152,6 +159,10 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
   public List<TypeInfo> getHiveColumnTypes() {
     return Collections.unmodifiableList(lazySerDeParameters.getColumnTypes());
+  }
+
+  public ColumnMapper getColumnMapper() {
+    return columnMapper;
   }
 
   public int getRowIdOffset() {

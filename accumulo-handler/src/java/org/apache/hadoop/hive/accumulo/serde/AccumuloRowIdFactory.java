@@ -19,6 +19,7 @@ package org.apache.hadoop.hive.accumulo.serde;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.serde2.ByteStream;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazyObjectBase;
@@ -26,30 +27,32 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
-/**
- * 
- */
 public interface AccumuloRowIdFactory {
 
   /**
    * initialize factory with properties
    */
-  void init(AccumuloSerDeParameters serDeParams, Properties properties) throws SerDeException;
+  public void init(AccumuloSerDeParameters serDeParams, Properties properties) throws SerDeException;
 
   /**
-   * create custom object inspector for hbase key
+   * create custom object inspector for accumulo rowId
    * @param type type information
    */
-  ObjectInspector createKeyObjectInspector(TypeInfo type) throws SerDeException;
+  public ObjectInspector createRowIdObjectInspector(TypeInfo type) throws SerDeException;
 
   /**
-   * create custom object for hbase key
-   * @param inspector OI create by {@link AccumuloRowIdFactory#createKeyObjectInspector}
+   * create custom object for accumulo
+   * @param inspector OI create by {@link AccumuloRowIdFactory#createRowIdObjectInspector}
    */
-  LazyObjectBase createKey(ObjectInspector inspector) throws SerDeException;
+  public LazyObjectBase createRowId(ObjectInspector inspector) throws SerDeException;
 
   /**
    * serialize hive object in internal format of custom key
    */
-  byte[] serializeKey(Object object, ObjectInspector objInspector, StructField field, ByteStream.Output output) throws IOException;
+  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output) throws IOException;
+
+  /**
+   * Add this implementation to the classpath for the Job 
+   */
+  public void addDependencyJars(Configuration conf) throws IOException;
 }

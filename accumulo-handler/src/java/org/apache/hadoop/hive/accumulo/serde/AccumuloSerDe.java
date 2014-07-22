@@ -1,18 +1,25 @@
 package org.apache.hadoop.hive.accumulo.serde;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
 import org.apache.hadoop.hive.accumulo.LazyAccumuloRow;
+import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
+import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
+import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe.SerDeParameters;
+import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazyObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,19 +40,34 @@ public class AccumuloSerDe implements SerDe {
   public void initialize(Configuration conf, Properties properties) throws SerDeException {
     accumuloSerDeParameters = new AccumuloSerDeParameters(conf, properties, getClass().getName());
 
-    cachedObjectInspector = LazyFactory.createLazyStructInspector(accumuloSerDeParameters
-        .getSerDeParameters().getColumnNames(), accumuloSerDeParameters.getSerDeParameters()
-        .getColumnTypes(), accumuloSerDeParameters.getSerDeParameters().getSeparators(),
-        accumuloSerDeParameters.getSerDeParameters().getNullSequence(), accumuloSerDeParameters
-            .getSerDeParameters().isLastColumnTakesRest(), accumuloSerDeParameters
-            .getSerDeParameters().isEscaped(), accumuloSerDeParameters.getSerDeParameters()
-            .getEscapeChar());
+    final SerDeParameters serDeParams = accumuloSerDeParameters.getSerDeParameters();
+    final List<ColumnMapping> mappings = accumuloSerDeParameters.getColumnMappings();
+    final List<TypeInfo> columnTypes = accumuloSerDeParameters.getHiveColumnTypes();
+    final AccumuloRowIdFactory factory = accumuloSerDeParameters.getRowIdFactory();
+
+    ArrayList<ObjectInspector> columnObjectInspectors = new ArrayList<ObjectInspector>(
+        columnTypes.size());
+    for (int i = 0; i < columnTypes.size(); i++) {
+      TypeInfo type = columnTypes.get(i);
+      ColumnMapping mapping = mappings.get(i);
+      if (mapping instanceof HiveAccumuloRowIdColumnMapping) {
+        columnObjectInspectors.add(factory.createRowIdObjectInspector(type));
+      } else {
+        columnObjectInspectors.add(LazyFactory.createLazyObjectInspector(type,
+            serDeParams.getSeparators(), 1, serDeParams.getNullSequence(), serDeParams.isEscaped(),
+            serDeParams.getEscapeChar()));
+      }
+    }
+
+    cachedObjectInspector = LazyObjectInspectorFactory.getLazySimpleStructObjectInspector(
+        serDeParams.getColumnNames(), columnObjectInspectors, serDeParams.getSeparators()[0],
+        serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
+        serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
     cachedRow = new LazyAccumuloRow((LazySimpleStructObjectInspector) cachedObjectInspector);
 
     serializer = new AccumuloRowSerializer(accumuloSerDeParameters.getRowIdOffset(),
-        accumuloSerDeParameters.getSerDeParameters(),
-        accumuloSerDeParameters.getColumnMappings(),
+        accumuloSerDeParameters.getSerDeParameters(), accumuloSerDeParameters.getColumnMappings(),
         accumuloSerDeParameters.getTableVisibilityLabel(),
         accumuloSerDeParameters.getRowIdFactory());
 
@@ -82,7 +104,8 @@ public class AccumuloSerDe implements SerDe {
           + writable.getClass().getName());
     }
 
-    cachedRow.init((AccumuloHiveRow) writable, accumuloSerDeParameters.getColumnMappings());
+    cachedRow.init((AccumuloHiveRow) writable, accumuloSerDeParameters.getColumnMappings(),
+        accumuloSerDeParameters.getRowIdFactory());
 
     return cachedRow;
   }

@@ -3,8 +3,8 @@ package org.apache.hadoop.hive.accumulo.serde;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +22,7 @@ import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.LazyArray;
 import org.apache.hadoop.hive.serde2.lazy.LazyMap;
 import org.apache.hadoop.hive.serde2.lazy.LazyString;
+import org.apache.hadoop.hive.serde2.lazy.LazyStruct;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
@@ -292,5 +293,42 @@ public class TestAccumuloSerDe {
     AccumuloRowSerializer serializer = serde.getSerializer();
 
     Assert.assertEquals(new ColumnVisibility("foobar"), serializer.getVisibility());
+  }
+
+  @Test
+  public void testCompositeKeyDeserialization() throws Exception {
+    Properties properties = new Properties();
+    Configuration conf = new Configuration();
+    properties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowID,cf:f1");
+    properties.setProperty(serdeConstants.LIST_COLUMNS, "row,field1");
+    properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "struct<col1:string,col2:string,col3:string>,string");
+    properties.setProperty(DelimitedAccumuloRowIdFactory.ACCUMULO_COMPOSITE_DELIMITER, "_");
+    properties.setProperty(AccumuloSerDeParameters.COMPOSITE_ROWID_FACTORY, DelimitedAccumuloRowIdFactory.class.getName());
+    
+    serde.initialize(conf, properties);
+
+    AccumuloHiveRow row = new AccumuloHiveRow();
+    row.setRowId("p1_p2_p3");
+    row.add("cf", "f1", "v1".getBytes());
+
+    Object obj = serde.deserialize(row);
+    assertTrue(obj instanceof LazyAccumuloRow);
+
+    LazyAccumuloRow lazyRow = (LazyAccumuloRow) obj;
+    Object field0 = lazyRow.getField(0);
+    assertNotNull(field0);
+    assertTrue(field0 instanceof LazyStruct);
+    LazyStruct struct = (LazyStruct) field0;
+    List<Object> fields = struct.getFieldsAsList();
+    assertEquals(3, fields.size());
+    for (int i = 0; i < fields.size(); i++) {
+      assertEquals(LazyString.class, fields.get(i).getClass());
+      assertEquals("p" + (i+1), fields.get(i).toString());
+    }
+
+    Object field1 = lazyRow.getField(1);
+    assertNotNull(field1);
+    assertTrue("Expected instance of LazyString but was " + field1.getClass(), field1 instanceof LazyString);
+    assertEquals(field1.toString(), "v1");
   }
 }

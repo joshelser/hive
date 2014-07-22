@@ -75,8 +75,7 @@ public class TestAccumuloRowSerializer {
     String object = "hello";
 
     Mockito.when(
-        serializer.getSerializedValue(Mockito.any(ObjectInspector.class),
-            Mockito.any(ObjectInspector.class), Mockito.any(),
+        serializer.getSerializedValue(Mockito.any(ObjectInspector.class), Mockito.any(),
             Mockito.any(ByteStream.Output.class), Mockito.any(ColumnMapping.class)))
         .thenCallRealMethod();
 
@@ -87,7 +86,7 @@ public class TestAccumuloRowSerializer {
     Mockito.when(mapping.getEncoding()).thenReturn(ColumnEncoding.STRING);
 
     // Invoke the method
-    serializer.getSerializedValue(objectInspector, fieldObjectInspector, object, output, mapping);
+    serializer.getSerializedValue(fieldObjectInspector, object, output, mapping);
 
     // Verify the buffer was reset (real output doesn't happen because it was mocked)
     Assert.assertEquals(0, output.size());

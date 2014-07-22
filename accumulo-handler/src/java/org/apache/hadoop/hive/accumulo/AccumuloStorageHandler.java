@@ -30,9 +30,9 @@ import org.apache.hadoop.hive.ql.metadata.HiveStoragePredicateHandler;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.ql.security.authorization.HiveAuthorizationProvider;
-import org.apache.hadoop.hive.serde.serdeConstants;
 import org.apache.hadoop.hive.serde2.Deserializer;
 import org.apache.hadoop.hive.serde2.SerDe;
+import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
@@ -324,6 +324,21 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
           ZooKeeper.class, AccumuloStorageHandler.class);
     } catch (IOException e) {
       log.error("Could not add necessary Accumulo dependencies to classpath", e);
+    }
+
+    Properties tblProperties = tableDesc.getProperties();
+    AccumuloSerDeParameters serDeParams = null;
+    try {
+      serDeParams = new AccumuloSerDeParameters(jobConf, tblProperties, AccumuloSerDe.class.getName());
+    } catch (SerDeException e) {
+      log.error("Could not instantiate AccumuloSerDeParameters", e);
+      return;
+    }
+
+    try {
+      serDeParams.getRowIdFactory().addDependencyJars(jobConf);
+    } catch (IOException e) {
+      log.error("Could not add necessary dependencies for " + serDeParams.getRowIdFactory().getClass(), e);
     }
   }
 }

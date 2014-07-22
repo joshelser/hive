@@ -74,6 +74,10 @@ public class LazyAccumuloMap extends LazyMap {
         continue;
       }
 
+      // Because we append the cq prefix when serializing the column
+      // we should also remove it when pulling it from Accumulo
+      cq = cq.substring(columnMapping.getColumnQualifierPrefix().length());
+
       // Keys are always primitive, respect the binary
       LazyPrimitive<? extends ObjectInspector,? extends Writable> key = LazyFactory
           .createLazyPrimitiveClass(

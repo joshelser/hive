@@ -9,6 +9,7 @@ import org.apache.hadoop.hive.accumulo.columns.ColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloMapColumnMapping;
 import org.apache.hadoop.hive.accumulo.columns.HiveAccumuloRowIdColumnMapping;
+import org.apache.hadoop.hive.accumulo.serde.AccumuloRowIdFactory;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.ByteArrayRef;
 import org.apache.hadoop.hive.serde2.lazy.LazyFactory;
@@ -31,16 +32,17 @@ public class LazyAccumuloRow extends LazyStruct {
   private AccumuloHiveRow row;
   private List<ColumnMapping> columnMappings;
   private ArrayList<Object> cachedList = new ArrayList<Object>();
+  private AccumuloRowIdFactory rowIdFactory;
 
   public LazyAccumuloRow(LazySimpleStructObjectInspector inspector) {
     super(inspector);
   }
 
-  public void init(AccumuloHiveRow hiveRow, List<ColumnMapping> columnMappings) {
+  public void init(AccumuloHiveRow hiveRow, List<ColumnMapping> columnMappings, AccumuloRowIdFactory rowIdFactory) {
     this.row = hiveRow;
     this.columnMappings = columnMappings;
+    this.rowIdFactory = rowIdFactory;
     setParsed(false);
-
   }
 
   private void parse() {
@@ -122,7 +124,10 @@ public class LazyAccumuloRow extends LazyStruct {
   @Override
   protected LazyObjectBase createLazyField(int fieldID, StructField fieldRef) throws SerDeException {
     final ColumnMapping columnMapping = columnMappings.get(fieldID);
-    if (columnMapping instanceof HiveAccumuloMapColumnMapping) {
+
+    if (columnMapping instanceof HiveAccumuloRowIdColumnMapping) {
+      return rowIdFactory.createRowId(fieldRef.getFieldObjectInspector());
+    } else if (columnMapping instanceof HiveAccumuloMapColumnMapping) {
       return new LazyAccumuloMap((LazyMapObjectInspector) fieldRef.getFieldObjectInspector());
     } else {
       return LazyFactory.createLazyObject(fieldRef.getFieldObjectInspector(),

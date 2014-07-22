@@ -111,6 +111,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     // Try to load the composite factory if one was provided
     String factoryClassName = tbl.getProperty(COMPOSITE_ROWID_FACTORY);
     if (factoryClassName != null) {
+      log.info("Loading CompositeRowIdFactory class " + factoryClassName);
       Class<?> factoryClazz = Class.forName(factoryClassName);
       return (AccumuloRowIdFactory) ReflectionUtils.newInstance(factoryClazz, job);
     }
@@ -118,10 +119,12 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     // See if a custom CompositeKey class was provided
     String keyClassName = tbl.getProperty(COMPOSITE_ROWID_CLASS);
     if (keyClassName != null) {
+      log.info("Loading CompositeRowId class " + keyClassName);
       Class<?> keyClass = Class.forName(keyClassName);
       Class<? extends AccumuloCompositeRowId> compositeRowIdClass = keyClass.asSubclass(AccumuloCompositeRowId.class);
       return new CompositeAccumuloRowIdFactory(compositeRowIdClass);
     }
+
     return new DefaultAccumuloRowIdFactory();
   }
 

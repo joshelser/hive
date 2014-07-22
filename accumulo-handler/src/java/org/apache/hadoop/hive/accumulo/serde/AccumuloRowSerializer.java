@@ -99,8 +99,6 @@ public class AccumuloRowSerializer {
 
     // Serialize the row component
     byte[] data = rowIdFactory.serializeRowId(value, field, output);
-    // byte[] data = getSerializedValue(objInspector, fieldObjectInspector, value, output,
-    // rowMapping);
 
     // Set that as the row id in the mutation
     Mutation mutation = new Mutation(data);
@@ -176,16 +174,12 @@ public class AccumuloRowSerializer {
 
       // Write the "suffix" of the cq
       writeWithLevel(keyObjectInspector, entry.getKey(), output, columnMapping, 3);
-//      writeSerializedPrimitive((PrimitiveObjectInspector) keyObjectInspector, output,
-//          entry.getKey(), columnMapping.getKeyEncoding());
       cqBytes = output.toByteArray();
 
       output.reset();
 
       // Write the value
       writeWithLevel(valueObjectInspector, entry.getValue(), output, columnMapping, 3);
-//      writeSerializedPrimitive((PrimitiveObjectInspector) valueObjectInspector, output,
-//          entry.getValue(), columnMapping.getValueEncoding());
       valueBytes = output.toByteArray();
 
       mutation.put(cfBytes, cqBytes, visibility, valueBytes);
@@ -243,10 +237,6 @@ public class AccumuloRowSerializer {
           mapping.getEncoding());
     } else {
       writeWithLevel(fieldObjectInspector, value, output, mapping, 1);
-      // String asJson = SerDeUtils.getJSONString(value, fieldObjectInspector);
-      // LazyUtils.writePrimitiveUTF8(output, asJson,
-      // PrimitiveObjectInspectorFactory.javaStringObjectInspector, serDeParams.isEscaped(),
-      // serDeParams.getEscapeChar(), serDeParams.getNeedsEscape());
     }
 
     return output.toByteArray();

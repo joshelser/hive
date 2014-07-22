@@ -22,13 +22,12 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Properties;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.accumulo.Utils;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.lazy.objectinspector.LazySimpleStructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
+import org.apache.log4j.Logger;
 
 /**
  * {@link AccumuloRowIdFactory} designed for injection of the {@link AccumuloCompositeRowId} to
@@ -37,7 +36,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
  */
 public class CompositeAccumuloRowIdFactory<T extends AccumuloCompositeRowId> extends DefaultAccumuloRowIdFactory {
 
-  public static final Log LOG = LogFactory.getLog(CompositeAccumuloRowIdFactory.class);
+  public static final Logger log = Logger.getLogger(CompositeAccumuloRowIdFactory.class);
 
   private final Class<T> keyClass;
   private final Constructor<T> constructor;

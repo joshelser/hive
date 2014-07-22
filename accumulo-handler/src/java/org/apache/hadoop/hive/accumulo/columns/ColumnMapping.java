@@ -35,7 +35,20 @@ public abstract class ColumnMapping {
   protected final String columnName;
 
   // The type of the Hive column
-  protected final TypeInfo columnType;
+  // Cannot store the actual TypeInfo because that would require
+  // Hive jars on the Accumulo classpath which we don't want
+  protected final String columnType;
+
+  protected ColumnMapping(String mappingSpec, ColumnEncoding encoding, String columnName,
+      String columnType) {
+    Preconditions.checkNotNull(mappingSpec);
+    Preconditions.checkNotNull(encoding);
+
+    this.mappingSpec = mappingSpec;
+    this.encoding = encoding;
+    this.columnName = columnName;
+    this.columnType = columnType;
+  }
 
   protected ColumnMapping(String mappingSpec, ColumnEncoding encoding, String columnName,
       TypeInfo columnType) {
@@ -45,7 +58,7 @@ public abstract class ColumnMapping {
     this.mappingSpec = mappingSpec;
     this.encoding = encoding;
     this.columnName = columnName;
-    this.columnType = columnType;
+    this.columnType = columnType.toString();
   }
 
   /**
@@ -72,7 +85,7 @@ public abstract class ColumnMapping {
   /**
    * The @{link TypeInfo} of the Hive column this is mapping
    */
-  public TypeInfo getColumnType() {
+  public String getColumnType() {
     return columnType;
   }
 }

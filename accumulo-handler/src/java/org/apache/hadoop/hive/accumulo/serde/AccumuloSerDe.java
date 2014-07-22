@@ -45,19 +45,7 @@ public class AccumuloSerDe implements SerDe {
     final List<TypeInfo> columnTypes = accumuloSerDeParameters.getHiveColumnTypes();
     final AccumuloRowIdFactory factory = accumuloSerDeParameters.getRowIdFactory();
 
-    ArrayList<ObjectInspector> columnObjectInspectors = new ArrayList<ObjectInspector>(
-        columnTypes.size());
-    for (int i = 0; i < columnTypes.size(); i++) {
-      TypeInfo type = columnTypes.get(i);
-      ColumnMapping mapping = mappings.get(i);
-      if (mapping instanceof HiveAccumuloRowIdColumnMapping) {
-        columnObjectInspectors.add(factory.createRowIdObjectInspector(type));
-      } else {
-        columnObjectInspectors.add(LazyFactory.createLazyObjectInspector(type,
-            serDeParams.getSeparators(), 1, serDeParams.getNullSequence(), serDeParams.isEscaped(),
-            serDeParams.getEscapeChar()));
-      }
-    }
+    ArrayList<ObjectInspector> columnObjectInspectors = getColumnObjectInspectors(columnTypes, serDeParams, mappings, factory);
 
     cachedObjectInspector = LazyObjectInspectorFactory.getLazySimpleStructObjectInspector(
         serDeParams.getColumnNames(), columnObjectInspectors, serDeParams.getSeparators()[0],
@@ -75,6 +63,26 @@ public class AccumuloSerDe implements SerDe {
       log.info("Initialized with {} type: {}", accumuloSerDeParameters.getSerDeParameters()
           .getColumnNames(), accumuloSerDeParameters.getSerDeParameters().getColumnTypes());
     }
+  }
+
+  protected ArrayList<ObjectInspector> getColumnObjectInspectors(List<TypeInfo> columnTypes,
+      SerDeParameters serDeParams, List<ColumnMapping> mappings, AccumuloRowIdFactory factory)
+      throws SerDeException {
+    ArrayList<ObjectInspector> columnObjectInspectors = new ArrayList<ObjectInspector>(
+        columnTypes.size());
+    for (int i = 0; i < columnTypes.size(); i++) {
+      TypeInfo type = columnTypes.get(i);
+      ColumnMapping mapping = mappings.get(i);
+      if (mapping instanceof HiveAccumuloRowIdColumnMapping) {
+        columnObjectInspectors.add(factory.createRowIdObjectInspector(type));
+      } else {
+        columnObjectInspectors.add(LazyFactory.createLazyObjectInspector(type,
+            serDeParams.getSeparators(), 1, serDeParams.getNullSequence(), serDeParams.isEscaped(),
+            serDeParams.getEscapeChar()));
+      }
+    }
+
+    return columnObjectInspectors;
   }
 
   /***

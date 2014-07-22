@@ -33,7 +33,7 @@ public class HiveAccumuloColumnMapping extends ColumnMapping {
   protected byte[] columnFamilyBytes, columnQualifierBytes;
 
   public HiveAccumuloColumnMapping(String cf, String cq, ColumnEncoding encoding,
-      String columnName, TypeInfo columnType) {
+      String columnName, String columnType) {
     super(cf + AccumuloHiveConstants.COLON + cq, encoding, columnName, columnType);
 
     columnFamily = cf;

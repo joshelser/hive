@@ -18,7 +18,6 @@ package org.apache.hadoop.hive.accumulo.columns;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 import com.google.common.base.Preconditions;
 
@@ -29,7 +28,7 @@ import com.google.common.base.Preconditions;
 public class HiveAccumuloRowIdColumnMapping extends ColumnMapping {
 
   public HiveAccumuloRowIdColumnMapping(String columnSpec, ColumnEncoding encoding,
-      String columnName, TypeInfo columnType) {
+      String columnName, String columnType) {
     super(columnSpec, encoding, columnName, columnType);
 
     // Ensure that we have the correct identifier as the column name

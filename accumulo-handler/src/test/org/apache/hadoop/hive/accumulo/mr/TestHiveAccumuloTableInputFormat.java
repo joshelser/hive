@@ -422,19 +422,19 @@ public class TestHiveAccumuloTableInputFormat {
 
     // Row ID
     mappings.add(new HiveAccumuloRowIdColumnMapping(AccumuloHiveConstants.ROWID,
-        ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo));
+        ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo.toString()));
 
     // Some cf:cq
     mappings.add(new HiveAccumuloColumnMapping("person", "name", ColumnEncoding.STRING, "col1",
-        TypeInfoFactory.stringTypeInfo));
+        TypeInfoFactory.stringTypeInfo.toString()));
     mappings.add(new HiveAccumuloColumnMapping("person", "age", ColumnEncoding.STRING, "col2",
-        TypeInfoFactory.stringTypeInfo));
+        TypeInfoFactory.stringTypeInfo.toString()));
     mappings.add(new HiveAccumuloColumnMapping("person", "height", ColumnEncoding.STRING, "col3",
-        TypeInfoFactory.stringTypeInfo));
+        TypeInfoFactory.stringTypeInfo.toString()));
 
     // Bare cf
     mappings.add(new HiveAccumuloColumnMapping("city", "name", ColumnEncoding.STRING, "col4",
-        TypeInfoFactory.stringTypeInfo));
+        TypeInfoFactory.stringTypeInfo.toString()));
 
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("name")));
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("age")));

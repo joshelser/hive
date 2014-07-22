@@ -94,7 +94,7 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
     // The ColumnEncoding, column name and type are all irrelevant at this point, just need the
     // cf:[cq]
     columnMapping = new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(),
-        ColumnEncoding.STRING, "column", TypeInfoFactory.stringTypeInfo);
+        ColumnEncoding.STRING, "column", "string");
     columnMappingFamily = new Text(columnMapping.getColumnFamily());
     columnMappingQualifier = new Text(columnMapping.getColumnQualifier());
     cfHolder = new Text();

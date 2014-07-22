@@ -40,7 +40,7 @@ public class TestColumnMappingFactory {
 
     Assert.assertEquals(HiveAccumuloRowIdColumnMapping.class, mapping.getClass());
     Assert.assertEquals("row", mapping.getColumnName());
-    Assert.assertEquals(TypeInfoFactory.stringTypeInfo, mapping.getColumnType());
+    Assert.assertEquals(TypeInfoFactory.stringTypeInfo.toString(), mapping.getColumnType());
   }
 
   @Test
@@ -50,7 +50,7 @@ public class TestColumnMappingFactory {
 
     Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
     Assert.assertEquals("col", mapping.getColumnName());
-    Assert.assertEquals(TypeInfoFactory.stringTypeInfo, mapping.getColumnType());
+    Assert.assertEquals(TypeInfoFactory.stringTypeInfo.toString(), mapping.getColumnType());
   }
 
   @Test(expected = InvalidColumnMappingException.class)

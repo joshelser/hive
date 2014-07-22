@@ -30,7 +30,7 @@ public class TestHiveAccumuloColumnMapping {
     // A column qualifier with a colon
     String cf = "cf", cq = "cq1:cq2";
     HiveAccumuloColumnMapping mapping = new HiveAccumuloColumnMapping(cf, cq,
-        ColumnEncoding.STRING, "col", TypeInfoFactory.stringTypeInfo);
+        ColumnEncoding.STRING, "col", TypeInfoFactory.stringTypeInfo.toString());
 
     Assert.assertEquals(cf, mapping.getColumnFamily());
     Assert.assertEquals(cq, mapping.getColumnQualifier());

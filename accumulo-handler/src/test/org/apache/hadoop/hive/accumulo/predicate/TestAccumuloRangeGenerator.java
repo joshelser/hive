@@ -66,7 +66,7 @@ public class TestAccumuloRangeGenerator {
   public void setup() {
     handler = AccumuloPredicateHandler.getInstance();
     rowIdMapping = new HiveAccumuloRowIdColumnMapping(AccumuloHiveConstants.ROWID,
-        ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo);
+        ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo.toString());
   }
 
   @Test

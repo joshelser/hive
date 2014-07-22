@@ -39,6 +39,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
+import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Charsets;
@@ -195,7 +197,7 @@ public class AccumuloRowSerializer {
   /**
    * Serialize an Accumulo rowid
    */
-  protected byte[] serializeRowId(Object rowId, StructField rowIdField, ColumnMapping keyMapping)
+  protected byte[] serializeRowId(Object rowId, StructField rowIdField, ColumnMapping rowIdMapping)
       throws IOException {
     if (rowId == null) {
       throw new IOException("Accumulo rowId cannot be NULL");
@@ -203,9 +205,11 @@ public class AccumuloRowSerializer {
     // Reset the buffer we're going to use
     output.reset();
     ObjectInspector rowIdFieldOI = rowIdField.getFieldObjectInspector();
+    String rowIdMappingType = rowIdMapping.getColumnType();
+    TypeInfo rowIdTypeInfo = TypeInfoUtils.getTypeInfoFromTypeString(rowIdMappingType);
 
     if (!rowIdFieldOI.getCategory().equals(ObjectInspector.Category.PRIMITIVE)
-        && keyMapping.getColumnType().getCategory() == ObjectInspector.Category.PRIMITIVE) {
+        && rowIdTypeInfo.getCategory() == ObjectInspector.Category.PRIMITIVE) {
       // we always serialize the String type using the escaped algorithm for LazyString
       writeString(output, SerDeUtils.getJSONString(rowId, rowIdFieldOI),
           PrimitiveObjectInspectorFactory.javaStringObjectInspector);
@@ -214,7 +218,7 @@ public class AccumuloRowSerializer {
 
     // use the serialization option switch to write primitive values as either a variable
     // length UTF8 string or a fixed width bytes if serializing in binary format
-    getSerializedValue(rowIdFieldOI, rowId, output, keyMapping);
+    getSerializedValue(rowIdFieldOI, rowId, output, rowIdMapping);
     return output.toByteArray();
   }
 

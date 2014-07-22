@@ -18,7 +18,6 @@ package org.apache.hadoop.hive.accumulo.columns;
 
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
-import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 import com.google.common.base.Preconditions;
 
@@ -43,7 +42,7 @@ public class HiveAccumuloMapColumnMapping extends ColumnMapping {
    */
   public HiveAccumuloMapColumnMapping(String columnFamily, String columnQualifierPrefix,
       ColumnEncoding keyEncoding, ColumnEncoding valueEncoding, String columnName,
-      TypeInfo columnType) {
+      String columnType) {
     // Try to make something reasonable to pass up to the base class
     super((null == columnFamily ? "" : columnFamily) + AccumuloHiveConstants.COLON, valueEncoding,
         columnName, columnType);

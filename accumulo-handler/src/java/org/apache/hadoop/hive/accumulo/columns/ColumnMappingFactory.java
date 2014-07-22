@@ -53,7 +53,7 @@ public class ColumnMappingFactory {
 
       if (AccumuloHiveConstants.ROWID.equalsIgnoreCase(columnSpec)) {
         return new HiveAccumuloRowIdColumnMapping(columnSpec,
-            ColumnEncoding.get(columnEncodingStr), columnName, columnType);
+            ColumnEncoding.get(columnEncodingStr), columnName, columnType.toString());
       } else {
         Entry<String,String> pair = parseMapping(columnSpec);
 
@@ -68,16 +68,16 @@ public class ColumnMappingFactory {
               .getMapEncoding(columnEncodingStr);
 
           return new HiveAccumuloMapColumnMapping(pair.getKey(), pair.getValue(),
-              encodings.getKey(), encodings.getValue(), columnName, columnType);
+              encodings.getKey(), encodings.getValue(), columnName, columnType.toString());
         } else {
           return new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(),
-              ColumnEncoding.getFromMapping(columnEncodingStr), columnName, columnType);
+              ColumnEncoding.getFromMapping(columnEncodingStr), columnName, columnType.toString());
         }
       }
     } else {
       if (AccumuloHiveConstants.ROWID.equalsIgnoreCase(columnSpec)) {
         return new HiveAccumuloRowIdColumnMapping(columnSpec, defaultEncoding, columnName,
-            columnType);
+            columnType.toString());
       } else {
         Entry<String,String> pair = parseMapping(columnSpec);
         boolean isPrefix = isPrefix(pair.getValue());
@@ -92,9 +92,9 @@ public class ColumnMappingFactory {
 
         if (isPrefix) {
           return new HiveAccumuloMapColumnMapping(pair.getKey(), cq.substring(0, cq.length() - 1),
-              defaultEncoding, defaultEncoding, columnName, columnType);
+              defaultEncoding, defaultEncoding, columnName, columnType.toString());
         } else {
-          return new HiveAccumuloColumnMapping(pair.getKey(), cq, encoding, columnName, columnType);
+          return new HiveAccumuloColumnMapping(pair.getKey(), cq, encoding, columnName, columnType.toString());
         }
       }
     }
@@ -104,7 +104,7 @@ public class ColumnMappingFactory {
       ColumnEncoding valueEncoding, String columnName, TypeInfo columnType) {
     Entry<String,String> pair = parseMapping(columnSpec);
     return new HiveAccumuloMapColumnMapping(pair.getKey(), pair.getValue(), keyEncoding,
-        valueEncoding, columnName, columnType);
+        valueEncoding, columnName, columnType.toString());
 
   }
 

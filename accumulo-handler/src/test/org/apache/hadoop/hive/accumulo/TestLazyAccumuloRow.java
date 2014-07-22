@@ -130,7 +130,8 @@ public class TestLazyAccumuloRow {
             ":rowid#s,personal:given_name#s,personal:surname#s,personal:age,personal:weight,personal:height");
     props.setProperty(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columns));
     props.setProperty(serdeConstants.LIST_COLUMN_TYPES, Joiner.on(',').join(types));
-    props.setProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, ColumnEncoding.BINARY.getName());
+    props
+        .setProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, ColumnEncoding.BINARY.getName());
 
     AccumuloSerDeParameters params = new AccumuloSerDeParameters(new Configuration(), props,
         AccumuloSerDe.class.getName());

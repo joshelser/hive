@@ -17,7 +17,6 @@
 package org.apache.hadoop.hive.accumulo.columns;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -79,7 +78,8 @@ public class TestColumnMapper {
   @Test(expected = IllegalArgumentException.class)
   public void testMultipleRowIDsFails() throws TooManyAccumuloColumnsException {
     new ColumnMapper(AccumuloHiveConstants.ROWID + AccumuloHiveConstants.COMMA
-        + AccumuloHiveConstants.ROWID, null, Arrays.asList("row", "row2"), Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo));
+        + AccumuloHiveConstants.ROWID, null, Arrays.asList("row", "row2"),
+        Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo));
   }
 
   @Test
@@ -146,13 +146,15 @@ public class TestColumnMapper {
   public void testMap() throws TooManyAccumuloColumnsException {
     List<String> hiveColumns = Arrays.asList("rowid", "col1", "col2", "col3");
     List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
-        TypeInfoFactory.getMapTypeInfo(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo),
-        TypeInfoFactory.getMapTypeInfo(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo),
+        TypeInfoFactory.getMapTypeInfo(TypeInfoFactory.stringTypeInfo,
+            TypeInfoFactory.stringTypeInfo), TypeInfoFactory.getMapTypeInfo(
+            TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo),
         TypeInfoFactory.stringTypeInfo);
     List<String> rawMappings = Arrays.asList(AccumuloHiveConstants.ROWID, "cf1:*", "cf2:2*",
         "cq3:bar\\*");
     ColumnMapper mapper = new ColumnMapper(
-        Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName(), hiveColumns, columnTypes);
+        Joiner.on(AccumuloHiveConstants.COMMA).join(rawMappings), ColumnEncoding.BINARY.getName(),
+        hiveColumns, columnTypes);
 
     List<ColumnMapping> mappings = mapper.getColumnMappings();
     Assert.assertEquals(4, mappings.size());

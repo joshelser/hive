@@ -29,8 +29,8 @@ public class InvalidColumnMappingException extends IllegalArgumentException {
 
   public InvalidColumnMappingException(String msg) {
     super(msg);
- }
-  
+  }
+
   public InvalidColumnMappingException(String message, Throwable cause) {
     super(message, cause);
   }

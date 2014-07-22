@@ -24,8 +24,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.BatchWriter;
@@ -40,7 +38,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveConstants;
 import org.apache.hadoop.hive.accumulo.AccumuloHiveRow;
-import org.apache.hadoop.hive.accumulo.AccumuloHiveRow.ColumnTuple;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
 import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
@@ -108,8 +105,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
-import com.google.common.base.Joiner;
-
 /**
  * 
  */
@@ -138,9 +133,11 @@ public class TestHiveAccumuloTypes {
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, AccumuloHiveConstants.ROWID
         + ",cf:string,cf:boolean,cf:tinyint,cf:smallint,cf:int,cf:bigint"
         + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp,cf:char,cf:varchar");
-    conf.set(serdeConstants.LIST_COLUMNS,
+    conf.set(
+        serdeConstants.LIST_COLUMNS,
         "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
-    conf.set(serdeConstants.LIST_COLUMN_TYPES,
+    conf.set(
+        serdeConstants.LIST_COLUMN_TYPES,
         "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
     conf.set(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, "binary");
 
@@ -257,8 +254,7 @@ public class TestHiveAccumuloTypes {
     HiveChar charValue = new HiveChar("char", 4);
     JavaHiveCharObjectInspector charOI = (JavaHiveCharObjectInspector) PrimitiveObjectInspectorFactory
         .getPrimitiveJavaObjectInspector(new CharTypeInfo(4));
-    LazyUtils.writePrimitiveUTF8(baos, charOI.create(charValue), charOI, false, (byte) 0,
-        null);
+    LazyUtils.writePrimitiveUTF8(baos, charOI.create(charValue), charOI, false, (byte) 0, null);
     m.put(cfBytes, "char".getBytes(), baos.toByteArray());
 
     baos.reset();
@@ -464,7 +460,8 @@ public class TestHiveAccumuloTypes {
     LazyHiveVarchar lazyVarchar = (LazyHiveVarchar) LazyFactory.createLazyObject(lazyVarcharOI);
     lazyVarchar.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(varcharValue.toString(), lazyVarchar.getWritableObject().getHiveVarchar().toString());
+    Assert.assertEquals(varcharValue.toString(), lazyVarchar.getWritableObject().getHiveVarchar()
+        .toString());
   }
 
   @Test
@@ -487,9 +484,11 @@ public class TestHiveAccumuloTypes {
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, AccumuloHiveConstants.ROWID
         + ",cf:string,cf:boolean,cf:tinyint,cf:smallint,cf:int,cf:bigint"
         + ",cf:float,cf:double,cf:decimal,cf:date,cf:timestamp,cf:char,cf:varchar");
-    conf.set(serdeConstants.LIST_COLUMNS,
+    conf.set(
+        serdeConstants.LIST_COLUMNS,
         "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
-    conf.set(serdeConstants.LIST_COLUMN_TYPES,
+    conf.set(
+        serdeConstants.LIST_COLUMN_TYPES,
         "string,string,boolean,tinyint,smallint,int,bigint,float,double,decimal,date,timestamp,char(4),varchar(7)");
 
     conn.tableOperations().create(tableName);
@@ -621,7 +620,8 @@ public class TestHiveAccumuloTypes {
     HiveVarchar varcharValue = new HiveVarchar("varchar", 7);
     JavaHiveVarcharObjectInspector varcharOI = (JavaHiveVarcharObjectInspector) PrimitiveObjectInspectorFactory
         .getPrimitiveJavaObjectInspector(new VarcharTypeInfo(7));
-    LazyUtils.writePrimitiveUTF8(baos, varcharOI.create(varcharValue), varcharOI, false, (byte) 0, null);
+    LazyUtils.writePrimitiveUTF8(baos, varcharOI.create(varcharValue), varcharOI, false, (byte) 0,
+        null);
     m.put(cfBytes, "varchar".getBytes(), baos.toByteArray());
 
     writer.addMutation(m);
@@ -820,6 +820,7 @@ public class TestHiveAccumuloTypes {
     LazyHiveVarchar lazyVarchar = (LazyHiveVarchar) LazyFactory.createLazyObject(lazyVarcharOI);
     lazyVarchar.init(byteRef, 0, valueBytes.length);
 
-    Assert.assertEquals(varcharValue.toString(), lazyVarchar.getWritableObject().getHiveVarchar().toString());
+    Assert.assertEquals(varcharValue.toString(), lazyVarchar.getWritableObject().getHiveVarchar()
+        .toString());
   }
 }

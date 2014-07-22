@@ -30,7 +30,8 @@ import com.google.common.collect.Lists;
  * 
  * Delegates to PrimitiveCompare and CompareOpt instances for value acceptance.
  * 
- * The PrimitiveCompare strategy assumes a consistent value type for the same column family and qualifier.
+ * The PrimitiveCompare strategy assumes a consistent value type for the same column family and
+ * qualifier.
  * 
  */
 public class PrimitiveComparisonFilter extends WholeRowIterator {
@@ -84,12 +85,14 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
   }
 
   @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options, IteratorEnvironment env) throws IOException {
+  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+      IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     String serializedColumnMapping = options.get(COLUMN);
     Entry<String,String> pair = ColumnMappingFactory.parseMapping(serializedColumnMapping);
 
-    // The ColumnEncoding, column name and type are all irrelevant at this point, just need the cf:[cq]
+    // The ColumnEncoding, column name and type are all irrelevant at this point, just need the
+    // cf:[cq]
     columnMapping = new HiveAccumuloColumnMapping(pair.getKey(), pair.getValue(),
         ColumnEncoding.STRING, "column", TypeInfoFactory.stringTypeInfo);
     columnMappingFamily = new Text(columnMapping.getColumnFamily());

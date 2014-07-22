@@ -47,6 +47,7 @@ public class TestLazyAccumuloMap {
     out.close();
     return baos.toByteArray();
   }
+
   @Test
   public void testStringMapWithProjection() throws SerDeException {
     AccumuloHiveRow row = new AccumuloHiveRow("row");
@@ -63,9 +64,9 @@ public class TestLazyAccumuloMap {
 
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
-    ObjectInspector oi = LazyFactory.createLazyObjectInspector(
-      TypeInfoUtils.getTypeInfosFromTypeString("map<string,string>").get(0),
-      new byte[]{(byte)1, (byte)2}, 0, nullSequence, false, (byte)0);
+    ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
+        .getTypeInfosFromTypeString("map<string,string>").get(0), new byte[] {(byte) 1, (byte) 2},
+        0, nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
     map.init(row, mapping);
@@ -95,9 +96,9 @@ public class TestLazyAccumuloMap {
 
     // Map of Integer to Integer
     Text nullSequence = new Text("\\N");
-    ObjectInspector oi = LazyFactory.createLazyObjectInspector(
-      TypeInfoUtils.getTypeInfosFromTypeString("map<int,int>").get(0),
-      new byte[]{(byte)1, (byte)2}, 0, nullSequence, false, (byte)0);
+    ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
+        .getTypeInfosFromTypeString("map<int,int>").get(0), new byte[] {(byte) 1, (byte) 2}, 0,
+        nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
     map.init(row, mapping);
@@ -131,9 +132,9 @@ public class TestLazyAccumuloMap {
 
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
-    ObjectInspector oi = LazyFactory.createLazyObjectInspector(
-      TypeInfoUtils.getTypeInfosFromTypeString("map<int,int>").get(0),
-      new byte[]{(byte)1, (byte)2}, 0, nullSequence, false, (byte)0);
+    ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
+        .getTypeInfosFromTypeString("map<int,int>").get(0), new byte[] {(byte) 1, (byte) 2}, 0,
+        nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
     map.init(row, mapping);
@@ -167,9 +168,9 @@ public class TestLazyAccumuloMap {
 
     // Map of Integer to String
     Text nullSequence = new Text("\\N");
-    ObjectInspector oi = LazyFactory.createLazyObjectInspector(
-      TypeInfoUtils.getTypeInfosFromTypeString("map<int,int>").get(0),
-      new byte[]{(byte)1, (byte)2}, 0, nullSequence, false, (byte)0);
+    ObjectInspector oi = LazyFactory.createLazyObjectInspector(TypeInfoUtils
+        .getTypeInfosFromTypeString("map<int,int>").get(0), new byte[] {(byte) 1, (byte) 2}, 0,
+        nullSequence, false, (byte) 0);
 
     LazyAccumuloMap map = new LazyAccumuloMap((LazyMapObjectInspector) oi);
     map.init(row, mapping);

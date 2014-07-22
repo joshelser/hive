@@ -48,7 +48,8 @@ import org.apache.log4j.Logger;
 import com.google.common.base.Preconditions;
 
 /**
- * Accumulo doesn't have a TableMapReduceUtil.addDependencyJars method like HBase which is very helpful
+ * Accumulo doesn't have a TableMapReduceUtil.addDependencyJars method like HBase which is very
+ * helpful
  */
 public class Utils {
   private static final Logger log = Logger.getLogger(Utils.class);
@@ -88,10 +89,12 @@ public class Utils {
   }
 
   /**
-   * If org.apache.hadoop.util.JarFinder is available (0.23+ hadoop), finds the Jar for a class or creates it if it doesn't exist. If the class is in a
-   * directory in the classpath, it creates a Jar on the fly with the contents of the directory and returns the path to that Jar. If a Jar is created, it is
-   * created in the system temporary directory. Otherwise, returns an existing jar that contains a class of the same name. Maintains a mapping from jar contents
-   * to the tmp jar created.
+   * If org.apache.hadoop.util.JarFinder is available (0.23+ hadoop), finds the Jar for a class or
+   * creates it if it doesn't exist. If the class is in a directory in the classpath, it creates a
+   * Jar on the fly with the contents of the directory and returns the path to that Jar. If a Jar is
+   * created, it is created in the system temporary directory. Otherwise, returns an existing jar
+   * that contains a class of the same name. Maintains a mapping from jar contents to the tmp jar
+   * created.
    * 
    * @param my_class
    *          the class to find.
@@ -102,7 +105,9 @@ public class Utils {
    * @return a jar file that contains the class.
    * @throws IOException
    */
-  private static Path findOrCreateJar(Class<?> my_class, FileSystem fs, Map<String,String> packagedClasses) throws IOException {
+  @SuppressWarnings("deprecation")
+  private static Path findOrCreateJar(Class<?> my_class, FileSystem fs,
+      Map<String,String> packagedClasses) throws IOException {
     // attempt to locate an existing jar for the class.
     String jar = findContainingJar(my_class, packagedClasses);
     if (null == jar || jar.isEmpty()) {
@@ -119,7 +124,8 @@ public class Utils {
   }
 
   /**
-   * Add entries to <code>packagedClasses</code> corresponding to class files contained in <code>jar</code>.
+   * Add entries to <code>packagedClasses</code> corresponding to class files contained in
+   * <code>jar</code>.
    * 
    * @param jar
    *          The jar who's content to list.
@@ -146,15 +152,17 @@ public class Utils {
   }
 
   /**
-   * Find a jar that contains a class of the same name, if any. It will return a jar file, even if that is not the first thing on the class path that has a
-   * class with the same name. Looks first on the classpath and then in the <code>packagedClasses</code> map.
+   * Find a jar that contains a class of the same name, if any. It will return a jar file, even if
+   * that is not the first thing on the class path that has a class with the same name. Looks first
+   * on the classpath and then in the <code>packagedClasses</code> map.
    * 
    * @param my_class
    *          the class to find.
    * @return a jar file that contains the class, or null.
    * @throws IOException
    */
-  private static String findContainingJar(Class<?> my_class, Map<String,String> packagedClasses) throws IOException {
+  private static String findContainingJar(Class<?> my_class, Map<String,String> packagedClasses)
+      throws IOException {
     ClassLoader loader = my_class.getClassLoader();
     String class_file = my_class.getName().replaceAll("\\.", "/") + ".class";
 
@@ -185,8 +193,9 @@ public class Utils {
   }
 
   /**
-   * Invoke 'getJar' on a JarFinder implementation. Useful for some job configuration contexts (HBASE-8140) and also for testing on MRv2. First check if we have
-   * HADOOP-9426. Lacking that, fall back to the backport.
+   * Invoke 'getJar' on a JarFinder implementation. Useful for some job configuration contexts
+   * (HBASE-8140) and also for testing on MRv2. First check if we have HADOOP-9426. Lacking that,
+   * fall back to the backport.
    * 
    * @param my_class
    *          the class to find.
@@ -266,7 +275,8 @@ public class Utils {
     return null;
   }
 
-  private static void copyToZipStream(InputStream is, ZipEntry entry, ZipOutputStream zos) throws IOException {
+  private static void copyToZipStream(InputStream is, ZipEntry entry, ZipOutputStream zos)
+      throws IOException {
     zos.putNextEntry(entry);
     byte[] arr = new byte[4096];
     int read = is.read(arr);
@@ -300,7 +310,8 @@ public class Utils {
     zos.close();
   }
 
-  private static void zipDir(File dir, String relativePath, ZipOutputStream zos, boolean start) throws IOException {
+  private static void zipDir(File dir, String relativePath, ZipOutputStream zos, boolean start)
+      throws IOException {
     String[] dirList = dir.list();
     for (String aDirList : dirList) {
       File f = new File(dir, aDirList);

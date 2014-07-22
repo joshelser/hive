@@ -25,7 +25,6 @@ import com.google.common.base.Preconditions;
  */
 public class HiveColumn {
 
-
   // The name of this column in the Hive schema
   protected final String columnName;
 

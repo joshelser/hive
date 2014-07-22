@@ -63,7 +63,8 @@ public class AccumuloRangeGenerator implements NodeProcessor {
   private final HiveAccumuloRowIdColumnMapping rowIdMapping;
   private final String hiveRowIdColumnName;
 
-  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler, HiveAccumuloRowIdColumnMapping rowIdMapping, String hiveRowIdColumnName) {
+  public AccumuloRangeGenerator(AccumuloPredicateHandler predicateHandler,
+      HiveAccumuloRowIdColumnMapping rowIdMapping, String hiveRowIdColumnName) {
     this.predicateHandler = predicateHandler;
     this.rowIdMapping = rowIdMapping;
     this.hiveRowIdColumnName = hiveRowIdColumnName;
@@ -82,7 +83,7 @@ public class AccumuloRangeGenerator implements NodeProcessor {
     // 'and' nodes need to be intersected
     if (FunctionRegistry.isOpAnd(func)) {
       return processAndOpNode(nd, nodeOutputs);
-    // 'or' nodes need to be merged
+      // 'or' nodes need to be merged
     } else if (FunctionRegistry.isOpOr(func)) {
       return processOrOpNode(nd, nodeOutputs);
     } else if (FunctionRegistry.isOpNot(func)) {
@@ -152,7 +153,8 @@ public class AccumuloRangeGenerator implements NodeProcessor {
         }
       } else {
         log.error("Expected Range from {} but got {}", nd, nodeOutput);
-        throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
+        throw new IllegalArgumentException("Expected Range but got "
+            + nodeOutput.getClass().getName());
       }
     }
 
@@ -170,14 +172,15 @@ public class AccumuloRangeGenerator implements NodeProcessor {
         orRanges.addAll(childRanges);
       } else {
         log.error("Expected Range from " + nd + " but got " + nodeOutput);
-        throw new IllegalArgumentException("Expected Range but got " + nodeOutput.getClass().getName());
+        throw new IllegalArgumentException("Expected Range but got "
+            + nodeOutput.getClass().getName());
       }
     }
 
     // Try to merge multiple ranges together
     if (orRanges.size() > 1) {
       return Range.mergeOverlapping(orRanges);
-    } else if (1 == orRanges.size()){
+    } else if (1 == orRanges.size()) {
       // Return just the single Range
       return orRanges.get(0);
     } else {
@@ -226,7 +229,8 @@ public class AccumuloRangeGenerator implements NodeProcessor {
         sb.append("no column");
       }
 
-      throw new IllegalArgumentException("Expected a column and a constant but found " + sb.toString());
+      throw new IllegalArgumentException("Expected a column and a constant but found "
+          + sb.toString());
     }
 
     // Reject any clauses that are against a column that isn't the rowId mapping
@@ -249,7 +253,8 @@ public class AccumuloRangeGenerator implements NodeProcessor {
         }
         break;
       default:
-        throw new SemanticException("Unable to parse unknown encoding: "+ rowIdMapping.getEncoding());
+        throw new SemanticException("Unable to parse unknown encoding: "
+            + rowIdMapping.getEncoding());
     }
 
     Class<? extends CompareOp> opClz;
@@ -311,10 +316,11 @@ public class AccumuloRangeGenerator implements NodeProcessor {
   }
 
   /**
-   * Attempts to construct the binary value from the given inspector. Falls back
-   * to UTF8 encoding when the value cannot be coerced into binary.
+   * Attempts to construct the binary value from the given inspector. Falls back to UTF8 encoding
+   * when the value cannot be coerced into binary.
+   * 
    * @return Binary value when possible, utf8 otherwise
-   * @throws IOException 
+   * @throws IOException
    */
   protected Text getBinaryValue(ConstantObjectInspector objInspector) throws IOException {
     ByteArrayOutputStream out = new ByteArrayOutputStream();

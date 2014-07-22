@@ -61,7 +61,8 @@ public class HiveAccumuloTableOutputFormat extends AccumuloOutputFormat {
         setAccumuloMockInstance(job, cnxnParams.getAccumuloInstanceName());
       } else {
         // Accumulo instance name with ZK quorum
-        setAccumuloZooKeeperInstance(job, cnxnParams.getAccumuloInstanceName(), cnxnParams.getZooKeepers());
+        setAccumuloZooKeeperInstance(job, cnxnParams.getAccumuloInstanceName(),
+            cnxnParams.getZooKeepers());
       }
 
       // Set the table where we're writing this data
@@ -81,8 +82,7 @@ public class HiveAccumuloTableOutputFormat extends AccumuloOutputFormat {
 
   protected void setAccumuloZooKeeperInstance(JobConf conf, String instanceName, String zookeepers) {
     AccumuloOutputFormat.setZooKeeperInstance(conf,
-        ClientConfiguration.loadDefault().withInstance(instanceName)
-            .withZkHosts(zookeepers));
+        ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers));
   }
 
   protected void setAccumuloMockInstance(JobConf conf, String instanceName) {

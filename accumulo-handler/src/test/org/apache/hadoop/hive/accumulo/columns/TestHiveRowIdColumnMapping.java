@@ -26,7 +26,8 @@ public class TestHiveRowIdColumnMapping {
 
   @Test(expected = IllegalArgumentException.class)
   public void testNonRowIdMappingFails() {
-    new HiveAccumuloRowIdColumnMapping("foo", ColumnEncoding.STRING, "col", TypeInfoFactory.stringTypeInfo);
+    new HiveAccumuloRowIdColumnMapping("foo", ColumnEncoding.STRING, "col",
+        TypeInfoFactory.stringTypeInfo);
   }
 
 }

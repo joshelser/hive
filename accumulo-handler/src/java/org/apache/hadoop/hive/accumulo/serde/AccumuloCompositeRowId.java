@@ -40,17 +40,16 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructField;
  * for the above example, the value returned for <i>getField(0)</i> should be </i>part1</i>,
  * <i>getField(1)</i> should be <i>part2</i> and <i>getField(2)</i> should be <i>part3</i>.
  * </p>
- * 
+ *
  * <p>
  * All custom implementation are expected to have a constructor of the form:
- * 
+ *
  * <pre>
  * MyCustomCompositeKey(LazySimpleStructObjectInspector oi, Properties tbl, Configuration conf)
  * </pre>
- *
  * </p>
- * 
- * */
+ *
+ */
 public class AccumuloCompositeRowId extends LazyStruct {
 
   public AccumuloCompositeRowId(LazySimpleStructObjectInspector oi) {
@@ -72,7 +71,7 @@ public class AccumuloCompositeRowId extends LazyStruct {
 
   /**
    * Create an initialize a {@link LazyObject} with the given bytes for the given fieldID.
-   * 
+   *
    * @param fieldID
    *          field for which the object is to be created
    * @param bytes
@@ -82,8 +81,7 @@ public class AccumuloCompositeRowId extends LazyStruct {
   public LazyObject<? extends ObjectInspector> toLazyObject(int fieldID, byte[] bytes) {
     ObjectInspector fieldOI = oi.getAllStructFieldRefs().get(fieldID).getFieldObjectInspector();
 
-    LazyObject<? extends ObjectInspector> lazyObject = LazyFactory
-        .createLazyObject(fieldOI);
+    LazyObject<? extends ObjectInspector> lazyObject = LazyFactory.createLazyObject(fieldOI);
 
     ByteArrayRef ref = new ByteArrayRef();
 

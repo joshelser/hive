@@ -86,7 +86,7 @@ public class AccumuloHiveRow implements Writable {
   @Override
   public boolean equals(Object o) {
     if (o instanceof AccumuloHiveRow) {
-      AccumuloHiveRow other = (AccumuloHiveRow) o; 
+      AccumuloHiveRow other = (AccumuloHiveRow) o;
       if (null == rowId) {
         if (null != other.rowId) {
           return false;

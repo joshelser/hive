@@ -118,7 +118,8 @@ public class TestDoubleCompare {
       assertTrue(likeObj.accept(new byte[] {}));
       fail("should not accept");
     } catch (UnsupportedOperationException e) {
-      assertTrue(e.getMessage().contains("Like not supported for " + doubleCompare.getClass().getName()));
+      assertTrue(e.getMessage().contains(
+          "Like not supported for " + doubleCompare.getClass().getName()));
     }
   }
 

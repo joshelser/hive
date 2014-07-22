@@ -92,7 +92,8 @@ public class TestAccumuloStorageHandler {
     props.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, "cf:cq1,cf:cq2,cf:cq3");
     props.setProperty(AccumuloSerDeParameters.TABLE_NAME, "table");
     props.setProperty(AccumuloSerDeParameters.ITERATOR_PUSHDOWN_KEY, "true");
-    props.setProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, ColumnEncoding.BINARY.getName());
+    props
+        .setProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, ColumnEncoding.BINARY.getName());
     props.setProperty(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo,bar");
 
     Mockito.when(tableDesc.getProperties()).thenReturn(props);
@@ -158,7 +159,8 @@ public class TestAccumuloStorageHandler {
     TableDesc tableDesc = Mockito.mock(TableDesc.class);
     Map<String,String> jobProperties = new HashMap<String,String>();
 
-    Mockito.doCallRealMethod().when(mockStorageHandler).configureTableJobProperties(tableDesc, jobProperties);
+    Mockito.doCallRealMethod().when(mockStorageHandler)
+        .configureTableJobProperties(tableDesc, jobProperties);
 
     // configureTableJobProperties shouldn't be getting called by Hive, but, if it somehow does,
     // we should just set all of the configurations for input and output.

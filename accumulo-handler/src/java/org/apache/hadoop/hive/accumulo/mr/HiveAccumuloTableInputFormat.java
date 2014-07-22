@@ -174,7 +174,8 @@ public class HiveAccumuloTableInputFormat implements
     }
   }
 
-  protected ColumnMapper getColumnMapper(Configuration conf) throws IOException, TooManyAccumuloColumnsException {
+  protected ColumnMapper getColumnMapper(Configuration conf) throws IOException,
+      TooManyAccumuloColumnsException {
     final String defaultStorageType = conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE);
 
     String[] columnNamesArr = conf.getStrings(serdeConstants.LIST_COLUMNS);

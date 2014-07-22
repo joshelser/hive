@@ -70,7 +70,8 @@ public class TestAccumuloHiveRow {
     assertNull(row.getValue(new Text("cf"), new Text("cq0")));
 
     for (int i = 1; i <= 5; i++) {
-      assertArrayEquals(Integer.toString(i).getBytes(), row.getValue(new Text("cf"), new Text("cq" + i)));
+      assertArrayEquals(Integer.toString(i).getBytes(),
+          row.getValue(new Text("cf"), new Text("cq" + i)));
     }
   }
 

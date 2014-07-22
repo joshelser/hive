@@ -40,9 +40,10 @@ public class TestAccumuloSerDeParameters {
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3");
     properties.setProperty(serdeConstants.LIST_TYPE_NAME, "string,string,string");
     properties.setProperty(AccumuloSerDeParameters.VISIBILITY_LABEL_KEY, "foo&bar");
-   
-    AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties, AccumuloSerDe.class.getName());
-   
+
+    AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties,
+        AccumuloSerDe.class.getName());
+
     ColumnVisibility cv = params.getTableVisibilityLabel();
 
     Assert.assertEquals(new ColumnVisibility("foo&bar"), cv);
@@ -67,7 +68,8 @@ public class TestAccumuloSerDeParameters {
     properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string,string,string");
     properties.setProperty(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo,bar");
 
-    AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties, AccumuloSerDe.class.getName());
+    AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties,
+        AccumuloSerDe.class.getName());
 
     Authorizations auths = params.getAuthorizations();
     Assert.assertEquals(new Authorizations("foo,bar"), auths);
@@ -82,7 +84,8 @@ public class TestAccumuloSerDeParameters {
     properties.setProperty(serdeConstants.LIST_COLUMNS, "field1,field2,field3");
     properties.setProperty(serdeConstants.LIST_COLUMN_TYPES, "string,string,string");
 
-    AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties, AccumuloSerDe.class.getName());
+    AccumuloSerDeParameters params = new AccumuloSerDeParameters(conf, properties,
+        AccumuloSerDe.class.getName());
 
     Authorizations auths = params.getAuthorizations();
     Assert.assertNull(auths);

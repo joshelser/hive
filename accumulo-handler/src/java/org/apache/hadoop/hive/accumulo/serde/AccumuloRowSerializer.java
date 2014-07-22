@@ -45,7 +45,8 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ * Serializes a Struct to an Accumulo row as per the definition provided by the
+ * {@link ColumnMapping}s
  */
 public class AccumuloRowSerializer {
   private static final Logger log = Logger.getLogger(AccumuloRowSerializer.class);
@@ -95,9 +96,11 @@ public class AccumuloRowSerializer {
     // The ObjectInspector for the row ID
     ObjectInspector fieldObjectInspector = field.getFieldObjectInspector();
 
-    log.info("Serializing rowId with " + value + " in " + field + " using " + rowIdFactory.getClass());
+    log.info("Serializing rowId with " + value + " in " + field + " using "
+        + rowIdFactory.getClass());
 
-    // Serialize the row component
+    // Serialize the row component using the RowIdFactory. In the normal case, this will just
+    // delegate back to the "local" serializeRowId method
     byte[] data = rowIdFactory.serializeRowId(value, field, output);
 
     // Set that as the row id in the mutation
@@ -149,6 +152,9 @@ public class AccumuloRowSerializer {
         visibility, serializedValue);
   }
 
+  /**
+   * Serialize the Hive Map into an Accumulo row
+   */
   protected void serializeColumnMapping(HiveAccumuloMapColumnMapping columnMapping,
       ObjectInspector fieldObjectInspector, Object value, Mutation mutation) throws IOException {
     MapObjectInspector mapObjectInspector = (MapObjectInspector) fieldObjectInspector;
@@ -186,6 +192,9 @@ public class AccumuloRowSerializer {
     }
   }
 
+  /**
+   * Serialize an Accumulo rowid
+   */
   protected byte[] serializeRowId(Object rowId, StructField rowIdField, ColumnMapping keyMapping)
       throws IOException {
     if (rowId == null) {
@@ -213,9 +222,7 @@ public class AccumuloRowSerializer {
    * Compute the serialized value from the given element and object inspectors. Based on the Hive
    * types, represented through the ObjectInspectors for the whole object and column within the
    * object, serialize the object appropriately.
-   * 
-   * @param objectInspector
-   *          ObjectInspector for the larger object being serialized
+   *
    * @param fieldObjectInspector
    *          ObjectInspector for the column value being serialized
    * @param value
@@ -236,13 +243,25 @@ public class AccumuloRowSerializer {
       writeSerializedPrimitive((PrimitiveObjectInspector) fieldObjectInspector, output, value,
           mapping.getEncoding());
     } else {
-      writeWithLevel(fieldObjectInspector, value, output, mapping, 1);
+      // We only accept a struct, which means that we're already nested one level deep
+      writeWithLevel(fieldObjectInspector, value, output, mapping, 2);
     }
 
     return output.toByteArray();
   }
 
-  protected void writeWithLevel(ObjectInspector oi, Object value, ByteStream.Output output, ColumnMapping mapping, int level) throws IOException {
+  /**
+   * Recursively serialize an Object using its {@link ObjectInspector}, respecting the
+   * separators defined by the {@link SerDeParameters}.
+   * @param oi ObjectInspector for the current object
+   * @param value The current object
+   * @param output A buffer output is written to
+   * @param mapping The mapping for this Hive column
+   * @param level The current level/offset for the SerDe separator
+   * @throws IOException
+   */
+  protected void writeWithLevel(ObjectInspector oi, Object value, ByteStream.Output output,
+      ColumnMapping mapping, int level) throws IOException {
     switch (oi.getCategory()) {
       case PRIMITIVE:
         if (mapping.getEncoding() == ColumnEncoding.BINARY) {
@@ -270,26 +289,26 @@ public class AccumuloRowSerializer {
         return;
       case MAP:
         char sep = (char) serDeParams.getSeparators()[level];
-        char keyValueSeparator = (char) serDeParams.getSeparators()[level+1];
+        char keyValueSeparator = (char) serDeParams.getSeparators()[level + 1];
         MapObjectInspector moi = (MapObjectInspector) oi;
         ObjectInspector koi = moi.getMapKeyObjectInspector();
         ObjectInspector voi = moi.getMapValueObjectInspector();
 
-        Map<?, ?> map = moi.getMap(value);
+        Map<?,?> map = moi.getMap(value);
         if (map == null) {
           log.debug("No object found when serializing map");
           return;
         } else {
           boolean first = true;
-          for (Map.Entry<?, ?> entry: map.entrySet()) {
+          for (Map.Entry<?,?> entry : map.entrySet()) {
             if (first) {
               first = false;
             } else {
               output.write(sep);
             }
-            writeWithLevel(koi, entry.getKey(), output, mapping, level+2);
+            writeWithLevel(koi, entry.getKey(), output, mapping, level + 2);
             output.write(keyValueSeparator);
-            writeWithLevel(voi, entry.getValue(), output, mapping, level+2);
+            writeWithLevel(voi, entry.getValue(), output, mapping, level + 2);
           }
         }
         return;
@@ -307,7 +326,8 @@ public class AccumuloRowSerializer {
               output.write(sep);
             }
 
-            writeWithLevel(fields.get(i).getFieldObjectInspector(), list.get(i), output, mapping, level + 1);
+            writeWithLevel(fields.get(i).getFieldObjectInspector(), list.get(i), output, mapping,
+                level + 1);
           }
         }
 
@@ -320,7 +340,7 @@ public class AccumuloRowSerializer {
   /**
    * Serialize the given primitive to the given output buffer, using the provided encoding
    * mechanism.
-   * 
+   *
    * @param objectInspector
    *          The PrimitiveObjectInspector for this Object
    * @param output

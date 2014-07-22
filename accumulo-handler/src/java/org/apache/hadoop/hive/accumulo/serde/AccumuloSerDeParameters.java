@@ -65,7 +65,8 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   private SerDeParameters lazySerDeParameters;
   private AccumuloRowIdFactory rowIdFactory;
 
-  public AccumuloSerDeParameters(Configuration conf, Properties tableProperties, String serdeName) throws SerDeException {
+  public AccumuloSerDeParameters(Configuration conf, Properties tableProperties, String serdeName)
+      throws SerDeException {
     super(conf);
     this.tableProperties = tableProperties;
     this.serdeName = serdeName;
@@ -75,7 +76,8 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     // The default encoding for this table when not otherwise specified
     String defaultStorage = tableProperties.getProperty(DEFAULT_STORAGE_TYPE);
 
-    columnMapper = new ColumnMapper(getColumnMappingValue(), defaultStorage, lazySerDeParameters.getColumnNames(), lazySerDeParameters.getColumnTypes());
+    columnMapper = new ColumnMapper(getColumnMappingValue(), defaultStorage,
+        lazySerDeParameters.getColumnNames(), lazySerDeParameters.getColumnTypes());
 
     log.info("Constructed column mapping " + columnMapper);
 
@@ -85,16 +87,18 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     }
 
     if (columnMapper.size() < lazySerDeParameters.getColumnNames().size()) {
-      throw new TooManyHiveColumnsException("You have more " + COLUMN_MAPPINGS + " fields than hive columns");
+      throw new TooManyHiveColumnsException("You have more " + COLUMN_MAPPINGS
+          + " fields than hive columns");
     } else if (columnMapper.size() > lazySerDeParameters.getColumnNames().size()) {
-      throw new TooManyAccumuloColumnsException("You have more hive columns than fields mapped with " + COLUMN_MAPPINGS);
+      throw new TooManyAccumuloColumnsException(
+          "You have more hive columns than fields mapped with " + COLUMN_MAPPINGS);
     }
 
     this.rowIdFactory = initRowIdFactory(conf, tableProperties);
   }
 
-
-  protected AccumuloRowIdFactory initRowIdFactory(Configuration conf, Properties tbl) throws SerDeException {
+  protected AccumuloRowIdFactory initRowIdFactory(Configuration conf, Properties tbl)
+      throws SerDeException {
     try {
       AccumuloRowIdFactory keyFactory = createRowIdFactory(conf, tbl);
       if (keyFactory != null) {
@@ -107,7 +111,8 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  protected AccumuloRowIdFactory createRowIdFactory(Configuration job, Properties tbl) throws Exception {
+  protected AccumuloRowIdFactory createRowIdFactory(Configuration job, Properties tbl)
+      throws Exception {
     // Try to load the composite factory if one was provided
     String factoryClassName = tbl.getProperty(COMPOSITE_ROWID_FACTORY);
     if (factoryClassName != null) {
@@ -121,7 +126,8 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
     if (keyClassName != null) {
       log.info("Loading CompositeRowId class " + keyClassName);
       Class<?> keyClass = Class.forName(keyClassName);
-      Class<? extends AccumuloCompositeRowId> compositeRowIdClass = keyClass.asSubclass(AccumuloCompositeRowId.class);
+      Class<? extends AccumuloCompositeRowId> compositeRowIdClass = keyClass
+          .asSubclass(AccumuloCompositeRowId.class);
       return new CompositeAccumuloRowIdFactory(compositeRowIdClass);
     }
 
@@ -188,7 +194,8 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
 
     List<String> hiveColumnNames = lazySerDeParameters.getColumnNames();
     if (0 > rowIdOffset || hiveColumnNames.size() <= rowIdOffset) {
-      throw new IllegalStateException("Tried to find rowID offset at position " + rowIdOffset + " from Hive columns " + hiveColumnNames);
+      throw new IllegalStateException("Tried to find rowID offset at position " + rowIdOffset
+          + " from Hive columns " + hiveColumnNames);
     }
 
     return hiveColumnNames.get(rowIdOffset);

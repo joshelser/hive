@@ -177,8 +177,7 @@ public class AccumuloPredicateHandler {
    * Loop through search conditions and build ranges for predicates involving rowID column, if any.
    * 
    */
-  public List<Range> getRanges(Configuration conf, ColumnMapper columnMapper)
-      throws SerDeException {
+  public List<Range> getRanges(Configuration conf, ColumnMapper columnMapper) throws SerDeException {
     if (!columnMapper.hasRowIdMapping()) {
       return TOTAL_RANGE;
     }
@@ -200,8 +199,10 @@ public class AccumuloPredicateHandler {
       return TOTAL_RANGE;
     }
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, columnMapper.getRowIdMapping(), hiveRowIdColumnName);
-    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler,
+        columnMapper.getRowIdMapping(), hiveRowIdColumnName);
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> roots = new ArrayList<Node>();
     roots.add(root);
@@ -323,6 +324,7 @@ public class AccumuloPredicateHandler {
 
     return Utilities.deserializeExpression(filteredExprSerialized);
   }
+
   /**
    * 
    * @param conf

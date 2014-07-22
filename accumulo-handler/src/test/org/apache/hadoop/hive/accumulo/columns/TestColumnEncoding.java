@@ -117,10 +117,11 @@ public class TestColumnEncoding {
 
   @Test
   public void testMapEncodingParsing() {
-    Entry<ColumnEncoding,ColumnEncoding> stringString = Maps.immutableEntry(ColumnEncoding.STRING, ColumnEncoding.STRING),
-        stringBinary = Maps.immutableEntry(ColumnEncoding.STRING, ColumnEncoding.BINARY),
-        binaryBinary = Maps.immutableEntry(ColumnEncoding.BINARY, ColumnEncoding.BINARY),
-        binaryString = Maps.immutableEntry(ColumnEncoding.BINARY, ColumnEncoding.STRING);
+    Entry<ColumnEncoding,ColumnEncoding> stringString = Maps.immutableEntry(ColumnEncoding.STRING,
+        ColumnEncoding.STRING), stringBinary = Maps.immutableEntry(ColumnEncoding.STRING,
+        ColumnEncoding.BINARY), binaryBinary = Maps.immutableEntry(ColumnEncoding.BINARY,
+        ColumnEncoding.BINARY), binaryString = Maps.immutableEntry(ColumnEncoding.BINARY,
+        ColumnEncoding.STRING);
 
     Assert.assertEquals(stringString, ColumnEncoding.getMapEncoding("s:s"));
     Assert.assertEquals(stringString, ColumnEncoding.getMapEncoding("s:string"));

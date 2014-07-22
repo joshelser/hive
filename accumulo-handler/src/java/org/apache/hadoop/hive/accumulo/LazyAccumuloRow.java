@@ -38,7 +38,8 @@ public class LazyAccumuloRow extends LazyStruct {
     super(inspector);
   }
 
-  public void init(AccumuloHiveRow hiveRow, List<ColumnMapping> columnMappings, AccumuloRowIdFactory rowIdFactory) {
+  public void init(AccumuloHiveRow hiveRow, List<ColumnMapping> columnMappings,
+      AccumuloRowIdFactory rowIdFactory) {
     this.row = hiveRow;
     this.columnMappings = columnMappings;
     this.rowIdFactory = rowIdFactory;
@@ -84,7 +85,7 @@ public class LazyAccumuloRow extends LazyStruct {
           ref.setData(row.getRowId().getBytes());
         } else if (columnMapping instanceof HiveAccumuloColumnMapping) {
           HiveAccumuloColumnMapping accumuloColumnMapping = (HiveAccumuloColumnMapping) columnMapping;
-  
+
           // Use the colfam and colqual to get the value
           byte[] val = row.getValue(new Text(accumuloColumnMapping.getColumnFamily()), new Text(
               accumuloColumnMapping.getColumnQualifier()));
@@ -95,10 +96,12 @@ public class LazyAccumuloRow extends LazyStruct {
             ref.setData(val);
           }
         } else {
-          log.error("Could not process ColumnMapping of type " + columnMapping.getClass() + " at offset " + id + " in column mapping: " + columnMapping.getMappingSpec());
-          throw new IllegalArgumentException("Cannot process ColumnMapping of type " + columnMapping.getClass());
+          log.error("Could not process ColumnMapping of type " + columnMapping.getClass()
+              + " at offset " + id + " in column mapping: " + columnMapping.getMappingSpec());
+          throw new IllegalArgumentException("Cannot process ColumnMapping of type "
+              + columnMapping.getClass());
         }
-  
+
         getFields()[id].init(ref, 0, ref.getData().length);
       }
 

@@ -42,9 +42,11 @@ public class HiveAccumuloMapColumnMapping extends ColumnMapping {
    *          The encoding scheme for the Accumulo values
    */
   public HiveAccumuloMapColumnMapping(String columnFamily, String columnQualifierPrefix,
-      ColumnEncoding keyEncoding, ColumnEncoding valueEncoding, String columnName, TypeInfo columnType) {
+      ColumnEncoding keyEncoding, ColumnEncoding valueEncoding, String columnName,
+      TypeInfo columnType) {
     // Try to make something reasonable to pass up to the base class
-    super((null == columnFamily ? "" : columnFamily) + AccumuloHiveConstants.COLON, valueEncoding, columnName, columnType);
+    super((null == columnFamily ? "" : columnFamily) + AccumuloHiveConstants.COLON, valueEncoding,
+        columnName, columnType);
 
     Preconditions.checkNotNull(columnFamily, "Must provide a column family");
 
@@ -92,7 +94,7 @@ public class HiveAccumuloMapColumnMapping extends ColumnMapping {
 
   @Override
   public String toString() {
-    return "[" + this.getClass().getSimpleName() + ": " + columnFamily + ":" + columnQualifierPrefix
-        + "* encoding: " + keyEncoding + ":" + valueEncoding + "]";
+    return "[" + this.getClass().getSimpleName() + ": " + columnFamily + ":"
+        + columnQualifierPrefix + "* encoding: " + keyEncoding + ":" + valueEncoding + "]";
   }
 }

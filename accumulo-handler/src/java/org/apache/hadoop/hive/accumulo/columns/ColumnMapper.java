@@ -48,7 +48,7 @@ public class ColumnMapper {
    * @param serializedColumnMappings
    *          Comma-separated list of designators that map to Accumulo columns whose offsets
    *          correspond to the Hive table schema
-   * @throws TooManyAccumuloColumnsException 
+   * @throws TooManyAccumuloColumnsException
    */
   public ColumnMapper(String serializedColumnMappings, String defaultStorageType,
       List<String> columnNames, List<TypeInfo> columnTypes) throws TooManyAccumuloColumnsException {
@@ -68,11 +68,13 @@ public class ColumnMapper {
     }
 
     if (parsedColumnMappingValue.length > columnNames.size()) {
-      throw new TooManyAccumuloColumnsException("Found " + parsedColumnMappingValue.length + " columns, but only know of " + columnNames.size() + " Hive column names");
+      throw new TooManyAccumuloColumnsException("Found " + parsedColumnMappingValue.length
+          + " columns, but only know of " + columnNames.size() + " Hive column names");
     }
 
     if (parsedColumnMappingValue.length > columnTypes.size()) {
-      throw new TooManyAccumuloColumnsException("Found " + parsedColumnMappingValue.length + " columns, but only know of " + columnNames.size() + " Hive column types");
+      throw new TooManyAccumuloColumnsException("Found " + parsedColumnMappingValue.length
+          + " columns, but only know of " + columnNames.size() + " Hive column types");
     }
 
     for (int i = 0; i < parsedColumnMappingValue.length; i++) {
@@ -171,7 +173,8 @@ public class ColumnMapper {
   public String toString() {
     StringBuilder sb = new StringBuilder(32);
     sb.append("[").append(this.getClass().getSimpleName()).append(" ");
-    sb.append(columnMappings).append(", rowIdOffset: ").append(this.rowIdOffset).append(", defaultEncoding: ");
+    sb.append(columnMappings).append(", rowIdOffset: ").append(this.rowIdOffset)
+        .append(", defaultEncoding: ");
     sb.append(this.defaultEncoding).append("]");
     return sb.toString();
   }

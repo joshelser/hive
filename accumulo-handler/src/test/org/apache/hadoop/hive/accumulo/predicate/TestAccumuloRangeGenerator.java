@@ -100,10 +100,12 @@ public class TestAccumuloRangeGenerator {
         new GenericUDFOPAnd(), bothFilters);
 
     // Should generate [f,m]
-    List<Range> expectedRanges = Arrays.asList(new Range(new Key("f"), true, new Key("m\0"), false));
+    List<Range> expectedRanges = Arrays
+        .asList(new Range(new Key("f"), true, new Key("m\0"), false));
 
     AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
-    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
     topNodes.add(both);
@@ -157,7 +159,8 @@ public class TestAccumuloRangeGenerator {
     List<Range> expectedRanges = Arrays.asList(new Range());
 
     AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
-    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
     topNodes.add(both);
@@ -229,7 +232,8 @@ public class TestAccumuloRangeGenerator {
     List<Range> expectedRanges = Arrays.asList(new Range(new Key("q"), true, null, false));
 
     AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
-    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
     topNodes.add(both);
@@ -262,8 +266,8 @@ public class TestAccumuloRangeGenerator {
     assertNotNull(node);
 
     // anythingElse <= 'foo'
-    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "anythingElse", null,
-        false);
+    ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "anythingElse",
+        null, false);
     ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.stringTypeInfo, "foo");
     List<ExprNodeDesc> children2 = Lists.newArrayList();
     children2.add(column2);
@@ -283,7 +287,8 @@ public class TestAccumuloRangeGenerator {
     List<Range> expectedRanges = Arrays.asList(new Range(new Key("f"), true, null, false));
 
     AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
-    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
     topNodes.add(both);
@@ -307,7 +312,8 @@ public class TestAccumuloRangeGenerator {
   public void testDateRangeConjunction() throws Exception {
     // rowId >= '2014-01-01'
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null, false);
-    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.dateTypeInfo, Date.valueOf("2014-01-01"));
+    ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.dateTypeInfo,
+        Date.valueOf("2014-01-01"));
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
@@ -318,7 +324,8 @@ public class TestAccumuloRangeGenerator {
     // rowId <= '2014-07-01'
     ExprNodeDesc column2 = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "rid", null,
         false);
-    ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.dateTypeInfo, Date.valueOf("2014-07-01"));
+    ExprNodeDesc constant2 = new ExprNodeConstantDesc(TypeInfoFactory.dateTypeInfo,
+        Date.valueOf("2014-07-01"));
     List<ExprNodeDesc> children2 = Lists.newArrayList();
     children2.add(column2);
     children2.add(constant2);
@@ -334,10 +341,12 @@ public class TestAccumuloRangeGenerator {
         new GenericUDFOPAnd(), bothFilters);
 
     // Should generate [2014-01-01, 2014-07-01)
-    List<Range> expectedRanges = Arrays.asList(new Range(new Key("2014-01-01"), true, new Key("2014-07-01"), false));
+    List<Range> expectedRanges = Arrays.asList(new Range(new Key("2014-01-01"), true, new Key(
+        "2014-07-01"), false));
 
     AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "rid");
-    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator, Collections.<Rule, NodeProcessor> emptyMap(), null);
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
     GraphWalker ogw = new DefaultGraphWalker(disp);
     ArrayList<Node> topNodes = new ArrayList<Node>();
     topNodes.add(both);

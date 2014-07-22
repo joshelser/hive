@@ -30,33 +30,40 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.log4j.Logger;
 
 /**
- * {@link AccumuloRowIdFactory} designed for injection of the {@link AccumuloCompositeRowId} to
- * be used to generate the Accumulo rowId. 
+ * {@link AccumuloRowIdFactory} designed for injection of the {@link AccumuloCompositeRowId} to be
+ * used to generate the Accumulo rowId. Allows for custom {@link AccumuloCompositeRowId}s to be
+ * specified without overriding the entire ObjectInspector for the Hive row.
+ *
  * @param <T>
  */
-public class CompositeAccumuloRowIdFactory<T extends AccumuloCompositeRowId> extends DefaultAccumuloRowIdFactory {
+public class CompositeAccumuloRowIdFactory<T extends AccumuloCompositeRowId> extends
+    DefaultAccumuloRowIdFactory {
 
   public static final Logger log = Logger.getLogger(CompositeAccumuloRowIdFactory.class);
 
   private final Class<T> keyClass;
   private final Constructor<T> constructor;
 
-  public CompositeAccumuloRowIdFactory(Class<T> keyClass) throws SecurityException, NoSuchMethodException {
+  public CompositeAccumuloRowIdFactory(Class<T> keyClass) throws SecurityException,
+      NoSuchMethodException {
     // see javadoc of AccumuloCompositeRowId
     this.keyClass = keyClass;
-    this.constructor = keyClass.getDeclaredConstructor(
-        LazySimpleStructObjectInspector.class, Properties.class, Configuration.class);
+    this.constructor = keyClass.getDeclaredConstructor(LazySimpleStructObjectInspector.class,
+        Properties.class, Configuration.class);
   }
 
   @Override
   public void addDependencyJars(Configuration jobConf) throws IOException {
+    // Make sure the jar containing the custom CompositeRowId is included
+    // in the mapreduce job's classpath (libjars)
     Utils.addDependencyJars(jobConf, keyClass);
   }
 
   @Override
   public T createRowId(ObjectInspector inspector) throws SerDeException {
     try {
-      return (T) constructor.newInstance(inspector, this.properties, this.accumuloSerDeParams.getConf());
+      return (T) constructor.newInstance(inspector, this.properties,
+          this.accumuloSerDeParams.getConf());
     } catch (Exception e) {
       throw new SerDeException(e);
     }

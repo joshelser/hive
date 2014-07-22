@@ -35,8 +35,8 @@ import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
 /**
- * Default implementation of the AccumuloRowIdFactory which uses the normal {@link AccumuloRowSerializer}
- * methods to serialize the field for storage into Accumulo.
+ * Default implementation of the AccumuloRowIdFactory which uses the normal
+ * {@link AccumuloRowSerializer} methods to serialize the field for storage into Accumulo.
  */
 public class DefaultAccumuloRowIdFactory implements AccumuloRowIdFactory {
 
@@ -47,12 +47,14 @@ public class DefaultAccumuloRowIdFactory implements AccumuloRowIdFactory {
   protected AccumuloRowSerializer serializer;
 
   @Override
-  public void init(AccumuloSerDeParameters accumuloSerDeParams, Properties properties) throws SerDeException {
+  public void init(AccumuloSerDeParameters accumuloSerDeParams, Properties properties)
+      throws SerDeException {
     this.accumuloSerDeParams = accumuloSerDeParams;
     this.serdeParams = accumuloSerDeParams.getSerDeParameters();
     this.properties = properties;
     this.serializer = new AccumuloRowSerializer(accumuloSerDeParams.getRowIdOffset(), serdeParams,
-        accumuloSerDeParams.getColumnMappings(), accumuloSerDeParams.getTableVisibilityLabel(), this);
+        accumuloSerDeParams.getColumnMappings(), accumuloSerDeParams.getTableVisibilityLabel(),
+        this);
     this.rowIdMapping = accumuloSerDeParams.getRowIdColumnMapping();
   }
 
@@ -69,11 +71,13 @@ public class DefaultAccumuloRowIdFactory implements AccumuloRowIdFactory {
 
   @Override
   public LazyObjectBase createRowId(ObjectInspector inspector) throws SerDeException {
-    return LazyFactory.createLazyObject(inspector, ColumnEncoding.BINARY == rowIdMapping.getEncoding());
+    return LazyFactory.createLazyObject(inspector,
+        ColumnEncoding.BINARY == rowIdMapping.getEncoding());
   }
 
   @Override
-  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output) throws IOException {
+  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output)
+      throws IOException {
     return serializer.serializeRowId(object, field, rowIdMapping);
   }
 

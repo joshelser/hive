@@ -35,16 +35,18 @@ public class TestColumnMappingFactory {
 
   @Test
   public void testRowIdCreatesRowIdMapping() {
-    ColumnMapping mapping = ColumnMappingFactory.get(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo);
+    ColumnMapping mapping = ColumnMappingFactory.get(AccumuloHiveConstants.ROWID,
+        ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo);
 
     Assert.assertEquals(HiveAccumuloRowIdColumnMapping.class, mapping.getClass());
     Assert.assertEquals("row", mapping.getColumnName());
     Assert.assertEquals(TypeInfoFactory.stringTypeInfo, mapping.getColumnType());
   }
- 
+
   @Test
   public void testColumnMappingCreatesAccumuloColumnMapping() {
-    ColumnMapping mapping = ColumnMappingFactory.get("cf:cq", ColumnEncoding.STRING, "col", TypeInfoFactory.stringTypeInfo);
+    ColumnMapping mapping = ColumnMappingFactory.get("cf:cq", ColumnEncoding.STRING, "col",
+        TypeInfoFactory.stringTypeInfo);
 
     Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
     Assert.assertEquals("col", mapping.getColumnName());
@@ -121,7 +123,8 @@ public class TestColumnMappingFactory {
   @Test
   public void testEscapedAsterisk() {
     String mappingStr = "cf:\\*";
-    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault(), "col", TypeInfoFactory.stringTypeInfo);
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault(),
+        "col", TypeInfoFactory.stringTypeInfo);
 
     Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
     HiveAccumuloColumnMapping colMapping = (HiveAccumuloColumnMapping) mapping;
@@ -150,7 +153,8 @@ public class TestColumnMappingFactory {
   @Test
   public void testInlineEncodingOverridesDefault() {
     String mappingStr = "cf:foo#s";
-    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.BINARY, "col", TypeInfoFactory.stringTypeInfo);
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.BINARY, "col",
+        TypeInfoFactory.stringTypeInfo);
 
     Assert.assertEquals(HiveAccumuloColumnMapping.class, mapping.getClass());
     HiveAccumuloColumnMapping colMapping = (HiveAccumuloColumnMapping) mapping;
@@ -163,12 +167,14 @@ public class TestColumnMappingFactory {
   @Test
   public void testCaseInsensitiveRowId() {
     String mappingStr = ":rowid";
-    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault(), "col", TypeInfoFactory.stringTypeInfo);
+    ColumnMapping mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault(),
+        "col", TypeInfoFactory.stringTypeInfo);
 
     Assert.assertEquals(HiveAccumuloRowIdColumnMapping.class, mapping.getClass());
 
     mappingStr = ":rowid#b";
-    mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault(), "col", TypeInfoFactory.stringTypeInfo);
+    mapping = ColumnMappingFactory.get(mappingStr, ColumnEncoding.getDefault(), "col",
+        TypeInfoFactory.stringTypeInfo);
 
     Assert.assertEquals(HiveAccumuloRowIdColumnMapping.class, mapping.getClass());
   }

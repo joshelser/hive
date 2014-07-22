@@ -42,12 +42,14 @@ public class DelimitedAccumuloRowIdFactory extends DefaultAccumuloRowIdFactory {
   private byte separator;
 
   @Override
-  public void init(AccumuloSerDeParameters accumuloSerDeParams, Properties properties) throws SerDeException {
+  public void init(AccumuloSerDeParameters accumuloSerDeParams, Properties properties)
+      throws SerDeException {
     super.init(accumuloSerDeParams, properties);
 
     String delimiter = properties.getProperty(ACCUMULO_COMPOSITE_DELIMITER);
     if (null == delimiter || delimiter.isEmpty()) {
-      throw new SerDeException("Did not find expected delimiter in configuration: " + ACCUMULO_COMPOSITE_DELIMITER);
+      throw new SerDeException("Did not find expected delimiter in configuration: "
+          + ACCUMULO_COMPOSITE_DELIMITER);
     }
 
     if (delimiter.length() != 1) {
@@ -59,7 +61,6 @@ public class DelimitedAccumuloRowIdFactory extends DefaultAccumuloRowIdFactory {
     log.info("Initialized DelimitedAccumuloRowIdFactory with separator of '" + separator + "'");
   }
 
-
   @Override
   public ObjectInspector createRowIdObjectInspector(TypeInfo type) throws SerDeException {
     return LazyFactory.createLazyObjectInspector(type, new byte[] {separator}, 0,
@@ -68,20 +69,22 @@ public class DelimitedAccumuloRowIdFactory extends DefaultAccumuloRowIdFactory {
 
   @Override
   public LazyObjectBase createRowId(ObjectInspector inspector) throws SerDeException {
-    LazyObjectBase lazyObj = LazyFactory.createLazyObject(inspector, ColumnEncoding.BINARY == rowIdMapping.getEncoding());
+    LazyObjectBase lazyObj = LazyFactory.createLazyObject(inspector,
+        ColumnEncoding.BINARY == rowIdMapping.getEncoding());
     log.info("Created " + lazyObj.getClass() + " for rowId with inspector " + inspector.getClass());
     return lazyObj;
   }
 
   @Override
-  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output) throws IOException {
+  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output)
+      throws IOException {
     ObjectInspector inspector = field.getFieldObjectInspector();
     if (inspector.getCategory() != ObjectInspector.Category.STRUCT) {
       throw new IllegalStateException("invalid type value " + inspector.getTypeName());
     }
 
     output.reset();
-    
+
     StructObjectInspector structOI = (StructObjectInspector) inspector;
     List<Object> elements = structOI.getStructFieldsDataAsList(object);
     List<? extends StructField> fields = structOI.getAllStructFieldRefs();

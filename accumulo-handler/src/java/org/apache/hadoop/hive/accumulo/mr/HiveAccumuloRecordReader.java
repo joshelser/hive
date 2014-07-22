@@ -37,14 +37,15 @@ import org.apache.hadoop.mapred.RecordReader;
 import com.google.common.collect.Lists;
 
 /**
- * Translate the {@link Key} {@link Value} pairs from {@link AccumuloInputFormat}
- * to a {@link Writable} for consumption by the {@link AccumuloSerDe}.
+ * Translate the {@link Key} {@link Value} pairs from {@link AccumuloInputFormat} to a
+ * {@link Writable} for consumption by the {@link AccumuloSerDe}.
  */
 public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveRow> {
   private RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader;
   private int iteratorCount;
 
-  public HiveAccumuloRecordReader(RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
+  public HiveAccumuloRecordReader(
+      RecordReader<Text,PeekingIterator<Entry<Key,Value>>> recordReader, int iteratorCount) {
     this.recordReader = recordReader;
     this.iteratorCount = iteratorCount;
   }
@@ -93,7 +94,8 @@ public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveR
         pushToValue(keys, values, row);
       } else {
         for (int i = 0; i < iteratorCount; i++) { // each iterator creates a level of encoding.
-          SortedMap<Key,Value> decoded = PrimitiveComparisonFilter.decodeRow(keys.get(0), values.get(0));
+          SortedMap<Key,Value> decoded = PrimitiveComparisonFilter.decodeRow(keys.get(0),
+              values.get(0));
           keys = Lists.newArrayList(decoded.keySet());
           values = Lists.newArrayList(decoded.values());
         }
@@ -107,7 +109,8 @@ public class HiveAccumuloRecordReader implements RecordReader<Text,AccumuloHiveR
   }
 
   // flatten key/value pairs into row object for use in Serde.
-  private void pushToValue(List<Key> keys, List<Value> values, AccumuloHiveRow row) throws IOException {
+  private void pushToValue(List<Key> keys, List<Value> values, AccumuloHiveRow row)
+      throws IOException {
     Iterator<Key> kIter = keys.iterator();
     Iterator<Value> vIter = values.iterator();
     while (kIter.hasNext()) {

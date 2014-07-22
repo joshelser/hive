@@ -80,13 +80,15 @@ public class TestAccumuloPredicateHandler {
     FunctionRegistry.getFunctionNames();
     conf = new JobConf();
     List<String> columnNames = Arrays.asList("field1", "rid");
-    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo);
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo);
     conf.set(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columnNames));
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string");
 
     String columnMappingStr = "cf:f1,:rowID";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames, columnTypes);
+    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames,
+        columnTypes);
   }
 
   @Test
@@ -317,8 +319,8 @@ public class TestAccumuloPredicateHandler {
     List<IndexSearchCondition> sConditions = handler.getSearchConditions(conf);
     assertEquals(sConditions.size(), 1);
     IndexSearchCondition sc = sConditions.get(0);
-    PushdownTuple tuple = new PushdownTuple(sConditions.get(0), handler.getPrimitiveComparison(
-        sc.getColumnDesc().getTypeString(), sc), handler.getCompareOp(sc.getComparisonOp(), sc));
+    PushdownTuple tuple = new PushdownTuple(sConditions.get(0), handler.getPrimitiveComparison(sc
+        .getColumnDesc().getTypeString(), sc), handler.getCompareOp(sc.getComparisonOp(), sc));
     byte[] expectedVal = new byte[4];
     ByteBuffer.wrap(expectedVal).putInt(5);
     assertArrayEquals(tuple.getConstVal(), expectedVal);
@@ -327,13 +329,16 @@ public class TestAccumuloPredicateHandler {
   }
 
   @Test(expected = NoSuchPrimitiveComparisonException.class)
-  public void testPushdownColumnTypeNotSupported() throws SerDeException, NoSuchPrimitiveComparisonException, NoSuchCompareOpException {
-    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.floatTypeInfo, "field1", null, false);
+  public void testPushdownColumnTypeNotSupported() throws SerDeException,
+      NoSuchPrimitiveComparisonException, NoSuchCompareOpException {
+    ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.floatTypeInfo, "field1", null,
+        false);
     ExprNodeDesc constant = new ExprNodeConstantDesc(TypeInfoFactory.floatTypeInfo, 5.5f);
     List<ExprNodeDesc> children = Lists.newArrayList();
     children.add(column);
     children.add(constant);
-    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo, new GenericUDFOPEqual(), children);
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqual(), children);
     assertNotNull(node);
     String filterExpr = Utilities.serializeExpression(node);
     conf.set(TableScanDesc.FILTER_EXPR_CONF_STR, filterExpr);
@@ -341,8 +346,7 @@ public class TestAccumuloPredicateHandler {
     assertEquals(sConditions.size(), 1);
     IndexSearchCondition sc = sConditions.get(0);
 
-    handler.getPrimitiveComparison(sc.getColumnDesc()
-        .getTypeString(), sc);
+    handler.getPrimitiveComparison(sc.getColumnDesc().getTypeString(), sc);
   }
 
   @Test
@@ -412,13 +416,15 @@ public class TestAccumuloPredicateHandler {
     // Override what's placed in the Configuration by setup()
     conf = new JobConf();
     List<String> columnNames = Arrays.asList("field1", "field2", "rid");
-    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.intTypeInfo, TypeInfoFactory.stringTypeInfo);
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.intTypeInfo, TypeInfoFactory.stringTypeInfo);
     conf.set(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columnNames));
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,string");
 
     String columnMappingStr = "cf:f1,cf:f2,:rowID";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames, columnTypes);
+    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames,
+        columnTypes);
 
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null,
         false);
@@ -462,12 +468,14 @@ public class TestAccumuloPredicateHandler {
     // Override what's placed in the Configuration by setup()
     conf = new JobConf();
     List<String> columnNames = Arrays.asList("field1", "field2", "rid");
-    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.intTypeInfo, TypeInfoFactory.stringTypeInfo);
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.intTypeInfo, TypeInfoFactory.stringTypeInfo);
     conf.set(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columnNames));
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,int,string");
     String columnMappingStr = "cf:f1,cf:f2,:rowID";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames, columnTypes);
+    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames,
+        columnTypes);
 
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "field1", null,
         false);
@@ -653,13 +661,15 @@ public class TestAccumuloPredicateHandler {
   @Test
   public void testRowRangeGeneration() throws SerDeException {
     List<String> columnNames = Arrays.asList("key", "column");
-    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo);
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo);
     conf.set(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columnNames));
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "string,string");
 
     String columnMappingStr = ":rowID,cf:f1";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames, columnTypes);
+    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames,
+        columnTypes);
 
     // 100 < key
     ExprNodeDesc column = new ExprNodeColumnDesc(TypeInfoFactory.intTypeInfo, "key", null, false);
@@ -683,13 +693,15 @@ public class TestAccumuloPredicateHandler {
   @Test
   public void testBinaryRangeGeneration() throws Exception {
     List<String> columnNames = Arrays.asList("key", "column");
-    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.intTypeInfo, TypeInfoFactory.stringTypeInfo);
+    List<TypeInfo> columnTypes = Arrays.<TypeInfo> asList(TypeInfoFactory.intTypeInfo,
+        TypeInfoFactory.stringTypeInfo);
     conf.set(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columnNames));
     conf.set(serdeConstants.LIST_COLUMN_TYPES, "int,string");
 
     String columnMappingStr = ":rowID#b,cf:f1";
     conf.set(AccumuloSerDeParameters.COLUMN_MAPPINGS, columnMappingStr);
-    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames, columnTypes);
+    columnMapper = new ColumnMapper(columnMappingStr, ColumnEncoding.STRING.getName(), columnNames,
+        columnTypes);
 
     int intValue = 100;
 

@@ -128,10 +128,11 @@ public enum ColumnEncoding {
 
     // Make sure that the '#' wasn't escaped
     if (0 < offset && AccumuloHiveConstants.ESCAPE == columnMapping.charAt(offset - 1)) {
-      throw new IllegalArgumentException("Column mapping did not contain a column encoding: " + columnMapping);
+      throw new IllegalArgumentException("Column mapping did not contain a column encoding: "
+          + columnMapping);
     }
 
-    return columnMapping.substring(offset+1);
+    return columnMapping.substring(offset + 1);
   }
 
   public static ColumnEncoding getDefault() {
@@ -173,7 +174,6 @@ public enum ColumnEncoding {
     String encoding1 = columnEncoding.substring(0, index), encoding2 = columnEncoding
         .substring(index + 1);
 
-    
     return Maps.immutableEntry(get(encoding1), get(encoding2));
   }
 }

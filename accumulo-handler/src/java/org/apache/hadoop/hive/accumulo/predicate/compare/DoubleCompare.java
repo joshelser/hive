@@ -4,11 +4,10 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
 /**
- * 
- * Set of comparison operations over a double constant. Used for Hive predicates involving double comparison.
- * 
+ * Set of comparison operations over a double constant. Used for Hive predicates involving double
+ * comparison.
+ *
  * Used by {@link org.apache.hadoop.hive.accumulo.predicate.PrimitiveComparisonFilter}
- * 
  */
 public class DoubleCompare implements PrimitiveComparison {
 
@@ -22,19 +21,18 @@ public class DoubleCompare implements PrimitiveComparison {
   }
 
   /**
-   * 
    * @return BigDecimal holding double byte [] value
    */
   public BigDecimal serialize(byte[] value) {
     try {
       return new BigDecimal(ByteBuffer.wrap(value).asDoubleBuffer().get());
     } catch (Exception e) {
-      throw new RuntimeException(e.toString() + " occurred trying to build double value. " + "Make sure the value type for the byte[] is double.");
+      throw new RuntimeException(e.toString() + " occurred trying to build double value. "
+          + "Make sure the value type for the byte[] is double.");
     }
   }
 
   /**
-   * 
    * @return true if double value is equal to constant, false otherwise.
    */
   @Override
@@ -43,7 +41,6 @@ public class DoubleCompare implements PrimitiveComparison {
   }
 
   /**
-   * 
    * @return true if double value not equal to constant, false otherwise.
    */
   @Override
@@ -52,7 +49,6 @@ public class DoubleCompare implements PrimitiveComparison {
   }
 
   /**
-   * 
    * @return true if value greater than or equal to constant, false otherwise.
    */
   @Override
@@ -61,8 +57,6 @@ public class DoubleCompare implements PrimitiveComparison {
   }
 
   /**
-   * 
-   * 
    * @return true if value greater than constant, false otherwise.
    */
   @Override
@@ -71,8 +65,6 @@ public class DoubleCompare implements PrimitiveComparison {
   }
 
   /**
-   * 
-   * 
    * @return true if value less than or equal than constant, false otherwise.
    */
   @Override
@@ -81,8 +73,6 @@ public class DoubleCompare implements PrimitiveComparison {
   }
 
   /**
-   * 
-   * 
    * @return true if value less than constant, false otherwise.
    */
   @Override

@@ -421,15 +421,20 @@ public class TestHiveAccumuloTableInputFormat {
     Set<Pair<Text,Text>> columns = new HashSet<Pair<Text,Text>>();
 
     // Row ID
-    mappings.add(new HiveAccumuloRowIdColumnMapping(AccumuloHiveConstants.ROWID, ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo));
+    mappings.add(new HiveAccumuloRowIdColumnMapping(AccumuloHiveConstants.ROWID,
+        ColumnEncoding.STRING, "row", TypeInfoFactory.stringTypeInfo));
 
     // Some cf:cq
-    mappings.add(new HiveAccumuloColumnMapping("person", "name", ColumnEncoding.STRING, "col1", TypeInfoFactory.stringTypeInfo));
-    mappings.add(new HiveAccumuloColumnMapping("person", "age", ColumnEncoding.STRING, "col2", TypeInfoFactory.stringTypeInfo));
-    mappings.add(new HiveAccumuloColumnMapping("person", "height", ColumnEncoding.STRING, "col3", TypeInfoFactory.stringTypeInfo));
+    mappings.add(new HiveAccumuloColumnMapping("person", "name", ColumnEncoding.STRING, "col1",
+        TypeInfoFactory.stringTypeInfo));
+    mappings.add(new HiveAccumuloColumnMapping("person", "age", ColumnEncoding.STRING, "col2",
+        TypeInfoFactory.stringTypeInfo));
+    mappings.add(new HiveAccumuloColumnMapping("person", "height", ColumnEncoding.STRING, "col3",
+        TypeInfoFactory.stringTypeInfo));
 
     // Bare cf
-    mappings.add(new HiveAccumuloColumnMapping("city", "name", ColumnEncoding.STRING, "col4", TypeInfoFactory.stringTypeInfo));
+    mappings.add(new HiveAccumuloColumnMapping("city", "name", ColumnEncoding.STRING, "col4",
+        TypeInfoFactory.stringTypeInfo));
 
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("name")));
     columns.add(new Pair<Text,Text>(new Text("person"), new Text("age")));
@@ -445,7 +450,8 @@ public class TestHiveAccumuloTableInputFormat {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
         conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
-    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    Set<Pair<Text,Text>> cfCqPairs = inputformat
+        .getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
 
@@ -456,15 +462,18 @@ public class TestHiveAccumuloTableInputFormat {
         .configure(conf, mockInstance, con, accumuloParams, columnMapper, iterators, ranges);
 
     // Also compute the correct cf:cq pairs so we can assert the right argument was passed
-    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .getPairCollection(columnMapper.getColumnMappings());
 
-    mockInputFormat.configure(conf, mockInstance, con, accumuloParams, columnMapper, iterators, ranges);
+    mockInputFormat.configure(conf, mockInstance, con, accumuloParams, columnMapper, iterators,
+        ranges);
 
     // Verify that the correct methods are invoked on AccumuloInputFormat
     Mockito.verify(mockInputFormat).setMockInstance(conf, mockInstance.getInstanceName());
     Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
     Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
-    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf,
+        con.securityOperations().getUserAuthorizations(USER));
     Mockito.verify(mockInputFormat).addIterators(conf, iterators);
     Mockito.verify(mockInputFormat).setRanges(conf, ranges);
     Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
@@ -475,7 +484,8 @@ public class TestHiveAccumuloTableInputFormat {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
         conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
-    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    Set<Pair<Text,Text>> cfCqPairs = inputformat
+        .getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
     String instanceName = "realInstance";
@@ -493,15 +503,18 @@ public class TestHiveAccumuloTableInputFormat {
         .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
 
     // Also compute the correct cf:cq pairs so we can assert the right argument was passed
-    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .getPairCollection(columnMapper.getColumnMappings());
 
-    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators,
+        ranges);
 
     // Verify that the correct methods are invoked on AccumuloInputFormat
     Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
     Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
     Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
-    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf,
+        con.securityOperations().getUserAuthorizations(USER));
     Mockito.verify(mockInputFormat).addIterators(conf, iterators);
     Mockito.verify(mockInputFormat).setRanges(conf, ranges);
     Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
@@ -513,7 +526,8 @@ public class TestHiveAccumuloTableInputFormat {
     conf.set(AccumuloSerDeParameters.AUTHORIZATIONS_KEY, "foo,bar");
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
         conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
-    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    Set<Pair<Text,Text>> cfCqPairs = inputformat
+        .getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = Collections.emptyList();
     Set<Range> ranges = Collections.singleton(new Range());
     String instanceName = "realInstance";
@@ -531,9 +545,11 @@ public class TestHiveAccumuloTableInputFormat {
         .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
 
     // Also compute the correct cf:cq pairs so we can assert the right argument was passed
-    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .getPairCollection(columnMapper.getColumnMappings());
 
-    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators,
+        ranges);
 
     // Verify that the correct methods are invoked on AccumuloInputFormat
     Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
@@ -550,7 +566,8 @@ public class TestHiveAccumuloTableInputFormat {
     AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(conf);
     ColumnMapper columnMapper = new ColumnMapper(conf.get(AccumuloSerDeParameters.COLUMN_MAPPINGS),
         conf.get(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE), columnNames, columnTypes);
-    Set<Pair<Text,Text>> cfCqPairs = inputformat.getPairCollection(columnMapper.getColumnMappings());
+    Set<Pair<Text,Text>> cfCqPairs = inputformat
+        .getPairCollection(columnMapper.getColumnMappings());
     List<IteratorSetting> iterators = new ArrayList<IteratorSetting>();
     Set<Range> ranges = Collections.singleton(new Range());
     String instanceName = "realInstance";
@@ -570,7 +587,6 @@ public class TestHiveAccumuloTableInputFormat {
     cfg.addOption(PrimitiveComparisonFilter.COLUMN, "person:age");
     iterators.add(cfg);
 
-
     ZooKeeperInstance zkInstance = Mockito.mock(ZooKeeperInstance.class);
     HiveAccumuloTableInputFormat mockInputFormat = Mockito.mock(HiveAccumuloTableInputFormat.class);
 
@@ -583,15 +599,18 @@ public class TestHiveAccumuloTableInputFormat {
         .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
 
     // Also compute the correct cf:cq pairs so we can assert the right argument was passed
-    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .getPairCollection(columnMapper.getColumnMappings());
 
-    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators,
+        ranges);
 
     // Verify that the correct methods are invoked on AccumuloInputFormat
     Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
     Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
     Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
-    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf,
+        con.securityOperations().getUserAuthorizations(USER));
     Mockito.verify(mockInputFormat).addIterators(conf, iterators);
     Mockito.verify(mockInputFormat).setRanges(conf, ranges);
     Mockito.verify(mockInputFormat).fetchColumns(conf, cfCqPairs);
@@ -622,29 +641,32 @@ public class TestHiveAccumuloTableInputFormat {
     cfg.addOption(PrimitiveComparisonFilter.COLUMN, "person:age");
     iterators.add(cfg);
 
-
     ZooKeeperInstance zkInstance = Mockito.mock(ZooKeeperInstance.class);
     HiveAccumuloTableInputFormat mockInputFormat = Mockito.mock(HiveAccumuloTableInputFormat.class);
 
     // Stub out the ZKI mock
     Mockito.when(zkInstance.getInstanceName()).thenReturn(instanceName);
     Mockito.when(zkInstance.getZooKeepers()).thenReturn(zookeepers);
-    Mockito.when(mockInputFormat.getPairCollection(columnMapper.getColumnMappings())).thenReturn(cfCqPairs);
+    Mockito.when(mockInputFormat.getPairCollection(columnMapper.getColumnMappings())).thenReturn(
+        cfCqPairs);
 
     // Call out to the real configure method
     Mockito.doCallRealMethod().when(mockInputFormat)
         .configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
 
     // Also compute the correct cf:cq pairs so we can assert the right argument was passed
-    Mockito.doCallRealMethod().when(mockInputFormat).getPairCollection(columnMapper.getColumnMappings());
+    Mockito.doCallRealMethod().when(mockInputFormat)
+        .getPairCollection(columnMapper.getColumnMappings());
 
-    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators, ranges);
+    mockInputFormat.configure(conf, zkInstance, con, accumuloParams, columnMapper, iterators,
+        ranges);
 
     // Verify that the correct methods are invoked on AccumuloInputFormat
     Mockito.verify(mockInputFormat).setZooKeeperInstance(conf, instanceName, zookeepers);
     Mockito.verify(mockInputFormat).setConnectorInfo(conf, USER, new PasswordToken(PASS));
     Mockito.verify(mockInputFormat).setInputTableName(conf, TEST_TABLE);
-    Mockito.verify(mockInputFormat).setScanAuthorizations(conf, con.securityOperations().getUserAuthorizations(USER));
+    Mockito.verify(mockInputFormat).setScanAuthorizations(conf,
+        con.securityOperations().getUserAuthorizations(USER));
     Mockito.verify(mockInputFormat).addIterators(conf, iterators);
     Mockito.verify(mockInputFormat).setRanges(conf, ranges);
 
@@ -659,9 +681,10 @@ public class TestHiveAccumuloTableInputFormat {
     BatchWriter writer = con.createBatchWriter(TEST_TABLE, writerConf);
 
     Authorizations origAuths = con.securityOperations().getUserAuthorizations(USER);
-    con.securityOperations().changeUserAuthorizations(USER, new Authorizations(origAuths.toString() + ",foo"));
+    con.securityOperations().changeUserAuthorizations(USER,
+        new Authorizations(origAuths.toString() + ",foo"));
 
-    Mutation m = new Mutation("r4"); 
+    Mutation m = new Mutation("r4");
     m.put(COLUMN_FAMILY, NAME, new ColumnVisibility("foo"), new Value("frank".getBytes()));
     m.put(COLUMN_FAMILY, SID, new ColumnVisibility("foo"), new Value(parseIntBytes("4")));
     m.put(COLUMN_FAMILY, DEGREES, new ColumnVisibility("foo"), new Value(parseDoubleBytes("60.6")));

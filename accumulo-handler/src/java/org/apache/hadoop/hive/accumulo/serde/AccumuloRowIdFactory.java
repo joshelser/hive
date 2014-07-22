@@ -27,32 +27,41 @@ import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 
+/**
+ * Interface for providing custom Accumulo RowID generation/parsing
+ */
 public interface AccumuloRowIdFactory {
 
   /**
    * initialize factory with properties
    */
-  public void init(AccumuloSerDeParameters serDeParams, Properties properties) throws SerDeException;
+  public void init(AccumuloSerDeParameters serDeParams, Properties properties)
+      throws SerDeException;
 
   /**
    * create custom object inspector for accumulo rowId
-   * @param type type information
+   * 
+   * @param type
+   *          type information
    */
   public ObjectInspector createRowIdObjectInspector(TypeInfo type) throws SerDeException;
 
   /**
    * create custom object for accumulo
-   * @param inspector OI create by {@link AccumuloRowIdFactory#createRowIdObjectInspector}
+   * 
+   * @param inspector
+   *          OI create by {@link AccumuloRowIdFactory#createRowIdObjectInspector}
    */
   public LazyObjectBase createRowId(ObjectInspector inspector) throws SerDeException;
 
   /**
    * serialize hive object in internal format of custom key
    */
-  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output) throws IOException;
+  public byte[] serializeRowId(Object object, StructField field, ByteStream.Output output)
+      throws IOException;
 
   /**
-   * Add this implementation to the classpath for the Job 
+   * Add this implementation to the classpath for the Job
    */
   public void addDependencyJars(Configuration conf) throws IOException;
 }

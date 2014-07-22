@@ -36,8 +36,8 @@ import org.apache.hadoop.io.Writable;
 import com.google.common.base.Charsets;
 
 /**
- * A Hive Map created from some collection of Key-Values from one to many column families
- * with one to many column qualifiers.
+ * A Hive Map created from some collection of Key-Values from one to many column families with one
+ * to many column qualifiers.
  */
 public class LazyAccumuloMap extends LazyMap {
 
@@ -68,8 +68,7 @@ public class LazyAccumuloMap extends LazyMap {
     for (ColumnTuple tuple : sourceRow.getTuples()) {
       String cq = tuple.getCq().toString();
 
-      if (!cf.equals(tuple.getCf()) ||
-          !cq.startsWith(columnMapping.getColumnQualifierPrefix())){
+      if (!cf.equals(tuple.getCf()) || !cq.startsWith(columnMapping.getColumnQualifierPrefix())) {
         // A column family or qualifier we don't want to include in the map
         continue;
       }
@@ -80,24 +79,21 @@ public class LazyAccumuloMap extends LazyMap {
 
       // Keys are always primitive, respect the binary
       LazyPrimitive<? extends ObjectInspector,? extends Writable> key = LazyFactory
-          .createLazyPrimitiveClass(
-              (PrimitiveObjectInspector) lazyMoi.getMapKeyObjectInspector(),
-            ColumnEncoding.BINARY == columnMapping.getKeyEncoding());
-
+          .createLazyPrimitiveClass((PrimitiveObjectInspector) lazyMoi.getMapKeyObjectInspector(),
+              ColumnEncoding.BINARY == columnMapping.getKeyEncoding());
 
       ByteArrayRef keyRef = new ByteArrayRef();
       keyRef.setData(cq.getBytes(Charsets.UTF_8));
       key.init(keyRef, 0, keyRef.getData().length);
 
       // Value can be anything, use the obj inspector and respect binary
-      LazyObject<?> value =
-          LazyFactory.createLazyObject(lazyMoi.getMapValueObjectInspector(),
-              ColumnEncoding.BINARY == columnMapping.getValueEncoding());
+      LazyObject<?> value = LazyFactory.createLazyObject(lazyMoi.getMapValueObjectInspector(),
+          ColumnEncoding.BINARY == columnMapping.getValueEncoding());
 
       ByteArrayRef valueRef = new ByteArrayRef();
       valueRef.setData(tuple.getValue());
       value.init(valueRef, 0, valueRef.getData().length);
-      
+
       cachedMap.put(key, value);
     }
 
@@ -107,7 +103,8 @@ public class LazyAccumuloMap extends LazyMap {
   /**
    * Get the value in the map for the given key.
    * 
-   * @param key The key, a column qualifier, from the map
+   * @param key
+   *          The key, a column qualifier, from the map
    * @return The object in the map at the given key
    */
   @Override

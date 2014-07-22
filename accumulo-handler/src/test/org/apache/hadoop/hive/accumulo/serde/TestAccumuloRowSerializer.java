@@ -62,7 +62,6 @@ public class TestAccumuloRowSerializer {
   @Test
   public void testBufferResetBeforeUse() throws IOException {
     ByteStream.Output output = new ByteStream.Output();
-    ObjectInspector objectInspector = Mockito.mock(ObjectInspector.class);
     PrimitiveObjectInspector fieldObjectInspector = Mockito.mock(StringObjectInspector.class);
     ColumnMapping mapping = Mockito.mock(ColumnMapping.class);
 
@@ -103,7 +102,8 @@ public class TestAccumuloRowSerializer {
     }
 
     Properties tableProperties = new Properties();
-    tableProperties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS,":rowid,cf:cq1#b,cf:cq2#b,cf:cq3");
+    tableProperties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+        ":rowid,cf:cq1#b,cf:cq2#b,cf:cq3");
     tableProperties.setProperty(serdeConstants.FIELD_DELIM, " ");
     tableProperties.setProperty(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columns));
     tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, Joiner.on(',').join(typeNames));
@@ -116,8 +116,9 @@ public class TestAccumuloRowSerializer {
             serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
             serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams, accumuloSerDeParams.getColumnMappings(),
-        new ColumnVisibility(), accumuloSerDeParams.getRowIdFactory());
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams,
+        accumuloSerDeParams.getColumnMappings(), new ColumnVisibility(),
+        accumuloSerDeParams.getRowIdFactory());
 
     // Create the LazyStruct from the LazyStruct...Inspector
     LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(oi);
@@ -170,7 +171,8 @@ public class TestAccumuloRowSerializer {
     }
 
     Properties tableProperties = new Properties();
-    tableProperties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS,":rowid,cf:cq1#b,cf:cq2#b,cf:cq3");
+    tableProperties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS,
+        ":rowid,cf:cq1#b,cf:cq2#b,cf:cq3");
     tableProperties.setProperty(serdeConstants.FIELD_DELIM, " ");
     tableProperties.setProperty(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(columns));
     tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, Joiner.on(',').join(typeNames));
@@ -183,8 +185,9 @@ public class TestAccumuloRowSerializer {
             serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
             serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams, accumuloSerDeParams.getColumnMappings(),
-        new ColumnVisibility("foo"), accumuloSerDeParams.getRowIdFactory());
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams,
+        accumuloSerDeParams.getColumnMappings(), new ColumnVisibility("foo"),
+        accumuloSerDeParams.getRowIdFactory());
 
     // Create the LazyStruct from the LazyStruct...Inspector
     LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(oi);
@@ -232,15 +235,15 @@ public class TestAccumuloRowSerializer {
   @Test
   public void testMapSerialization() throws IOException, SerDeException {
     List<String> columns = Arrays.asList("row", "col");
-    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
-        TypeInfoFactory.getMapTypeInfo(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo));
+    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo, TypeInfoFactory
+        .getMapTypeInfo(TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo));
     List<String> typeNames = new ArrayList<String>(types.size());
     for (TypeInfo type : types) {
       typeNames.add(type.getTypeName());
     }
 
     Properties tableProperties = new Properties();
-    tableProperties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS,":rowid,cf:*");
+    tableProperties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowid,cf:*");
     tableProperties.setProperty(serdeConstants.FIELD_DELIM, " ");
     tableProperties.setProperty(serdeConstants.COLLECTION_DELIM, ",");
     tableProperties.setProperty(serdeConstants.MAPKEY_DELIM, ":");
@@ -264,8 +267,9 @@ public class TestAccumuloRowSerializer {
             serDeParams.getNullSequence(), serDeParams.isLastColumnTakesRest(),
             serDeParams.isEscaped(), serDeParams.getEscapeChar());
 
-    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams, accumuloSerDeParams.getColumnMappings(),
-        new ColumnVisibility(), accumuloSerDeParams.getRowIdFactory());
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams,
+        accumuloSerDeParams.getColumnMappings(), new ColumnVisibility(),
+        accumuloSerDeParams.getRowIdFactory());
 
     // Create the LazyStruct from the LazyStruct...Inspector
     LazyStruct obj = (LazyStruct) LazyFactory.createLazyObject(structOI);

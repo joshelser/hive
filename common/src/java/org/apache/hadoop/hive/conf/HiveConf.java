@@ -984,6 +984,7 @@ public class HiveConf extends Configuration {
     HIVEPPDREMOVEDUPLICATEFILTERS("hive.ppd.remove.duplicatefilters", true,
         "Whether to push predicates down into storage handlers.  Ignored when hive.optimize.ppd is false."),
     HIVEMETADATAONLYQUERIES("hive.optimize.metadataonly", true, ""),
+    HIVENULLSCANOPTIMIZE("hive.optimize.null.scan", true, "Dont scan relations which are guaranteed to not generate any rows"),
     HIVEOPTPPD_STORAGE("hive.optimize.ppd.storage", true,
         "Whether to push predicates down to storage handlers"),
     HIVEOPTGROUPBY("hive.optimize.groupby", true,
@@ -1260,14 +1261,14 @@ public class HiveConf extends Configuration {
 
     HIVEOUTERJOINSUPPORTSFILTERS("hive.outerjoin.supports.filters", true, ""),
 
-    HIVEFETCHTASKCONVERSION("hive.fetch.task.conversion", "minimal", new StringSet("minimal", "more"),
+    HIVEFETCHTASKCONVERSION("hive.fetch.task.conversion", "more", new StringSet("minimal", "more"),
         "Some select queries can be converted to single FETCH task minimizing latency.\n" +
         "Currently the query should be single sourced not having any subquery and should not have\n" +
         "any aggregations or distincts (which incurs RS), lateral views and joins.\n" +
         "1. minimal : SELECT STAR, FILTER on partition columns, LIMIT only\n" +
         "2. more    : SELECT, FILTER, LIMIT only (support TABLESAMPLE and virtual columns)\n"
     ),
-    HIVEFETCHTASKCONVERSIONTHRESHOLD("hive.fetch.task.conversion.threshold", -1l,
+    HIVEFETCHTASKCONVERSIONTHRESHOLD("hive.fetch.task.conversion.threshold", 1073741824L,
         "Input threshold for applying hive.fetch.task.conversion. If target table is native, input length\n" +
         "is calculated by summation of file lengths. If it's not native, storage handler for the table\n" +
         "can optionally implement org.apache.hadoop.hive.ql.metadata.InputEstimator interface."),
@@ -1820,19 +1821,25 @@ public class HiveConf extends Configuration {
 
     enum VarType {
       STRING {
+        @Override
         void checkType(String value) throws Exception { }
+        @Override
         String defaultValueString(ConfVars confVar) { return confVar.defaultStrVal; }
       },
       INT {
+        @Override
         void checkType(String value) throws Exception { Integer.valueOf(value); }
       },
       LONG {
+        @Override
         void checkType(String value) throws Exception { Long.valueOf(value); }
       },
       FLOAT {
+        @Override
         void checkType(String value) throws Exception { Float.valueOf(value); }
       },
       BOOLEAN {
+        @Override
         void checkType(String value) throws Exception { Boolean.valueOf(value); }
       };
 

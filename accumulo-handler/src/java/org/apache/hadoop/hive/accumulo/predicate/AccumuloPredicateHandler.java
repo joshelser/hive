@@ -70,7 +70,9 @@ public class AccumuloPredicateHandler {
   private static AccumuloPredicateHandler handler = new AccumuloPredicateHandler();
   private static Map<String,Class<? extends CompareOp>> compareOps = Maps.newHashMap();
   private static Map<String,Class<? extends PrimitiveComparison>> pComparisons = Maps.newHashMap();
-  private static int iteratorCount = 0;
+
+  // Want to start sufficiently "high" enough in the iterator stack
+  private static int iteratorCount = 50;
 
   private static final Logger log = Logger.getLogger(AccumuloPredicateHandler.class);
   static {

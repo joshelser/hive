@@ -105,9 +105,7 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
       Class<?> cClazz = Class.forName(options.get(COMPARE_OPT_CLASS));
       PrimitiveComparison pCompare = pClass.asSubclass(PrimitiveComparison.class).newInstance();
       compOpt = cClazz.asSubclass(CompareOp.class).newInstance();
-      String b64Const = options.get(CONST_VAL);
-      String constStr = new String(Base64.decodeBase64(b64Const.getBytes()));
-      byte[] constant = constStr.getBytes();
+      byte[] constant = getConstant(options);
       pCompare.init(constant);
       compOpt.setPrimitiveCompare(pCompare);
     } catch (ClassNotFoundException e) {
@@ -117,5 +115,10 @@ public class PrimitiveComparisonFilter extends WholeRowIterator {
     } catch (IllegalAccessException e) {
       throw new IOException(e);
     }
+  }
+
+  protected byte[] getConstant(Map<String,String> options) {
+    String b64Const = options.get(CONST_VAL);
+    return Base64.decodeBase64(b64Const.getBytes());
   }
 }

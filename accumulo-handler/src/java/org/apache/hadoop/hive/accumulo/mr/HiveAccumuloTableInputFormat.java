@@ -90,6 +90,12 @@ public class HiveAccumuloTableInputFormat implements
       final List<IteratorSetting> iterators = predicateHandler.getIterators(jobConf, columnMapper);
       final Collection<Range> ranges = predicateHandler.getRanges(jobConf, columnMapper);
 
+      // Setting an empty collection of ranges will, unexpectedly, scan all data
+      // We don't want that.
+      if (null != ranges && ranges.isEmpty()) {
+        return new InputSplit[0];
+      }
+
       // Set the relevant information in the Configuration for the AccumuloInputFormat
       configure(jobConf, instance, connector, accumuloParams, columnMapper, iterators, ranges);
 
@@ -252,7 +258,9 @@ public class HiveAccumuloTableInputFormat implements
     addIterators(conf, iterators);
 
     // restrict with any ranges found from WHERE predicates.
-    if (ranges.size() > 0) {
+    // not setting ranges scans the entire table
+    if (null != ranges) {
+      log.info("Setting ranges: " + ranges);
       setRanges(conf, ranges);
     }
 

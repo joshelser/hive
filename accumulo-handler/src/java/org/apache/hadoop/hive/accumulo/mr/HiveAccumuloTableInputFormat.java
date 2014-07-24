@@ -1,6 +1,8 @@
 package org.apache.hadoop.hive.accumulo.mr;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -171,6 +173,16 @@ public class HiveAccumuloTableInputFormat implements
         log.debug("Re-setting iterators on InputSplit due to Accumulo bug.");
         rangeSplit.setIterators(iterators);
       }
+
+      // ACCUMULO-3015 Like the above, RangeInputSplit should have the table name
+      // but we want it to, so just re-set it if it's null.
+      if (null == getTableName(rangeSplit)) {
+        final AccumuloConnectionParameters accumuloParams = new AccumuloConnectionParameters(
+            jobConf);
+        log.debug("Re-setting table name on InputSplit due to Accumulo bug.");
+        setTableName(rangeSplit, accumuloParams.getAccumuloTableName());
+      }
+
       final RecordReader<Text,PeekingIterator<Map.Entry<Key,Value>>> recordReader = accumuloInputFormat
           .getRecordReader(rangeSplit, jobConf, reporter);
 
@@ -278,15 +290,35 @@ public class HiveAccumuloTableInputFormat implements
     try {
       AccumuloInputFormat.setMockInstance(conf, instanceName);
     } catch (IllegalStateException e) {
+      // AccumuloInputFormat complains if you re-set an already set value. We just don't care.
       log.debug("Ignoring exception setting mock instance of " + instanceName, e);
     }
   }
 
+  @SuppressWarnings("deprecation")
   protected void setZooKeeperInstance(JobConf conf, String instanceName, String zkHosts) {
+    ClientConfiguration clientConf = null;
     try {
-      AccumuloInputFormat.setZooKeeperInstance(conf,
-          new ClientConfiguration().withInstance(instanceName).withZkHosts(zkHosts));
+      clientConf = new ClientConfiguration();
+    } catch (NoClassDefFoundError e) {
+      // Running against Accumulo 1.5, try to fall back to the old method
+      try {
+        AccumuloInputFormat.setZooKeeperInstance(conf, instanceName, zkHosts);
+      } catch (IllegalStateException ise) {
+        // AccumuloInputFormat complains if you re-set an already set value. We just don't care.
+        log.debug("Ignoring exception setting ZooKeeper instance of " + instanceName + " at "
+            + zkHosts, ise);
+      }
+
+      return;
+    }
+
+    // The recommended method in 1.6
+    try {
+      AccumuloInputFormat.setZooKeeperInstance(conf, clientConf.withInstance(instanceName)
+          .withZkHosts(zkHosts));
     } catch (IllegalStateException e) {
+      // AccumuloInputFormat complains if you re-set an already set value. We just don't care.
       log.debug("Ignoring exception setting ZooKeeper instance of " + instanceName + " at "
           + zkHosts, e);
     }
@@ -296,7 +328,10 @@ public class HiveAccumuloTableInputFormat implements
       throws AccumuloSecurityException {
     try {
       AccumuloInputFormat.setConnectorInfo(conf, user, token);
-    } catch (IllegalStateException e) {}
+    } catch (IllegalStateException e) {
+      // AccumuloInputFormat complains if you re-set an already set value. We just don't care.
+      log.debug("Ignoring exception setting Accumulo Connector instance for user " + user, e);
+    }
   }
 
   protected void setInputTableName(JobConf conf, String tableName) {
@@ -357,5 +392,79 @@ public class HiveAccumuloTableInputFormat implements
     log.info("Computed columns to fetch (" + pairs + ") from " + columnMappings);
 
     return pairs;
+  }
+
+  /**
+   * Reflection to work around Accumulo 1.5 and 1.6 incompatibilities. Throws an {@link IOException}
+   * for any reflection related exceptions
+   *
+   * @param split
+   *          A RangeInputSplit
+   * @return The name of the table from the split
+   * @throws IOException
+   */
+  protected String getTableName(RangeInputSplit split) throws IOException {
+    try {
+      return split.getTableName();
+    } catch (NoSuchMethodError e) {
+      log.debug("Could not extract table name from RangeInputSplit, attempting to access old method");
+    }
+
+    Method getTable;
+    try {
+      getTable = RangeInputSplit.class.getMethod("getTable");
+    } catch (SecurityException e) {
+      throw new IOException("Could not get table name from RangeInputSplit", e);
+    } catch (NoSuchMethodException e) {
+      throw new IOException("Could not get table name from RangeInputSplit", e);
+    }
+
+    try {
+      return (String) getTable.invoke(split);
+    } catch (IllegalArgumentException e) {
+      throw new IOException("Could not get table name from RangeInputSplit", e);
+    } catch (IllegalAccessException e) {
+      throw new IOException("Could not get table name from RangeInputSplit", e);
+    } catch (InvocationTargetException e) {
+      throw new IOException("Could not get table name from RangeInputSplit", e);
+    }
+  }
+
+  /**
+   * Sets the table name on a RangeInputSplit, accounting for change in method name. Any reflection
+   * related exception is wrapped in an {@link IOException}
+   *
+   * @param split
+   *          The RangeInputSplit to operate on
+   * @param tableName
+   *          The name of the table to set
+   * @throws IOException
+   */
+  protected void setTableName(RangeInputSplit split, String tableName) throws IOException {
+    try {
+      split.setTableName(tableName);
+      return;
+    } catch (NoSuchMethodError e) {
+      log.debug("Could not set table name on RangeInputSplit, attempted to access old method");
+    }
+
+    Method setTable;
+    try {
+      setTable = RangeInputSplit.class.getMethod("setTable", String.class);
+    } catch (SecurityException e) {
+      throw new IOException("Could not set table name from RangeInputSplit", e);
+    } catch (NoSuchMethodException e) {
+      throw new IOException("Could not set table name from RangeInputSplit", e);
+    }
+
+    try {
+      setTable.invoke(split, tableName);
+    } catch (IllegalArgumentException e) {
+      throw new IOException("Could not set table name from RangeInputSplit", e);
+    } catch (IllegalAccessException e) {
+      throw new IOException("Could not set table name from RangeInputSplit", e);
+    } catch (InvocationTargetException e) {
+      throw new IOException("Could not set table name from RangeInputSplit", e);
+    }
   }
 }

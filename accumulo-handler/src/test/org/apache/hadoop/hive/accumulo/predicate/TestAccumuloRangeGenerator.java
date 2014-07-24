@@ -42,11 +42,14 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeColumnDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeConstantDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeDesc;
 import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
+import org.apache.hadoop.hive.ql.udf.UDFToString;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFBridge;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPAnd;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrGreaterThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPEqualOrLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPLessThan;
 import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPOr;
+import org.apache.hadoop.hive.ql.udf.generic.GenericUDFOPPlus;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.junit.Assert;
 import org.junit.Before;
@@ -364,5 +367,50 @@ public class TestAccumuloRangeGenerator {
     @SuppressWarnings("unchecked")
     List<Range> actualRanges = (List<Range>) result;
     Assert.assertEquals(expectedRanges, actualRanges);
+  }
+
+  @Test
+  public void testCastExpression() throws Exception {
+    // 40 and 50
+    ExprNodeDesc fourty = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo,
+        40), fifty = new ExprNodeConstantDesc(TypeInfoFactory.intTypeInfo, 50);
+
+    // +
+    GenericUDFOPPlus plus = new GenericUDFOPPlus();
+
+    // 40 + 50
+    ExprNodeGenericFuncDesc addition = new ExprNodeGenericFuncDesc(TypeInfoFactory.intTypeInfo, plus, Arrays.asList(fourty, fifty));
+
+    // cast(.... as string)
+    UDFToString stringCast = new UDFToString();
+    GenericUDFBridge stringCastBridge = new GenericUDFBridge("cast", false, stringCast.getClass().getName());
+
+    // cast (40 + 50 as string)
+    ExprNodeGenericFuncDesc cast = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        stringCastBridge, "cast", Collections.<ExprNodeDesc> singletonList(addition));
+
+    ExprNodeDesc key = new ExprNodeColumnDesc(TypeInfoFactory.stringTypeInfo, "key", null,
+        false);
+
+    ExprNodeGenericFuncDesc node = new ExprNodeGenericFuncDesc(TypeInfoFactory.stringTypeInfo,
+        new GenericUDFOPEqualOrGreaterThan(), Arrays.asList(key, cast));
+
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler, rowIdMapping, "key");
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
+    GraphWalker ogw = new DefaultGraphWalker(disp);
+    ArrayList<Node> topNodes = new ArrayList<Node>();
+    topNodes.add(node);
+    HashMap<Node,Object> nodeOutput = new HashMap<Node,Object>();
+
+    try {
+      ogw.startWalking(topNodes, nodeOutput);
+    } catch (SemanticException ex) {
+      throw new RuntimeException(ex);
+    }
+
+    // Don't fail -- would be better to actually compute a range of [90,+inf)
+    Object result = nodeOutput.get(node);
+    Assert.assertNull(result);
   }
 }

@@ -216,21 +216,11 @@ public class AccumuloRangeGenerator implements NodeProcessor {
       }
     }
 
-    // TODO What if it's actually constant = constant or column = column
+    // If it's constant = constant or column = column, we can't fetch any ranges
+    // TODO We can try to be smarter and push up the value to some node which
+    // we can generate ranges from e.g. rowid > (4 + 5)
     if (null == constantDesc || null == columnDesc) {
-      StringBuilder sb = new StringBuilder(32);
-      if (null == constantDesc) {
-        sb.append("no constant");
-      }
-      if (null == columnDesc) {
-        if (null == constantDesc) {
-          sb.append(" and ");
-        }
-        sb.append("no column");
-      }
-
-      throw new IllegalArgumentException("Expected a column and a constant but found "
-          + sb.toString());
+      return null;
     }
 
     // Reject any clauses that are against a column that isn't the rowId mapping

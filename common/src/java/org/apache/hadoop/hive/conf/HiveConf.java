@@ -802,7 +802,7 @@ public class HiveConf extends Configuration {
     HIVE_ORC_WRITE_FORMAT("hive.exec.orc.write.format", null,
         "Define the version of the file to write"),
     HIVE_ORC_DEFAULT_STRIPE_SIZE("hive.exec.orc.default.stripe.size",
-        256L * 1024 * 1024,
+        64L * 1024 * 1024,
         "Define the default ORC stripe size"),
     HIVE_ORC_DEFAULT_BLOCK_SIZE("hive.exec.orc.default.block.size", 256L * 1024 * 1024,
         "Define the default file system block size for ORC files."),
@@ -1384,6 +1384,12 @@ public class HiveConf extends Configuration {
         "If the property is not set, then logging will be initialized using hive-exec-log4j.properties found on the classpath.\n" +
         "If the property is set, the value must be a valid URI (java.net.URI, e.g. \"file:///tmp/my-logging.properties\"), \n" +
         "which you can then extract a URL from and pass to PropertyConfigurator.configure(URL)."),
+
+    // Hive global init file location
+    HIVE_GLOBAL_INIT_FILE_LOCATION("hive.global.init.file.location", System.getenv("HIVE_CONF_DIR"),
+        "The location of HS2 global init file (.hiverc).\n" +
+        "If the property is not set, then HS2 will search for the file in $HIVE_CONF_DIR/.\n" +
+        "If the property is set, the value must be a valid path where the init file is located."),
 
     // prefix used to auto generated column aliases (this should be started with '_')
     HIVE_AUTOGEN_COLUMNALIAS_PREFIX_LABEL("hive.autogen.columnalias.prefix.label", "_c",

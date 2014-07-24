@@ -1316,7 +1316,7 @@
   </property>
   <property>
     <key>hive.exec.orc.default.stripe.size</key>
-    <value>268435456</value>
+    <value>67108864</value>
     <description>Define the default ORC stripe size</description>
   </property>
   <property>
@@ -2449,6 +2449,15 @@
       If the property is not set, then logging will be initialized using hive-exec-log4j.properties found on the classpath.
       If the property is set, the value must be a valid URI (java.net.URI, e.g. "file:///tmp/my-logging.properties"), 
       which you can then extract a URL from and pass to PropertyConfigurator.configure(URL).
+    </description>
+  </property>
+  <property>
+    <key>hive.global.init.file.location</key>
+    <value/>
+    <description>
+      The location of HS2 global init file (.hiverc).
+      If the property is not set, then HS2 will search for the file in $HIVE_CONF_DIR/.
+      If the property is set, the value must be a valid path where the init file is located.
     </description>
   </property>
   <property>

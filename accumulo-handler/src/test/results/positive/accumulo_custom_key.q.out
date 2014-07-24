@@ -60,3 +60,19 @@ POSTHOOK: type: QUERY
 POSTHOOK: Input: default@accumulo_ck_2
 #### A masked pattern was here ####
 1000$2000$3000	value
+PREHOOK: query: DROP TABLE accumulo_ck_1
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@accumulo_ck_1
+PREHOOK: Output: default@accumulo_ck_1
+POSTHOOK: query: DROP TABLE accumulo_ck_1
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@accumulo_ck_1
+POSTHOOK: Output: default@accumulo_ck_1
+PREHOOK: query: DROP TABLE accumulo_ck_2
+PREHOOK: type: DROPTABLE
+PREHOOK: Input: default@accumulo_ck_2
+PREHOOK: Output: default@accumulo_ck_2
+POSTHOOK: query: DROP TABLE accumulo_ck_2
+POSTHOOK: type: DROPTABLE
+POSTHOOK: Input: default@accumulo_ck_2
+POSTHOOK: Output: default@accumulo_ck_2

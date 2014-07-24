@@ -17,3 +17,6 @@ from src where key = 100;
 
 select * from accumulo_ck_1;
 select * from accumulo_ck_2;
+
+DROP TABLE accumulo_ck_1;
+DROP TABLE accumulo_ck_2;

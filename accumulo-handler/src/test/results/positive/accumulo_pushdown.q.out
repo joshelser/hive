@@ -390,9 +390,6 @@ where key<'80' and key>'90' and value like '%90%'
 POSTHOOK: type: QUERY
 POSTHOOK: Input: default@accumulo_pushdown
 #### A masked pattern was here ####
-190	val_190
-490	val_490
-90	val_90
 PREHOOK: query: -- with nothing to push down
 
 explain select * from accumulo_pushdown

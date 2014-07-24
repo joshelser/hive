@@ -96,13 +96,23 @@ public class AccumuloRangeGenerator implements NodeProcessor {
 
   protected Object processAndOpNode(Node nd, Object[] nodeOutputs) {
     // We might have multiple ranges coming from children
-    List<Range> andRanges = new ArrayList<Range>();
+    List<Range> andRanges = null;
 
     for (Object nodeOutput : nodeOutputs) {
       // null signifies nodes that are irrelevant to the generation
       // of Accumulo Ranges
       if (null == nodeOutput) {
         continue;
+      }
+
+      // When an AND has no children (some conjunction over a field that isn't the column
+      // mapped to the Accumulo rowid) and when a conjunction generates Ranges which are empty
+      // (the children of the conjunction are disjoint), these two cases need to be kept separate.
+      //
+      // A null `andRanges` implies that ranges couldn't be computed, while an empty List
+      // of Ranges implies that there are no possible Ranges to lookup.
+      if (null == andRanges) {
+        andRanges = new ArrayList<Range>();
       }
 
       // The child is a single Range

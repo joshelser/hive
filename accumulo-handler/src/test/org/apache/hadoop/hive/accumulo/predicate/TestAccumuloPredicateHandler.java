@@ -11,6 +11,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -63,6 +64,7 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -729,5 +731,79 @@ public class TestAccumuloPredicateHandler {
     List<Range> ranges = handler.getRanges(conf, columnMapper);
     Assert.assertEquals(1, ranges.size());
     Assert.assertEquals(new Range(new Text(baos.toByteArray()), false, null, false), ranges.get(0));
+  }
+
+  @Test
+  public void testNullRangeGeneratorOutput() throws SerDeException {
+    // The AccumuloRangeGenerator produces an Object (due to the limitations of the
+    // traversal interface) which requires interpretation of that Object into Ranges.
+    // Changes in the return object from the AccumuloRangeGenerator must also represent
+    // a change in the AccumuloPredicateHandler.
+    AccumuloPredicateHandler mockHandler = Mockito.mock(AccumuloPredicateHandler.class);
+    ExprNodeDesc root = Mockito.mock(ExprNodeDesc.class);
+    String hiveRowIdColumnName = "rid";
+
+    Mockito.when(mockHandler.getRanges(conf, columnMapper)).thenCallRealMethod();
+    Mockito.when(mockHandler.generateRanges(columnMapper, hiveRowIdColumnName, root)).thenReturn(null);
+    Mockito.when(mockHandler.getExpression(conf)).thenReturn(root);
+
+    // A null result from AccumuloRangeGenerator is all ranges
+    Assert.assertEquals(Arrays.asList(new Range()), mockHandler.getRanges(conf, columnMapper));
+  }
+
+  @Test
+  public void testEmptyListRangeGeneratorOutput() throws SerDeException {
+    // The AccumuloRangeGenerator produces an Object (due to the limitations of the
+    // traversal interface) which requires interpretation of that Object into Ranges.
+    // Changes in the return object from the AccumuloRangeGenerator must also represent
+    // a change in the AccumuloPredicateHandler.
+    AccumuloPredicateHandler mockHandler = Mockito.mock(AccumuloPredicateHandler.class);
+    ExprNodeDesc root = Mockito.mock(ExprNodeDesc.class);
+    String hiveRowIdColumnName = "rid";
+
+    Mockito.when(mockHandler.getRanges(conf, columnMapper)).thenCallRealMethod();
+    Mockito.when(mockHandler.generateRanges(columnMapper, hiveRowIdColumnName, root)).thenReturn(Collections.emptyList());
+    Mockito.when(mockHandler.getExpression(conf)).thenReturn(root);
+
+    // A null result from AccumuloRangeGenerator is all ranges
+    Assert.assertEquals(Collections.emptyList(), mockHandler.getRanges(conf, columnMapper));
+  }
+
+  @Test
+  public void testSingleRangeGeneratorOutput() throws SerDeException {
+    // The AccumuloRangeGenerator produces an Object (due to the limitations of the
+    // traversal interface) which requires interpretation of that Object into Ranges.
+    // Changes in the return object from the AccumuloRangeGenerator must also represent
+    // a change in the AccumuloPredicateHandler.
+    AccumuloPredicateHandler mockHandler = Mockito.mock(AccumuloPredicateHandler.class);
+    ExprNodeDesc root = Mockito.mock(ExprNodeDesc.class);
+    String hiveRowIdColumnName = "rid";
+    Range r = new Range("a");
+
+    Mockito.when(mockHandler.getRanges(conf, columnMapper)).thenCallRealMethod();
+    Mockito.when(mockHandler.generateRanges(columnMapper, hiveRowIdColumnName, root)).thenReturn(r);
+    Mockito.when(mockHandler.getExpression(conf)).thenReturn(root);
+
+    // A null result from AccumuloRangeGenerator is all ranges
+    Assert.assertEquals(Collections.singletonList(r), mockHandler.getRanges(conf, columnMapper));
+  }
+
+  @Test
+  public void testManyRangesGeneratorOutput() throws SerDeException {
+    // The AccumuloRangeGenerator produces an Object (due to the limitations of the
+    // traversal interface) which requires interpretation of that Object into Ranges.
+    // Changes in the return object from the AccumuloRangeGenerator must also represent
+    // a change in the AccumuloPredicateHandler.
+    AccumuloPredicateHandler mockHandler = Mockito.mock(AccumuloPredicateHandler.class);
+    ExprNodeDesc root = Mockito.mock(ExprNodeDesc.class);
+    String hiveRowIdColumnName = "rid";
+    Range r1 = new Range("a"), r2 = new Range("z");
+
+    Mockito.when(mockHandler.getRanges(conf, columnMapper)).thenCallRealMethod();
+    Mockito.when(mockHandler.generateRanges(columnMapper, hiveRowIdColumnName, root)).thenReturn(Arrays.asList(r1, r2));
+    Mockito.when(mockHandler.getExpression(conf)).thenReturn(root);
+
+    // A null result from AccumuloRangeGenerator is all ranges
+    Assert.assertEquals(Arrays.asList(r1, r2), mockHandler.getRanges(conf, columnMapper));
   }
 }

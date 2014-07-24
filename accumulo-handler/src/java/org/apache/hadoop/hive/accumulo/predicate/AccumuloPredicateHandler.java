@@ -201,22 +201,7 @@ public class AccumuloPredicateHandler {
       return TOTAL_RANGE;
     }
 
-    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler,
-        columnMapper.getRowIdMapping(), hiveRowIdColumnName);
-    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
-        Collections.<Rule,NodeProcessor> emptyMap(), null);
-    GraphWalker ogw = new DefaultGraphWalker(disp);
-    ArrayList<Node> roots = new ArrayList<Node>();
-    roots.add(root);
-    HashMap<Node,Object> nodeOutput = new HashMap<Node,Object>();
-
-    try {
-      ogw.startWalking(roots, nodeOutput);
-    } catch (SemanticException ex) {
-      throw new RuntimeException(ex);
-    }
-
-    Object result = nodeOutput.get(root);
+    Object result = generateRanges(columnMapper, hiveRowIdColumnName, root);
 
     if (null == result) {
       log.info("Calculated null set of ranges, scanning full table");
@@ -232,6 +217,38 @@ public class AccumuloPredicateHandler {
     } else {
       throw new IllegalArgumentException("Unhandled return from Range generation: " + result);
     }
+  }
+
+  /**
+   * Encapsulates the traversal over some {@link ExprNodeDesc} tree for the generation of Accumuluo
+   * Ranges using expressions involving the Accumulo rowid-mapped Hive column
+   *
+   * @param columnMapper
+   *          Mapping of Hive to Accumulo columns for the query
+   * @param hiveRowIdColumnName
+   *          Name of the hive column mapped to the Accumulo rowid
+   * @param root
+   *          Root of some ExprNodeDesc tree to traverse, the WHERE clause
+   * @return An object representing the result from the ExprNodeDesc tree traversal using the
+   *         AccumuloRangeGenerator
+   */
+  protected Object generateRanges(ColumnMapper columnMapper, String hiveRowIdColumnName, ExprNodeDesc root) {
+    AccumuloRangeGenerator rangeGenerator = new AccumuloRangeGenerator(handler,
+        columnMapper.getRowIdMapping(), hiveRowIdColumnName);
+    Dispatcher disp = new DefaultRuleDispatcher(rangeGenerator,
+        Collections.<Rule,NodeProcessor> emptyMap(), null);
+    GraphWalker ogw = new DefaultGraphWalker(disp);
+    ArrayList<Node> roots = new ArrayList<Node>();
+    roots.add(root);
+    HashMap<Node,Object> nodeOutput = new HashMap<Node,Object>();
+
+    try {
+      ogw.startWalking(roots, nodeOutput);
+    } catch (SemanticException ex) {
+      throw new RuntimeException(ex);
+    }
+    
+    return nodeOutput.get(root);
   }
 
   /**

@@ -404,10 +404,26 @@ public class HiveAccumuloTableInputFormat implements
    * @throws IOException
    */
   protected String getTableName(RangeInputSplit split) throws IOException {
+    // ACCUMULO-3017 shenanigans with method names changing without deprecation
+    Method getTableName = null;
     try {
-      return split.getTableName();
-    } catch (NoSuchMethodError e) {
-      log.debug("Could not extract table name from RangeInputSplit, attempting to access old method");
+      getTableName = RangeInputSplit.class.getMethod("getTableName");
+    } catch (SecurityException e) {
+      log.debug("Could not get getTableName method from RangeInputSplit", e);
+    } catch (NoSuchMethodException e) {
+      log.debug("Could not get getTableName method from RangeInputSplit", e);
+    }
+
+    if (null != getTableName) {
+      try {
+        return (String) getTableName.invoke(split);
+      } catch (IllegalArgumentException e) {
+        log.debug("Could not invoke getTableName method from RangeInputSplit", e);
+      } catch (IllegalAccessException e) {
+        log.debug("Could not invoke getTableName method from RangeInputSplit", e);
+      } catch (InvocationTargetException e) {
+        log.debug("Could not invoke getTableName method from RangeInputSplit", e);
+      }
     }
 
     Method getTable;
@@ -441,6 +457,29 @@ public class HiveAccumuloTableInputFormat implements
    * @throws IOException
    */
   protected void setTableName(RangeInputSplit split, String tableName) throws IOException {
+    // ACCUMULO-3017 shenanigans with method names changing without deprecation
+    Method setTableName = null;
+    try {
+      setTableName = RangeInputSplit.class.getMethod("setTableName", String.class);
+    } catch (SecurityException e) {
+      log.debug("Could not get getTableName method from RangeInputSplit", e);
+    } catch (NoSuchMethodException e) {
+      log.debug("Could not get getTableName method from RangeInputSplit", e);
+    }
+
+    if (null != setTableName) {
+      try {
+        setTableName.invoke(split, tableName);
+        return;
+      } catch (IllegalArgumentException e) {
+        log.debug("Could not invoke getTableName method from RangeInputSplit", e);
+      } catch (IllegalAccessException e) {
+        log.debug("Could not invoke getTableName method from RangeInputSplit", e);
+      } catch (InvocationTargetException e) {
+        log.debug("Could not invoke getTableName method from RangeInputSplit", e);
+      }
+    }
+
     try {
       split.setTableName(tableName);
       return;

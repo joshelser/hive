@@ -19,7 +19,6 @@ package org.apache.hadoop.hive.accumulo.mr;
 import java.io.IOException;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.mapred.AccumuloOutputFormat;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -80,9 +79,9 @@ public class HiveAccumuloTableOutputFormat extends AccumuloOutputFormat {
     AccumuloOutputFormat.setConnectorInfo(conf, username, token);
   }
 
+  @SuppressWarnings("deprecation")
   protected void setAccumuloZooKeeperInstance(JobConf conf, String instanceName, String zookeepers) {
-    AccumuloOutputFormat.setZooKeeperInstance(conf,
-        ClientConfiguration.loadDefault().withInstance(instanceName).withZkHosts(zookeepers));
+    AccumuloOutputFormat.setZooKeeperInstance(conf, instanceName, zookeepers);
   }
 
   protected void setAccumuloMockInstance(JobConf conf, String instanceName) {

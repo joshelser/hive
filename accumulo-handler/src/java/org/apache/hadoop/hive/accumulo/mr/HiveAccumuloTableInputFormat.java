@@ -13,7 +13,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.ClientConfiguration;
 import org.apache.accumulo.core.client.Connector;
 import org.apache.accumulo.core.client.Instance;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -297,30 +296,14 @@ public class HiveAccumuloTableInputFormat implements
 
   @SuppressWarnings("deprecation")
   protected void setZooKeeperInstance(JobConf conf, String instanceName, String zkHosts) {
-    ClientConfiguration clientConf = null;
+    // To support builds against 1.5, we can't use the new 1.6 setZooKeeperInstance which
+    // takes a ClientConfiguration class that only exists in 1.6
     try {
-      clientConf = new ClientConfiguration();
-    } catch (NoClassDefFoundError e) {
-      // Running against Accumulo 1.5, try to fall back to the old method
-      try {
-        AccumuloInputFormat.setZooKeeperInstance(conf, instanceName, zkHosts);
-      } catch (IllegalStateException ise) {
-        // AccumuloInputFormat complains if you re-set an already set value. We just don't care.
-        log.debug("Ignoring exception setting ZooKeeper instance of " + instanceName + " at "
-            + zkHosts, ise);
-      }
-
-      return;
-    }
-
-    // The recommended method in 1.6
-    try {
-      AccumuloInputFormat.setZooKeeperInstance(conf, clientConf.withInstance(instanceName)
-          .withZkHosts(zkHosts));
-    } catch (IllegalStateException e) {
+      AccumuloInputFormat.setZooKeeperInstance(conf, instanceName, zkHosts);
+    } catch (IllegalStateException ise) {
       // AccumuloInputFormat complains if you re-set an already set value. We just don't care.
       log.debug("Ignoring exception setting ZooKeeper instance of " + instanceName + " at "
-          + zkHosts, e);
+          + zkHosts, ise);
     }
   }
 
@@ -478,13 +461,6 @@ public class HiveAccumuloTableInputFormat implements
       } catch (InvocationTargetException e) {
         log.debug("Could not invoke getTableName method from RangeInputSplit", e);
       }
-    }
-
-    try {
-      split.setTableName(tableName);
-      return;
-    } catch (NoSuchMethodError e) {
-      log.debug("Could not set table name on RangeInputSplit, attempted to access old method");
     }
 
     Method setTable;

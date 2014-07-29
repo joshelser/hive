@@ -16,8 +16,13 @@
  */
 package org.apache.hadoop.hive.accumulo;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.Instance;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /**
  * 
@@ -37,4 +42,59 @@ public class TestAccumuloConnectionParameters {
     } catch (NullPointerException e) {}
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testMissingInstanceName() {
+    Configuration conf = new Configuration(false);
+    conf.set(AccumuloConnectionParameters.ZOOKEEPERS, "localhost:2181");
+    conf.set(AccumuloConnectionParameters.USER_NAME, "user");
+    conf.set(AccumuloConnectionParameters.USER_PASS, "password");
+
+    AccumuloConnectionParameters cnxnParams = new AccumuloConnectionParameters(conf);
+    cnxnParams.getInstance();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testMissingZooKeepers() {
+    Configuration conf = new Configuration(false);
+    conf.set(AccumuloConnectionParameters.INSTANCE_NAME, "accumulo");
+    conf.set(AccumuloConnectionParameters.USER_NAME, "user");
+    conf.set(AccumuloConnectionParameters.USER_PASS, "password");
+
+    AccumuloConnectionParameters cnxnParams = new AccumuloConnectionParameters(conf);
+    cnxnParams.getInstance();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testMissingUserName() throws AccumuloException, AccumuloSecurityException {
+    Configuration conf = new Configuration(false);
+    conf.set(AccumuloConnectionParameters.INSTANCE_NAME, "accumulo");
+    conf.set(AccumuloConnectionParameters.ZOOKEEPERS, "localhost:2181");
+    conf.set(AccumuloConnectionParameters.USER_PASS, "password");
+
+    Instance instance = Mockito.mock(Instance.class);
+
+    AccumuloConnectionParameters cnxnParams = new AccumuloConnectionParameters(conf);
+
+    // Provide an instance of the code doesn't try to make a real Instance
+    // We just want to test that we fail before trying to make a connector
+    // with null username
+    cnxnParams.getConnector(instance);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testMissingPassword() throws AccumuloException, AccumuloSecurityException {
+    Configuration conf = new Configuration(false);
+    conf.set(AccumuloConnectionParameters.INSTANCE_NAME, "accumulo");
+    conf.set(AccumuloConnectionParameters.ZOOKEEPERS, "localhost:2181");
+    conf.set(AccumuloConnectionParameters.USER_NAME, "user");
+
+    Instance instance = Mockito.mock(Instance.class);
+
+    AccumuloConnectionParameters cnxnParams = new AccumuloConnectionParameters(conf);
+
+    // Provide an instance of the code doesn't try to make a real Instance
+    // We just want to test that we fail before trying to make a connector
+    // with null password
+    cnxnParams.getConnector(instance);
+  }
 }

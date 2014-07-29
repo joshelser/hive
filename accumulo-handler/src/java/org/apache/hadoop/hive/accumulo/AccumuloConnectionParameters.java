@@ -85,10 +85,25 @@ public class AccumuloConnectionParameters {
   }
 
   public Instance getInstance() {
-    if (useMockInstance()) {
-      return new MockInstance(getAccumuloInstanceName());
+    String instanceName = getAccumuloInstanceName();
+
+    // Fail with a good message
+    if (null == instanceName) {
+      throw new IllegalArgumentException("Accumulo instance name must be provided in hiveconf using " + INSTANCE_NAME);
     }
-    return new ZooKeeperInstance(getAccumuloInstanceName(), getZooKeepers());
+
+    if (useMockInstance()) {
+      return new MockInstance(instanceName);
+    }
+
+    String zookeepers = getZooKeepers();
+
+    // Fail with a good message
+    if (null == zookeepers) {
+      throw new IllegalArgumentException("ZooKeeper quorum string must be provided in hiveconf using " + ZOOKEEPERS);
+    }
+
+    return new ZooKeeperInstance(instanceName, zookeepers);
   }
 
   public Connector getConnector() throws AccumuloException, AccumuloSecurityException {
@@ -97,6 +112,16 @@ public class AccumuloConnectionParameters {
   }
 
   public Connector getConnector(Instance inst) throws AccumuloException, AccumuloSecurityException {
-    return inst.getConnector(getAccumuloUserName(), new PasswordToken(getAccumuloPassword()));
+    String username = getAccumuloUserName(), password = getAccumuloPassword();
+
+    // Fail with a good message
+    if (null == username) {
+      throw new IllegalArgumentException("Accumulo user name must be provided in hiveconf using " + USER_NAME);
+    }
+    if (null == password) {
+      throw new IllegalArgumentException("Accumulo password must be provided in hiveconf using " + USER_PASS);
+    }
+
+    return inst.getConnector(username, new PasswordToken(password));
   }
 }

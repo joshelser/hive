@@ -54,7 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
+ *
  */
 public class AccumuloRangeGenerator implements NodeProcessor {
   private static final Logger log = LoggerFactory.getLogger(AccumuloRangeGenerator.class);
@@ -318,7 +318,7 @@ public class AccumuloRangeGenerator implements NodeProcessor {
   /**
    * Attempts to construct the binary value from the given inspector. Falls back to UTF8 encoding
    * when the value cannot be coerced into binary.
-   * 
+   *
    * @return Binary value when possible, utf8 otherwise
    * @throws IOException
    */

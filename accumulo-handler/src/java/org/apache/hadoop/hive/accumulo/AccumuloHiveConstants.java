@@ -19,7 +19,7 @@ package org.apache.hadoop.hive.accumulo;
 import java.nio.charset.Charset;
 
 /**
- * 
+ *
  */
 public class AccumuloHiveConstants {
   public static final String ROWID = ":rowID";

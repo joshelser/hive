@@ -40,7 +40,7 @@ public interface AccumuloRowIdFactory {
 
   /**
    * create custom object inspector for accumulo rowId
-   * 
+   *
    * @param type
    *          type information
    */
@@ -48,7 +48,7 @@ public interface AccumuloRowIdFactory {
 
   /**
    * create custom object for accumulo
-   * 
+   *
    * @param inspector
    *          OI create by {@link AccumuloRowIdFactory#createRowIdObjectInspector}
    */

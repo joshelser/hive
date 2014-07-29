@@ -27,12 +27,11 @@ import com.google.common.collect.Lists;
 
 /**
  * Operates over a single qualifier.
- * 
+ *
  * Delegates to PrimitiveCompare and CompareOpt instances for value acceptance.
- * 
+ *
  * The PrimitiveCompare strategy assumes a consistent value type for the same column family and
  * qualifier.
- * 
  */
 public class PrimitiveComparisonFilter extends WholeRowIterator {
   @SuppressWarnings("unused")

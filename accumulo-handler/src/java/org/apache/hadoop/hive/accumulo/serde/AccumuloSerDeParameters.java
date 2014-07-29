@@ -39,7 +39,7 @@ import org.apache.log4j.Logger;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  */
 public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   private static final Logger log = Logger.getLogger(AccumuloSerDeParameters.class);
@@ -233,7 +233,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
    * written to an Accumulo table. The value in the table property must be a properly formatted
    * {@link ColumnVisibility}. If not value is present in the table properties, an empty
    * ColumnVisibility is returned.
-   * 
+   *
    * @return The ColumnVisibility to be applied to all updates sent to Accumulo
    */
   public ColumnVisibility getTableVisibilityLabel() {
@@ -249,7 +249,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
    * Extracts the table property to allow dynamic Accumulo Authorizations to be used when reading
    * data from an Accumulo table. If no Authorizations are provided in the table properties, null is
    * returned to preserve the functionality to read all data that the current user has access to.
-   * 
+   *
    * @return The Authorizations that should be used to read data from Accumulo, null if no
    *         configuration is supplied.
    */
@@ -262,7 +262,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   /**
    * Create an Authorizations object when the provided value is not null. Will return null,
    * otherwise.
-   * 
+   *
    * @param authorizationStr
    *          Configuration value to parse
    * @return Authorization object or null
@@ -278,7 +278,7 @@ public class AccumuloSerDeParameters extends AccumuloConnectionParameters {
   /**
    * Extract any configuration on Authorizations to be used from the provided Configuration. If a
    * non-null value is not present in the configuration, a null object is returned
-   * 
+   *
    * @return Authorization built from configuration value, null if no value is present in conf
    */
   public static Authorizations getAuthorizationsFromConf(Configuration conf) {

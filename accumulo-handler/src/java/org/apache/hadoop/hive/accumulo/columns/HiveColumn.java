@@ -21,7 +21,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  */
 public class HiveColumn {
 

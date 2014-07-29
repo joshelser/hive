@@ -17,7 +17,7 @@
 package org.apache.hadoop.hive.accumulo.columns;
 
 /**
- * 
+ *
  */
 public class InvalidColumnMappingException extends IllegalArgumentException {
 

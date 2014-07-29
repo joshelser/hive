@@ -19,37 +19,24 @@ package org.apache.hadoop.hive.accumulo.serde;
 import org.apache.hadoop.hive.serde2.SerDeException;
 
 /**
- * 
+ *
  */
 public class TooManyAccumuloColumnsException extends SerDeException {
 
   private static final long serialVersionUID = 1L;
 
-  /**
-   * 
-   */
   public TooManyAccumuloColumnsException() {
     super();
   }
 
-  /**
-   * @param message
-   * @param cause
-   */
   public TooManyAccumuloColumnsException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  /**
-   * @param message
-   */
   public TooManyAccumuloColumnsException(String message) {
     super(message);
   }
 
-  /**
-   * @param cause
-   */
   public TooManyAccumuloColumnsException(Throwable cause) {
     super(cause);
   }

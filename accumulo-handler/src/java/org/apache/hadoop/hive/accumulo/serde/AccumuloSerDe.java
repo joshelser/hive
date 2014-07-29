@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Deserialization from Accumulo to LazyAccumuloRow for Hive.
- * 
+ *
  */
 public class AccumuloSerDe implements SerDe {
 

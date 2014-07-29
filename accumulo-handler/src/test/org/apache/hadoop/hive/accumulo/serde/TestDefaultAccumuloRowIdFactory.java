@@ -34,7 +34,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class TestDefaultAccumuloRowIdFactory {
 
@@ -50,7 +50,7 @@ public class TestDefaultAccumuloRowIdFactory {
         "string,int");
 
     accumuloSerDe.initialize(conf, properties);
-    
+
     AccumuloRowIdFactory factory = accumuloSerDe.getParams().getRowIdFactory();
     List<TypeInfo> columnTypes = accumuloSerDe.getParams().getHiveColumnTypes();
     ColumnMapper mapper = accumuloSerDe.getParams().getColumnMapper();
@@ -75,7 +75,7 @@ public class TestDefaultAccumuloRowIdFactory {
         "struct<col1:int,col2:int>,map<string,string>");
 
     accumuloSerDe.initialize(conf, properties);
-    
+
     AccumuloRowIdFactory factory = accumuloSerDe.getParams().getRowIdFactory();
     List<TypeInfo> columnTypes = accumuloSerDe.getParams().getHiveColumnTypes();
     ColumnMapper mapper = accumuloSerDe.getParams().getColumnMapper();

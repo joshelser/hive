@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
 
 /**
  * For use in IteratorSetting construction.
- * 
+ *
  * encapsulates a constant byte [], PrimitiveCompare instance, and CompareOp instance.
  */
 public class PushdownTuple {
@@ -80,7 +80,7 @@ public class PushdownTuple {
   }
 
   /**
-   * 
+   *
    * @return byte [] value from writable.
    * @throws SerDeException
    */

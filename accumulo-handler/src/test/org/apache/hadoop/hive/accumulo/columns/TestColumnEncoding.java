@@ -25,7 +25,7 @@ import org.junit.Test;
 import com.google.common.collect.Maps;
 
 /**
- * 
+ *
  */
 public class TestColumnEncoding {
 

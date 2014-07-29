@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  */
 public class ColumnMapper {
   private static final Logger log = Logger.getLogger(ColumnMapper.class);
@@ -44,7 +44,7 @@ public class ColumnMapper {
    * Create a mapping from Hive columns (rowID and column) to Accumulo columns (column family and
    * qualifier). The ordering of the {@link ColumnMapping}s is important as it aligns with the
    * ordering of the columns for the Hive table schema.
-   * 
+   *
    * @param serializedColumnMappings
    *          Comma-separated list of designators that map to Accumulo columns whose offsets
    *          correspond to the Hive table schema

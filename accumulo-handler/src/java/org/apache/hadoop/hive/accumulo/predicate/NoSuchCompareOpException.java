@@ -17,7 +17,7 @@
 package org.apache.hadoop.hive.accumulo.predicate;
 
 /**
- * 
+ *
  */
 public class NoSuchCompareOpException extends Exception {
 

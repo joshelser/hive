@@ -38,7 +38,6 @@ public class AccumuloHiveRow implements Writable {
   }
 
   /**
-   * 
    * @return true if this instance has a tuple containing fam and qual, false otherwise.
    */
   public boolean hasFamAndQual(Text fam, Text qual) {
@@ -51,7 +50,6 @@ public class AccumuloHiveRow implements Writable {
   }
 
   /**
-   * 
    * @return byte [] value for first tuple containing fam and qual or null if no match.
    */
   public byte[] getValue(Text fam, Text qual) {

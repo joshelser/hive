@@ -22,9 +22,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
 
 /**
- * 
+ *
  * Parses column tuples in each AccumuloHiveRow and creates Lazy objects for each field.
- * 
+ *
  */
 public class LazyAccumuloRow extends LazyStruct {
   private static final Logger log = Logger.getLogger(LazyAccumuloRow.class);

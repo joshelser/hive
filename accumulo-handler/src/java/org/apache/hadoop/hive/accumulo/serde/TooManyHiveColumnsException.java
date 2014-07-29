@@ -25,31 +25,18 @@ public class TooManyHiveColumnsException extends SerDeException {
 
   private static final long serialVersionUID = 1L;
 
-  /**
-   * 
-   */
   public TooManyHiveColumnsException() {
     super();
   }
 
-  /**
-   * @param message
-   * @param cause
-   */
   public TooManyHiveColumnsException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  /**
-   * @param message
-   */
   public TooManyHiveColumnsException(String message) {
     super(message);
   }
 
-  /**
-   * @param cause
-   */
   public TooManyHiveColumnsException(Throwable cause) {
     super(cause);
   }

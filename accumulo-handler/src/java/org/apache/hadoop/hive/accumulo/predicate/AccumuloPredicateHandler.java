@@ -58,11 +58,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
- * 
+ *
  * Supporting operations dealing with Hive Predicate pushdown to iterators and ranges.
- * 
+ *
  * See {@link PrimitiveComparisonFilter}
- * 
+ *
  */
 public class AccumuloPredicateHandler {
   private static final List<Range> TOTAL_RANGE = Collections.singletonList(new Range());
@@ -95,7 +95,7 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * 
+   *
    * @return set of all UDF class names with matching CompareOpt implementations.
    */
   public Set<String> cOpKeyset() {
@@ -103,7 +103,7 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * 
+   *
    * @return set of all hive data types with matching PrimitiveCompare implementations.
    */
   public Set<String> pComparisonKeyset() {
@@ -111,7 +111,7 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * 
+   *
    * @param udfType
    *          GenericUDF classname to lookup matching CompareOpt
    * @return Class<? extends CompareOpt/>
@@ -142,7 +142,7 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * 
+   *
    * @param type
    *          String hive column lookup matching PrimitiveCompare
    * @return Class<? extends ></?>
@@ -177,7 +177,6 @@ public class AccumuloPredicateHandler {
 
   /**
    * Loop through search conditions and build ranges for predicates involving rowID column, if any.
-   * 
    */
   public List<Range> getRanges(Configuration conf, ColumnMapper columnMapper) throws SerDeException {
     if (!columnMapper.hasRowIdMapping()) {
@@ -247,14 +246,14 @@ public class AccumuloPredicateHandler {
     } catch (SemanticException ex) {
       throw new RuntimeException(ex);
     }
-    
+
     return nodeOutput.get(root);
   }
 
   /**
    * Loop through search conditions and build iterator settings for predicates involving columns
    * other than rowID, if any.
-   * 
+   *
    * @param conf
    *          Configuration
    * @throws SerDeException
@@ -300,7 +299,7 @@ public class AccumuloPredicateHandler {
   /**
    * Create an IteratorSetting for the right qualifier, constant, CompareOpt, and PrimitiveCompare
    * type.
-   * 
+   *
    * @param accumuloColumnMapping
    *          ColumnMapping to filter
    * @param sc
@@ -345,7 +344,7 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * 
+   *
    * @param conf
    *          Configuration
    * @return list of IndexSearchConditions from the filter expression.
@@ -364,8 +363,7 @@ public class AccumuloPredicateHandler {
   }
 
   /**
-   * 
-   * 
+   *
    * @param conf
    *          Configuration
    * @param desc
@@ -389,7 +387,7 @@ public class AccumuloPredicateHandler {
     return decomposedPredicate;
   }
 
-  /*
+  /**
    * Build an analyzer that allows comparison opts from compareOpts map, and all columns from table
    * definition.
    */

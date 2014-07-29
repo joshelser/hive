@@ -102,7 +102,7 @@ public class LazyAccumuloMap extends LazyMap {
 
   /**
    * Get the value in the map for the given key.
-   * 
+   *
    * @param key
    *          The key, a column qualifier, from the map
    * @return The object in the map at the given key

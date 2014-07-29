@@ -55,7 +55,7 @@ import org.mockito.Mockito;
 import com.google.common.base.Joiner;
 
 /**
- * 
+ *
  */
 public class TestAccumuloRowSerializer {
 

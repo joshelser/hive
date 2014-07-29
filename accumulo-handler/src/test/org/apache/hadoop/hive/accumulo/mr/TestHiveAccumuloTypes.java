@@ -106,7 +106,7 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 /**
- * 
+ *
  */
 public class TestHiveAccumuloTypes {
 

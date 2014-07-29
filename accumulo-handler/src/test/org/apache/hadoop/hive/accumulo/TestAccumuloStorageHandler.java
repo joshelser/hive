@@ -38,7 +38,7 @@ import org.junit.rules.TestName;
 import org.mockito.Mockito;
 
 /**
- * 
+ *
  */
 public class TestAccumuloStorageHandler {
 

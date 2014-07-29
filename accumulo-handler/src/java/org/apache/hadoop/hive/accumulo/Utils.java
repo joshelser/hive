@@ -5,9 +5,9 @@
  * licenses this file to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
@@ -95,7 +95,7 @@ public class Utils {
    * created, it is created in the system temporary directory. Otherwise, returns an existing jar
    * that contains a class of the same name. Maintains a mapping from jar contents to the tmp jar
    * created.
-   * 
+   *
    * @param my_class
    *          the class to find.
    * @param fs
@@ -126,7 +126,7 @@ public class Utils {
   /**
    * Add entries to <code>packagedClasses</code> corresponding to class files contained in
    * <code>jar</code>.
-   * 
+   *
    * @param jar
    *          The jar who's content to list.
    * @param packagedClasses
@@ -155,7 +155,7 @@ public class Utils {
    * Find a jar that contains a class of the same name, if any. It will return a jar file, even if
    * that is not the first thing on the class path that has a class with the same name. Looks first
    * on the classpath and then in the <code>packagedClasses</code> map.
-   * 
+   *
    * @param my_class
    *          the class to find.
    * @return a jar file that contains the class, or null.
@@ -196,7 +196,7 @@ public class Utils {
    * Invoke 'getJar' on a JarFinder implementation. Useful for some job configuration contexts
    * (HBASE-8140) and also for testing on MRv2. First check if we have HADOOP-9426. Lacking that,
    * fall back to the backport.
-   * 
+   *
    * @param my_class
    *          the class to find.
    * @return a jar file that contains the class, or null.
@@ -229,10 +229,10 @@ public class Utils {
 
   /**
    * Returns the full path to the Jar containing the class. It always return a JAR.
-   * 
+   *
    * @param klass
    *          class.
-   * 
+   *
    * @return path to the Jar containing the class.
    */
   @SuppressWarnings("rawtypes")

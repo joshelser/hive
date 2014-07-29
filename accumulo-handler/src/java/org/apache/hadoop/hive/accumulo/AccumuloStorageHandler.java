@@ -59,7 +59,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
    * @param desc
    *          Hive table description
    * @param jobProps
-   *          Properties that will be added to the JobConf by Hive 
+   *          Properties that will be added to the JobConf by Hive
    */
   @Override
   public void configureTableJobProperties(TableDesc desc, Map<String,String> jobProps) {
@@ -71,7 +71,7 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
 
   protected String getTableName(Table table) throws MetaException {
     // Use TBLPROPERTIES
-    String tableName = table.getParameters().get(AccumuloSerDeParameters.TABLE_NAME); 
+    String tableName = table.getParameters().get(AccumuloSerDeParameters.TABLE_NAME);
 
     if (null != tableName) {
       return tableName;

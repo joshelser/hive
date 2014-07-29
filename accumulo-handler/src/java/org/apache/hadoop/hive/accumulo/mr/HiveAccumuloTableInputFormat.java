@@ -59,7 +59,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Wraps older InputFormat for use with Hive.
- * 
+ *
  * Configure input scan with proper ranges, iterators, and columns based on serde properties for
  * Hive table.
  */
@@ -134,7 +134,7 @@ public class HiveAccumuloTableInputFormat implements
   /**
    * Setup accumulo input format from conf properties. Delegates to final RecordReader from mapred
    * package.
-   * 
+   *
    * @param inputSplit
    * @param jobConf
    * @param reporter
@@ -215,7 +215,7 @@ public class HiveAccumuloTableInputFormat implements
 
   /**
    * Configure the underlying AccumuloInputFormat
-   * 
+   *
    * @param conf
    *          Job configuration
    * @param instance
@@ -342,7 +342,7 @@ public class HiveAccumuloTableInputFormat implements
   /**
    * Create col fam/qual pairs from pipe separated values, usually from config object. Ignores
    * rowID.
-   * 
+   *
    * @param columnMappings
    *          The list of ColumnMappings for the given query
    * @return a Set of Pairs of colfams and colquals

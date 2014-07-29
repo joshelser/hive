@@ -30,7 +30,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class TestPrimitiveComparisonFilter {
 
@@ -59,7 +59,7 @@ public class TestPrimitiveComparisonFilter {
     for (int i = 0; i < 500; i++) {
       writable.set(i);
       writable.write(out);
-      
+
       options.put(PrimitiveComparisonFilter.CONST_VAL, new String(Base64.encodeBase64(baos.toByteArray())));
 
       byte[] bytes = filter.getConstant(options);
@@ -67,7 +67,7 @@ public class TestPrimitiveComparisonFilter {
       ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
       DataInputStream in = new DataInputStream(bais);
       writable.readFields(in);
-      
+
       Assert.assertEquals(i, writable.get());
 
       baos.reset();

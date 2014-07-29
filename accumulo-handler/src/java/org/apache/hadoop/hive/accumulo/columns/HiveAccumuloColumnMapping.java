@@ -47,7 +47,7 @@ public class HiveAccumuloColumnMapping extends ColumnMapping {
   /**
    * Cached bytes for the columnFamily. Modifications to the bytes will affect those stored in this
    * ColumnMapping -- such modifications are highly recommended against.
-   * 
+   *
    * @return UTF8 formatted bytes
    */
   public byte[] getColumnFamilyBytes() {
@@ -65,7 +65,7 @@ public class HiveAccumuloColumnMapping extends ColumnMapping {
   /**
    * Cached bytes for the columnQualifier. Modifications to the bytes will affect those stored in
    * this ColumnMapping -- such modifications are highly recommended against.
-   * 
+   *
    * @return UTF8 formatted bytes
    */
   public byte[] getColumnQualifierBytes() {

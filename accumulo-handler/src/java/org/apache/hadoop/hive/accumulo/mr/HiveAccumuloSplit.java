@@ -33,7 +33,7 @@ import org.apache.log4j.Logger;
 /**
  * Wraps RangeInputSplit into a FileSplit so Hadoop won't complain when it tries to make its own
  * Path.
- * 
+ *
  * <p>
  * If the {@link RangeInputSplit} is used directly, it will hit a branch of code in
  * {@link HiveInputSplit} which generates an invalid Path. Wrap it ourselves so that it doesn't

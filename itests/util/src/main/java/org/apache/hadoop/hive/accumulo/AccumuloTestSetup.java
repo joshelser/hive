@@ -57,9 +57,9 @@ public class AccumuloTestSetup extends TestSetup {
 
       MiniAccumuloConfig cfg = new MiniAccumuloConfig(tmpDir, PASSWORD);
       cfg.setNumTservers(1);
-  
+
       miniCluster = new MiniAccumuloCluster(cfg);
-  
+
       miniCluster.start();
 
       createAccumuloTable(miniCluster.getConnector("root", PASSWORD));

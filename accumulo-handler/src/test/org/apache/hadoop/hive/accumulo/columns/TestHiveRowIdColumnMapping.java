@@ -20,7 +20,7 @@ import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.junit.Test;
 
 /**
- * 
+ *
  */
 public class TestHiveRowIdColumnMapping {
 

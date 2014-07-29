@@ -26,14 +26,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 /**
- * 
+ *
  */
 public class ColumnMappingFactory {
   private static final Logger log = Logger.getLogger(ColumnMappingFactory.class);
 
   /**
    * Generate the proper instance of a ColumnMapping
-   * 
+   *
    * @param columnSpec
    *          Specification for mapping this column to Accumulo
    * @param defaultEncoding

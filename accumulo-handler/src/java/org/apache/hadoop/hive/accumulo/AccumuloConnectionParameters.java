@@ -28,7 +28,7 @@ import org.apache.hadoop.conf.Configuration;
 import com.google.common.base.Preconditions;
 
 /**
- * 
+ *
  */
 public class AccumuloConnectionParameters {
   public static final String USER_NAME = "accumulo.user.name";

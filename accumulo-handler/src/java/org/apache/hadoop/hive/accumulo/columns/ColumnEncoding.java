@@ -59,7 +59,7 @@ public enum ColumnEncoding {
 
   /**
    * Get the ColumnEncoding which has the given code.
-   * 
+   *
    * @param code
    *          The one-character 'code' which uniquely identifies the ColumnEncoding
    * @return The ColumnEncoding with the code equal to the provided argument
@@ -104,7 +104,7 @@ public enum ColumnEncoding {
 
   /**
    * Determines if a custom encoding was specified for the give column.
-   * 
+   *
    * @param columnMapping
    *          The mapping from Hive column to an Accumulo column
    * @return True if the column mapping string specifies an encoding, false otherwise
@@ -142,7 +142,7 @@ public enum ColumnEncoding {
   /**
    * Removes the column encoding code and separator from the original column mapping string. Throws
    * an IllegalArgumentException if this method is called on a string that doesn't contain a code.
-   * 
+   *
    * @param columnMapping
    *          The mapping from Hive column to Accumulo column
    * @return The column mapping with the code removed

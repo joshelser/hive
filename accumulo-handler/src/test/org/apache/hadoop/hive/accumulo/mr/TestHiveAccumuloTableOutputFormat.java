@@ -36,6 +36,7 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hive.accumulo.AccumuloConnectionParameters;
+import org.apache.hadoop.hive.accumulo.columns.ColumnEncoding;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloRowSerializer;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe;
 import org.apache.hadoop.hive.accumulo.serde.AccumuloSerDeParameters;
@@ -392,6 +393,98 @@ public class TestHiveAccumuloTableOutputFormat {
     Assert.assertEquals("cq2", k.getColumnQualifier().toString());
     Assert.assertEquals(AccumuloSerDeParameters.DEFAULT_VISIBILITY_LABEL,
         k.getColumnVisibilityParsed());
+    Assert.assertEquals("value2", new String(v.get()));
+
+    Assert.assertFalse("Iterator unexpectedly had more data", iter.hasNext());
+  }
+
+  @Test
+  public void testBinarySerializationOnStringFallsBackToUtf8() throws Exception {
+    Instance inst = new MockInstance(test.getMethodName());
+    Connector conn = inst.getConnector("root", new PasswordToken(""));
+
+    HiveAccumuloTableOutputFormat outputFormat = new HiveAccumuloTableOutputFormat();
+    String table = test.getMethodName();
+    conn.tableOperations().create(table);
+
+    JobConf conf = new JobConf();
+    conf.set(AccumuloConnectionParameters.INSTANCE_NAME, inst.getInstanceName());
+    conf.set(AccumuloConnectionParameters.USER_NAME, "root");
+    conf.set(AccumuloConnectionParameters.USER_PASS, "");
+    conf.setBoolean(AccumuloConnectionParameters.USE_MOCK_INSTANCE, true);
+    conf.set(AccumuloConnectionParameters.TABLE_NAME, test.getMethodName());
+
+    FileSystem local = FileSystem.getLocal(conf);
+    outputFormat.checkOutputSpecs(local, conf);
+
+    RecordWriter<Text,Mutation> recordWriter = outputFormat
+        .getRecordWriter(local, conf, null, null);
+
+    List<String> names = Arrays.asList("row", "col1", "col2");
+    List<TypeInfo> types = Arrays.<TypeInfo> asList(TypeInfoFactory.stringTypeInfo,
+        TypeInfoFactory.stringTypeInfo, TypeInfoFactory.stringTypeInfo);
+
+    Properties tableProperties = new Properties();
+    tableProperties.setProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS, ":rowID,cf:cq1,cf:cq2");
+    tableProperties.setProperty(serdeConstants.FIELD_DELIM, " ");
+    tableProperties.setProperty(serdeConstants.LIST_COLUMNS, Joiner.on(',').join(names));
+    tableProperties.setProperty(serdeConstants.LIST_COLUMN_TYPES, Joiner.on(',').join(types));
+    tableProperties.setProperty(AccumuloSerDeParameters.DEFAULT_STORAGE_TYPE, ColumnEncoding.BINARY.getName());
+    AccumuloSerDeParameters accumuloSerDeParams = new AccumuloSerDeParameters(new Configuration(),
+        tableProperties, AccumuloSerDe.class.getSimpleName());
+    SerDeParameters serDeParams = accumuloSerDeParams.getSerDeParameters();
+
+    AccumuloRowSerializer serializer = new AccumuloRowSerializer(0, serDeParams,
+        accumuloSerDeParams.getColumnMappings(), AccumuloSerDeParameters.DEFAULT_VISIBILITY_LABEL,
+        accumuloSerDeParams.getRowIdFactory());
+
+    TypeInfo stringTypeInfo = TypeInfoFactory.getPrimitiveTypeInfo(serdeConstants.STRING_TYPE_NAME);
+
+    LazySimpleStructObjectInspector structOI = (LazySimpleStructObjectInspector) LazyFactory
+        .createLazyStructInspector(Arrays.asList("row", "cq1", "cq2"),
+            Arrays.asList(stringTypeInfo, stringTypeInfo, stringTypeInfo),
+            serDeParams.getSeparators(), serDeParams.getNullSequence(),
+            serDeParams.isLastColumnTakesRest(), serDeParams.isEscaped(),
+            serDeParams.getEscapeChar());
+
+    LazyStruct struct = (LazyStruct) LazyFactory.createLazyObject(structOI);
+
+    ByteArrayRef bytes = new ByteArrayRef();
+    bytes.setData("row value1 value2".getBytes());
+    struct.init(bytes, 0, bytes.getData().length);
+
+    // Serialize the struct into a mutation
+    Mutation m = serializer.serialize(struct, structOI);
+
+    // Write the mutation
+    recordWriter.write(new Text(table), m);
+
+    // Close the writer
+    recordWriter.close(null);
+
+    Iterator<Entry<Key,Value>> iter = conn.createScanner(table, new Authorizations()).iterator();
+    Assert.assertTrue("Iterator did not have an element as expected", iter.hasNext());
+
+    Entry<Key,Value> entry = iter.next();
+    Key k = entry.getKey();
+    Value v = entry.getValue();
+
+    Assert.assertEquals("row", k.getRow().toString());
+    Assert.assertEquals("cf", k.getColumnFamily().toString());
+    Assert.assertEquals("cq1", k.getColumnQualifier().toString());
+    Assert.assertEquals("", k.getColumnVisibility().toString());
+    Assert.assertEquals("value1", new String(v.get()));
+
+    Assert.assertTrue("Iterator did not have an element as expected", iter.hasNext());
+
+    entry = iter.next();
+    k = entry.getKey();
+    v = entry.getValue();
+
+    Assert.assertEquals("row", k.getRow().toString());
+    Assert.assertEquals("cf", k.getColumnFamily().toString());
+    Assert.assertEquals("cq2", k.getColumnQualifier().toString());
+    Assert.assertEquals("", k.getColumnVisibility().toString());
     Assert.assertEquals("value2", new String(v.get()));
 
     Assert.assertFalse("Iterator unexpectedly had more data", iter.hasNext());

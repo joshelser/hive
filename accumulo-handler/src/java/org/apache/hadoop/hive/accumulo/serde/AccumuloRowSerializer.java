@@ -36,6 +36,7 @@ import org.apache.hadoop.hive.serde2.objectinspector.ListObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.MapObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
+import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructField;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.PrimitiveObjectInspectorFactory;
@@ -243,7 +244,7 @@ public class AccumuloRowSerializer {
     output.reset();
 
     // Start by only serializing primitives as-is
-    if (fieldObjectInspector.getCategory().equals(ObjectInspector.Category.PRIMITIVE)) {
+    if (fieldObjectInspector.getCategory() == ObjectInspector.Category.PRIMITIVE) {
       writeSerializedPrimitive((PrimitiveObjectInspector) fieldObjectInspector, output, value,
           mapping.getEncoding());
     } else {
@@ -357,7 +358,8 @@ public class AccumuloRowSerializer {
    */
   protected void writeSerializedPrimitive(PrimitiveObjectInspector objectInspector,
       ByteStream.Output output, Object value, ColumnEncoding encoding) throws IOException {
-    if (ColumnEncoding.BINARY == encoding) {
+    // Despite STRING being a primitive, it can't be serialized as binary
+    if (objectInspector.getPrimitiveCategory() != PrimitiveCategory.STRING && ColumnEncoding.BINARY == encoding) {
       writeBinary(output, value, objectInspector);
     } else {
       writeString(output, value, objectInspector);

@@ -17,8 +17,16 @@
 package org.apache.hadoop.hive.accumulo;
 
 import java.io.File;
+import java.io.FileFilter;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import junit.extensions.TestSetup;
 import junit.framework.Test;
@@ -32,19 +40,23 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
-import org.apache.accumulo.minicluster.MiniAccumuloConfig;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.minicluster.impl.MiniAccumuloConfigImpl;
+import org.apache.commons.vfs2.FileSystemException;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
+import org.apache.log4j.Logger;
 
 /**
  * Start and stop an AccumuloMiniCluster for testing purposes
  */
 public class AccumuloTestSetup extends TestSetup {
+  private static final Logger log = Logger.getLogger(AccumuloTestSetup.class);
+  private static final String THRIFT_NAME = "libthrift", DESIRED_THRIFT_VERSION = "0.9.1";
   public static final String PASSWORD = "password";
   public static final String TABLE_NAME = "accumuloHiveTable";
 
-  protected MiniAccumuloCluster miniCluster;
+  protected MiniAccumuloClusterImpl miniCluster;
 
   public AccumuloTestSetup(Test test) {
     super(test);
@@ -55,10 +67,17 @@ public class AccumuloTestSetup extends TestSetup {
       String testTmpDir = System.getProperty("test.tmp.dir");
       File tmpDir = new File(testTmpDir, "accumulo");
 
-      MiniAccumuloConfig cfg = new MiniAccumuloConfig(tmpDir, PASSWORD);
+      // The method we want to call is hidden on the impl...
+      MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(tmpDir, PASSWORD);
       cfg.setNumTservers(1);
 
-      miniCluster = new MiniAccumuloCluster(cfg);
+      // Trim down the classpath from Maven to remove duplicative/problematic entries
+      final String[] cp = getClasspath(cfg);
+      cfg.setClasspathItems(cp);
+
+      log.info("Configuring minicluster classpath: " + Arrays.toString(cp));
+
+      miniCluster = new MiniAccumuloClusterImpl(cfg);
 
       miniCluster.start();
 
@@ -70,6 +89,83 @@ public class AccumuloTestSetup extends TestSetup {
     conf.set(AccumuloConnectionParameters.USER_PASS, PASSWORD);
     conf.set(AccumuloConnectionParameters.ZOOKEEPERS, miniCluster.getZooKeepers());
     conf.set(AccumuloConnectionParameters.INSTANCE_NAME, miniCluster.getInstanceName());
+  }
+
+  /**
+   * Lifted from {@link MiniAccumuloClusterImpl}: iterates elements that are
+   * on the classpath and lets us remove certain ones.
+   */
+  private String[] getClasspath(MiniAccumuloConfigImpl config) throws
+      FileSystemException, URISyntaxException {
+    final ArrayList<ClassLoader> classloaders = new ArrayList<ClassLoader>();
+    final ArrayList<String> classpathEntries = new ArrayList<String>();
+
+    ClassLoader cl = this.getClass().getClassLoader();
+
+    while (cl != null) {
+      classloaders.add(cl);
+      cl = cl.getParent();
+    }
+
+    log.info("Classloaders: " + classloaders);
+
+    Collections.reverse(classloaders);
+    classpathEntries.add(new File(config.getDir(), "conf").getAbsolutePath());
+
+    for (int i = 0; i < classloaders.size(); i++) {
+      ClassLoader classLoader = classloaders.get(i);
+
+      if (classLoader instanceof URLClassLoader) {
+
+        URLClassLoader ucl = (URLClassLoader) classLoader;
+
+        for (URL u : ucl.getURLs()) {
+          append(classpathEntries, u);
+        }
+
+      } else {
+        throw new IllegalArgumentException("Unknown classloader type : "
+            + classLoader.getClass().getName());
+      }
+    }
+
+    return classpathEntries.toArray(new String[0]);
+  }
+
+  private boolean containsSiteFile(File f) {
+    return f.isDirectory() && f.listFiles(new FileFilter() {
+
+      @Override
+      public boolean accept(File pathname) {
+        return pathname.getName().endsWith("site.xml");
+      }
+    }).length > 0;
+  }
+
+  /**
+   * @return true if it looks like an unwanted thrift dependency, false otherwise
+   */
+  private boolean looksLikeUnwantedThriftJar(File file) {
+    final String name = file.getName();
+    log.info("File name: " + name);
+    if (name.startsWith(THRIFT_NAME) && !name.contains(DESIRED_THRIFT_VERSION)) {
+      log.info("Looks like thrift");
+      return true;
+    }
+
+    return false;
+  }
+
+  private void append(List<String> classpathEntries, URL url) throws
+      URISyntaxException {
+    File file = new File(url.toURI());
+    log.info("Evaluating " + file);
+    // do not include dirs containing hadoop or accumulo site files
+    if (containsSiteFile(file) || looksLikeUnwantedThriftJar(file)) {
+      return;
+    }
+
+    classpathEntries.add(file.getAbsolutePath());
   }
 
   protected void createAccumuloTable(Connector conn) throws TableExistsException,

@@ -18,9 +18,7 @@
 
 package org.apache.hive.service.cli.operation;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAccessControlException;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthzContext;
@@ -35,12 +33,13 @@ import org.apache.hive.service.cli.OperationType;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 
 /**
  * GetSchemasOperation.
  *
  */
+@InterfaceAudience.Public
 public class GetSchemasOperation extends MetadataOperation {
   private final String catalogName;
   private final String schemaName;
@@ -51,7 +50,7 @@ public class GetSchemasOperation extends MetadataOperation {
 
   private RowSet rowSet;
 
-  protected GetSchemasOperation(HiveSession parentSession,
+  protected GetSchemasOperation(Session parentSession,
       String catalogName, String schemaName) {
     super(parentSession, OperationType.GET_SCHEMAS);
     this.catalogName = catalogName;

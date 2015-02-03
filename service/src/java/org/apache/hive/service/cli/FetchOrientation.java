@@ -18,12 +18,14 @@
 
 package org.apache.hive.service.cli;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hive.service.cli.thrift.TFetchOrientation;
 
 /**
  * FetchOrientation.
  *
  */
+@InterfaceAudience.Public
 public enum FetchOrientation {
   FETCH_NEXT(TFetchOrientation.FETCH_NEXT),
   FETCH_PRIOR(TFetchOrientation.FETCH_PRIOR),

@@ -18,9 +18,9 @@
 
 package org.apache.hive.service.cli.operation;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAccessControlException;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveAuthzContext;
@@ -32,19 +32,25 @@ import org.apache.hive.service.cli.HiveSQLException;
 import org.apache.hive.service.cli.OperationState;
 import org.apache.hive.service.cli.OperationType;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 
 /**
  * MetadataOperation.
  *
  */
+@InterfaceAudience.Public
 public abstract class MetadataOperation extends Operation {
 
   protected static final String DEFAULT_HIVE_CATALOG = "";
-  protected static TableSchema RESULT_SET_SCHEMA;
-  private static final char SEARCH_STRING_ESCAPE = '\\';
 
-  protected MetadataOperation(HiveSession parentSession, OperationType opType) {
+  protected static final TableSchema GET_TABLES_RESULT_SET_SCHEMA = new TableSchema()
+  .addStringColumn("TABLE_CAT", "Catalog name. NULL if not applicable.")
+  .addStringColumn("TABLE_SCHEM", "Schema name.")
+  .addStringColumn("TABLE_NAME", "Table name.")
+  .addStringColumn("TABLE_TYPE", "The table type, e.g. \"TABLE\", \"VIEW\", etc.")
+  .addStringColumn("REMARKS", "Comments about the table.");
+
+  protected MetadataOperation(Session parentSession, OperationType opType) {
     super(parentSession, opType, false);
     setHasResultSet(true);
   }

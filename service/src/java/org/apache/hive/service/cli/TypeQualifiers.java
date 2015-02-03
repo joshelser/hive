@@ -21,6 +21,7 @@ package org.apache.hive.service.cli;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.serde2.typeinfo.CharTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
@@ -33,6 +34,7 @@ import org.apache.hive.service.cli.thrift.TTypeQualifiers;
  * This class holds type qualifier information for a primitive type,
  * such as char/varchar length or decimal precision/scale.
  */
+@InterfaceAudience.Public
 public class TypeQualifiers {
   private Integer characterMaximumLength;
   private Integer precision;

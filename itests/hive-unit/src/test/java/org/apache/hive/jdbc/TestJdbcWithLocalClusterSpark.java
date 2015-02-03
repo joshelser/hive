@@ -37,8 +37,8 @@ import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hive.jdbc.miniHS2.MiniHS2;
 import org.apache.hive.jdbc.miniHS2.MiniHS2.MiniClusterType;
 import org.apache.hive.service.cli.HiveSQLException;
-import org.apache.hive.service.cli.session.HiveSessionHook;
-import org.apache.hive.service.cli.session.HiveSessionHookContext;
+import org.apache.hive.service.cli.session.SessionHook;
+import org.apache.hive.service.cli.session.SessionHookContext;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -51,9 +51,9 @@ import org.junit.Test;
 public class TestJdbcWithLocalClusterSpark {
   public static final String TEST_TAG = "miniHS2.localClusterSpark.tag";
   public static final String TEST_TAG_VALUE = "miniHS2.localClusterSpark.value";
-  public static class LocalClusterSparkSessionHook implements HiveSessionHook {
+  public static class LocalClusterSparkSessionHook implements SessionHook {
     @Override
-    public void run(HiveSessionHookContext sessionHookContext) throws HiveSQLException {
+    public void run(SessionHookContext sessionHookContext) throws HiveSQLException {
       sessionHookContext.getSessionConf().set(TEST_TAG, TEST_TAG_VALUE);
     }
   }

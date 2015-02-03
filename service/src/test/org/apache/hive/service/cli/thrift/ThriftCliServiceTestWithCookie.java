@@ -146,7 +146,7 @@ public class ThriftCliServiceTestWithCookie {
   @Test
   public void testOpenSession() throws Exception {
     // Open a new client session
-    SessionHandle sessHandle = client.openSession(USERNAME,
+    SessionHandle sessHandle = client.openSession("HIVE", USERNAME,
         PASSWORD, new HashMap<String, String>());
     // Session handle should not be null
     assertNotNull("Session handle should not be null", sessHandle);
@@ -156,7 +156,7 @@ public class ThriftCliServiceTestWithCookie {
 
   @Test
   public void testGetFunctions() throws Exception {
-    SessionHandle sessHandle = client.openSession(USERNAME,
+    SessionHandle sessHandle = client.openSession("HIVE", USERNAME,
         PASSWORD, new HashMap<String, String>());
     assertNotNull("Session handle should not be null", sessHandle);
 
@@ -180,7 +180,7 @@ public class ThriftCliServiceTestWithCookie {
   public void testExecuteStatement() throws Exception {
     Map<String, String> opConf = new HashMap<String, String>();
     // Open a new client session
-    SessionHandle sessHandle = client.openSession(USERNAME,
+    SessionHandle sessHandle = client.openSession("HIVE", USERNAME,
         PASSWORD, opConf);
     // Session handle should not be null
     assertNotNull("Session handle should not be null", sessHandle);

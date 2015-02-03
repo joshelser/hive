@@ -213,6 +213,8 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.hadoop.security.UserGroupInformation;
 
+import javax.security.auth.login.LoginException;
+
 /**
  * Implementation of the semantic analyzer. It generates the query plan.
  * There are other specific semantic analyzers for some hive operations such as
@@ -10915,6 +10917,10 @@ public class SemanticAnalyzer extends BaseSemanticAnalyzer {
           location = path.toString();
         } catch (MetaException err) {
           throw new SemanticException("Error while generating temp table path:", err);
+        } catch (LoginException e) {
+          throw new SemanticException(e);
+        } catch (IOException e) {
+          throw new SemanticException(e);
         }
       }
     }

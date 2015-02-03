@@ -61,7 +61,7 @@ import org.apache.hive.service.cli.OperationState;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 import org.apache.hive.service.server.ThreadWithGarbageCleanup;
 
 /**
@@ -77,7 +77,7 @@ public class SQLOperation extends ExecuteStatementOperation {
   private SerDe serde = null;
   private boolean fetchStarted = false;
 
-  public SQLOperation(HiveSession parentSession, String statement, Map<String,
+  protected SQLOperation(Session parentSession, String statement, Map<String,
       String> confOverlay, boolean runInBackground) {
     // TODO: call setRemoteUser in ExecuteStatementOperation or higher.
     super(parentSession, statement, confOverlay, runInBackground);

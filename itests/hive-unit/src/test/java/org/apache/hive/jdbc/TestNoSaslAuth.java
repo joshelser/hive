@@ -29,8 +29,8 @@ import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hive.jdbc.miniHS2.MiniHS2;
 import org.apache.hive.service.cli.HiveSQLException;
-import org.apache.hive.service.cli.session.HiveSessionHook;
-import org.apache.hive.service.cli.session.HiveSessionHookContext;
+import org.apache.hive.service.cli.session.SessionHook;
+import org.apache.hive.service.cli.session.SessionHookContext;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -41,11 +41,11 @@ public class TestNoSaslAuth {
   private static MiniHS2 miniHS2 = null;
   private static String sessionUserName = "";
 
-  public static class NoSaslSessionHook implements HiveSessionHook {
+  public static class NoSaslSessionHook implements SessionHook {
     public static boolean checkUser = false;
 
     @Override
-    public void run(HiveSessionHookContext sessionHookContext)
+    public void run(SessionHookContext sessionHookContext)
         throws HiveSQLException {
       if (checkUser) {
         Assert.assertEquals(sessionHookContext.getSessionUser(), sessionUserName);

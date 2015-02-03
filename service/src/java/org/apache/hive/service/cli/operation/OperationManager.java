@@ -39,7 +39,7 @@ import org.apache.hive.service.cli.OperationStatus;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 import org.apache.log4j.Appender;
 import org.apache.log4j.Logger;
 
@@ -86,65 +86,6 @@ public class OperationManager extends AbstractService {
     Logger.getRootLogger().addAppender(ap);
   }
 
-  public ExecuteStatementOperation newExecuteStatementOperation(HiveSession parentSession,
-      String statement, Map<String, String> confOverlay, boolean runAsync)
-          throws HiveSQLException {
-    ExecuteStatementOperation executeStatementOperation = ExecuteStatementOperation
-        .newExecuteStatementOperation(parentSession, statement, confOverlay, runAsync);
-    addOperation(executeStatementOperation);
-    return executeStatementOperation;
-  }
-
-  public GetTypeInfoOperation newGetTypeInfoOperation(HiveSession parentSession) {
-    GetTypeInfoOperation operation = new GetTypeInfoOperation(parentSession);
-    addOperation(operation);
-    return operation;
-  }
-
-  public GetCatalogsOperation newGetCatalogsOperation(HiveSession parentSession) {
-    GetCatalogsOperation operation = new GetCatalogsOperation(parentSession);
-    addOperation(operation);
-    return operation;
-  }
-
-  public GetSchemasOperation newGetSchemasOperation(HiveSession parentSession,
-      String catalogName, String schemaName) {
-    GetSchemasOperation operation = new GetSchemasOperation(parentSession, catalogName, schemaName);
-    addOperation(operation);
-    return operation;
-  }
-
-  public MetadataOperation newGetTablesOperation(HiveSession parentSession,
-      String catalogName, String schemaName, String tableName,
-      List<String> tableTypes) {
-    MetadataOperation operation =
-        new GetTablesOperation(parentSession, catalogName, schemaName, tableName, tableTypes);
-    addOperation(operation);
-    return operation;
-  }
-
-  public GetTableTypesOperation newGetTableTypesOperation(HiveSession parentSession) {
-    GetTableTypesOperation operation = new GetTableTypesOperation(parentSession);
-    addOperation(operation);
-    return operation;
-  }
-
-  public GetColumnsOperation newGetColumnsOperation(HiveSession parentSession,
-      String catalogName, String schemaName, String tableName, String columnName) {
-    GetColumnsOperation operation = new GetColumnsOperation(parentSession,
-        catalogName, schemaName, tableName, columnName);
-    addOperation(operation);
-    return operation;
-  }
-
-  public GetFunctionsOperation newGetFunctionsOperation(HiveSession parentSession,
-      String catalogName, String schemaName, String functionName) {
-    GetFunctionsOperation operation = new GetFunctionsOperation(parentSession,
-        catalogName, schemaName, functionName);
-    addOperation(operation);
-    return operation;
-  }
-
   public Operation getOperation(OperationHandle operationHandle) throws HiveSQLException {
     Operation operation = getOperationInternal(operationHandle);
     if (operation == null) {
@@ -166,7 +107,7 @@ public class OperationManager extends AbstractService {
     return null;
   }
 
-  private synchronized void addOperation(Operation operation) {
+  public synchronized void addOperation(Operation operation) {
     handleToOperation.put(operation.getHandle(), operation);
   }
 

@@ -20,6 +20,7 @@ package org.apache.hive.service.cli;
 
 import java.util.List;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.serde2.typeinfo.PrimitiveTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hive.service.cli.thrift.TPrimitiveTypeEntry;
@@ -30,6 +31,7 @@ import org.apache.hive.service.cli.thrift.TTypeEntry;
  * TypeDescriptor.
  *
  */
+@InterfaceAudience.Public
 public class TypeDescriptor {
 
   private final Type type;

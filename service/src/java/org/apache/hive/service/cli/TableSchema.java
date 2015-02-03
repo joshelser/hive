@@ -21,6 +21,7 @@ package org.apache.hive.service.cli;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Schema;
 import org.apache.hive.service.cli.thrift.TColumnDesc;
@@ -30,6 +31,7 @@ import org.apache.hive.service.cli.thrift.TTableSchema;
  * TableSchema.
  *
  */
+@InterfaceAudience.Public
 public class TableSchema {
   private final List<ColumnDescriptor> columns = new ArrayList<ColumnDescriptor>();
 

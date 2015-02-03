@@ -18,8 +18,10 @@
 
 package org.apache.hive.service.cli;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hive.service.cli.thrift.TRowSet;
 
+@InterfaceAudience.Public
 public interface RowSet extends Iterable<Object[]> {
 
   RowSet addRow(Object[] fields);

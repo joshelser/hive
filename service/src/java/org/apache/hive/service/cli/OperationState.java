@@ -18,12 +18,14 @@
 
 package org.apache.hive.service.cli;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hive.service.cli.thrift.TOperationState;
 
 /**
  * OperationState.
  *
  */
+@InterfaceAudience.Public
 public enum OperationState {
   INITIALIZED(TOperationState.INITIALIZED_STATE, false),
   RUNNING(TOperationState.RUNNING_STATE, false),

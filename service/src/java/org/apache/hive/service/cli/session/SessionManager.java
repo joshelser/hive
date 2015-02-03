@@ -53,8 +53,8 @@ public class SessionManager extends CompositeService {
   private static final Log LOG = LogFactory.getLog(CompositeService.class);
   public static final String HIVERCFILE = ".hiverc";
   private HiveConf hiveConf;
-  private final Map<SessionHandle, HiveSession> handleToSession =
-      new ConcurrentHashMap<SessionHandle, HiveSession>();
+  private final Map<SessionHandle, Session> handleToSession =
+      new ConcurrentHashMap<SessionHandle, Session>();
   private final OperationManager operationManager = new OperationManager();
   private ThreadPoolExecutor backgroundOperationPool;
   private boolean isOperationLogEnabled;
@@ -157,7 +157,7 @@ public class SessionManager extends CompositeService {
       public void run() {
         for (sleepInterval(interval); !shutdown; sleepInterval(interval)) {
           long current = System.currentTimeMillis();
-          for (HiveSession session : new ArrayList<HiveSession>(handleToSession.values())) {
+          for (Session session : new ArrayList<Session>(handleToSession.values())) {
             if (sessionTimeout > 0 && session.getLastAccessTime() + sessionTimeout <= current
                 && (!checkOperation || session.getNoOperationTime() > sessionTimeout)) {
               SessionHandle handle = session.getSessionHandle();
@@ -216,9 +216,10 @@ public class SessionManager extends CompositeService {
     }
   }
 
-  public SessionHandle openSession(TProtocolVersion protocol, String username, String password, String ipAddress,
-      Map<String, String> sessionConf) throws HiveSQLException {
-    return openSession(protocol, username, password, ipAddress, sessionConf, false, null);
+  public SessionHandle openSession(TProtocolVersion protocol, String sessionType,
+      String username, String password, String ipAddress, Map<String, String> sessionConf)
+          throws HiveSQLException {
+    return openSession(protocol, sessionType, username, password, ipAddress, sessionConf, false, null);
   }
 
   /**
@@ -238,19 +239,26 @@ public class SessionManager extends CompositeService {
    * @return
    * @throws HiveSQLException
    */
-  public SessionHandle openSession(TProtocolVersion protocol, String username, String password, String ipAddress,
-      Map<String, String> sessionConf, boolean withImpersonation, String delegationToken)
-          throws HiveSQLException {
-    HiveSession session;
+  public SessionHandle openSession(TProtocolVersion protocol, String sessionType,
+      String username, String password, String ipAddress, Map<String, String> sessionConf,
+      boolean withImpersonation, String delegationToken) throws HiveSQLException {
+    Session session;
+    SessionType type = SessionTypeFactory.valueOf(hiveConf, sessionType);
+    if (type == null) {
+      throw new HiveSQLException("Unrecognized session type requested: SessionType " + sessionType);
+    }
+    LOG.debug("Creating session of type " + type.getName());
     // If doAs is set to true for HiveServer2, we will create a proxy object for the session impl.
     // Within the proxy object, we wrap the method call in a UserGroupInformation#doAs
     if (withImpersonation) {
-      HiveSessionImplwithUGI sessionWithUGI = new HiveSessionImplwithUGI(protocol, username, password,
-          hiveConf, ipAddress, delegationToken);
-      session = HiveSessionProxy.getProxy(sessionWithUGI, sessionWithUGI.getSessionUgi());
+      SessionWithUGI sessionWithUGI = SessionImplWithUGIBase
+          .invokeConstructor(type.getImpersonatedSessionClass(),
+              protocol, username, password, hiveConf, ipAddress, delegationToken);
+      session = SessionProxy.getProxy(sessionWithUGI, sessionWithUGI.getSessionUgi());
       sessionWithUGI.setProxySession(session);
     } else {
-      session = new HiveSessionImpl(protocol, username, password, hiveConf, ipAddress);
+      session = SessionImplBase.invokeConstructor(type.getSessionClass(), protocol, username,
+          password, hiveConf, ipAddress);
     }
     session.setSessionManager(this);
     session.setOperationManager(operationManager);
@@ -284,7 +292,7 @@ public class SessionManager extends CompositeService {
   }
 
   public void closeSession(SessionHandle sessionHandle) throws HiveSQLException {
-    HiveSession session = handleToSession.remove(sessionHandle);
+    Session session = handleToSession.remove(sessionHandle);
     if (session == null) {
       throw new HiveSQLException("Session does not exist!");
     }
@@ -312,8 +320,8 @@ public class SessionManager extends CompositeService {
     }
   }
 
-  public HiveSession getSession(SessionHandle sessionHandle) throws HiveSQLException {
-    HiveSession session = handleToSession.get(sessionHandle);
+  public Session getSession(SessionHandle sessionHandle) throws HiveSQLException {
+    Session session = handleToSession.get(sessionHandle);
     if (session == null) {
       throw new HiveSQLException("Invalid SessionHandle: " + sessionHandle);
     }
@@ -383,11 +391,11 @@ public class SessionManager extends CompositeService {
   }
 
   // execute session hooks
-  private void executeSessionHooks(HiveSession session) throws Exception {
-    List<HiveSessionHook> sessionHooks = HookUtils.getHooks(hiveConf,
-        HiveConf.ConfVars.HIVE_SERVER2_SESSION_HOOK, HiveSessionHook.class);
-    for (HiveSessionHook sessionHook : sessionHooks) {
-      sessionHook.run(new HiveSessionHookContextImpl(session));
+  private void executeSessionHooks(Session session) throws Exception {
+    List<SessionHook> sessionHooks = HookUtils.getHooks(hiveConf,
+        HiveConf.ConfVars.HIVE_SERVER2_SESSION_HOOK, SessionHook.class);
+    for (SessionHook sessionHook : sessionHooks) {
+      sessionHook.run(new SessionHookContextImpl(session));
     }
   }
 

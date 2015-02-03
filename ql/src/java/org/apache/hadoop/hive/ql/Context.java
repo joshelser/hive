@@ -53,6 +53,8 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.shims.ShimLoader;
 import org.apache.hadoop.util.StringUtils;
 
+import javax.security.auth.login.LoginException;
+
 /**
  * Context for Semantic Analyzers. Usage: not reusable - construct a new one for
  * each query should call clear() at end of use to remove temporary folders
@@ -124,14 +126,19 @@ public class Context {
    * Create a Context with a given executionId.  ExecutionId, together with
    * user name and conf, will determine the temporary directory locations.
    */
-  public Context(Configuration conf, String executionId)  {
+  public Context(Configuration conf, String executionId) throws IOException  {
     this.conf = conf;
     this.executionId = executionId;
 
     // local & non-local tmp location is configurable. however it is the same across
     // all external file systems
-    nonLocalScratchPath = new Path(SessionState.getHDFSSessionPath(conf), executionId);
-    localScratchDir = new Path(SessionState.getLocalSessionPath(conf), executionId).toUri().getPath();
+    try {
+      nonLocalScratchPath = new Path(SessionState.getHDFSSessionPath(conf), executionId);
+      localScratchDir =
+          new Path(SessionState.getLocalSessionPath(conf), executionId).toUri().getPath();
+    } catch (LoginException e) {
+      throw new IOException(e);
+    }
     scratchDirPermission = HiveConf.getVar(conf, HiveConf.ConfVars.SCRATCHDIRPERMISSION);
     stagingDir = HiveConf.getVar(conf, HiveConf.ConfVars.STAGINGDIR);
   }

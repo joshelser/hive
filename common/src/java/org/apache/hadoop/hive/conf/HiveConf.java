@@ -1949,6 +1949,9 @@ public class HiveConf extends Configuration {
         "Session will be considered to be idle only if there is no activity, and there is no pending operation.\n" +
         " This setting takes effect only if session idle timeout (hive.server2.idle.session.timeout) and checking\n" +
         "(hive.server2.session.check.interval) are enabled."),
+    HIVE_SERVER2_SESSION_TYPE("hive.server2.session.type",
+        "org.apache.hive.service.cli.session.HiveSessionType",
+        "The SessionType used by this service."),
 
     HIVE_CONF_RESTRICTED_LIST("hive.conf.restricted.list",
         "hive.security.authenticator.manager,hive.security.authorization.manager,hive.users.in.admin.role",

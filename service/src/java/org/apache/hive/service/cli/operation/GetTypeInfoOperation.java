@@ -18,6 +18,7 @@
 
 package org.apache.hive.service.cli.operation;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveOperationType;
 import org.apache.hive.service.cli.FetchOrientation;
 import org.apache.hive.service.cli.HiveSQLException;
@@ -27,12 +28,13 @@ import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
 import org.apache.hive.service.cli.TableSchema;
 import org.apache.hive.service.cli.Type;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 
 /**
  * GetTypeInfoOperation.
  *
  */
+@InterfaceAudience.Public
 public class GetTypeInfoOperation extends MetadataOperation {
 
   private final static TableSchema RESULT_SET_SCHEMA = new TableSchema()
@@ -75,7 +77,7 @@ public class GetTypeInfoOperation extends MetadataOperation {
 
   private final RowSet rowSet;
 
-  protected GetTypeInfoOperation(HiveSession parentSession) {
+  protected GetTypeInfoOperation(Session parentSession) {
     super(parentSession, OperationType.GET_TYPE_INFO);
     rowSet = RowSetFactory.create(RESULT_SET_SCHEMA, getProtocolVersion());
   }

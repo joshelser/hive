@@ -36,11 +36,11 @@ import org.apache.hive.service.cli.OperationStatus;
 import org.apache.hive.service.cli.OperationType;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 import org.apache.hive.service.cli.thrift.TProtocolVersion;
 
 public abstract class Operation {
-  protected final HiveSession parentSession;
+  protected final Session parentSession;
   private OperationState state = OperationState.INITIALIZED;
   private final OperationHandle opHandle;
   private HiveConf configuration;
@@ -60,7 +60,7 @@ public abstract class Operation {
   protected static final EnumSet<FetchOrientation> DEFAULT_FETCH_ORIENTATION_SET =
       EnumSet.of(FetchOrientation.FETCH_NEXT,FetchOrientation.FETCH_FIRST);
 
-  protected Operation(HiveSession parentSession, OperationType opType, boolean runInBackground) {
+  protected Operation(Session parentSession, OperationType opType, boolean runInBackground) {
     this.parentSession = parentSession;
     this.runAsync = runInBackground;
     this.opHandle = new OperationHandle(opType, parentSession.getProtocolVersion());
@@ -89,7 +89,7 @@ public abstract class Operation {
     return new HiveConf(configuration);
   }
 
-  public HiveSession getParentSession() {
+  public Session getParentSession() {
     return parentSession;
   }
 

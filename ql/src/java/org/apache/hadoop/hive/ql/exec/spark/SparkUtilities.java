@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
+import javax.security.auth.login.LoginException;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -76,7 +78,12 @@ public class SparkUtilities {
    * @throws IOException
    */
   public static URI uploadToHDFS(URI source, HiveConf conf) throws IOException {
-    Path tmpDir = SessionState.getHDFSSessionPath(conf);
+    Path tmpDir;
+    try {
+      tmpDir = SessionState.getHDFSSessionPath(conf);
+    } catch (LoginException e) {
+      throw new IOException(e);
+    }
     FileSystem fileSystem = FileSystem.get(conf);
     fileSystem.copyFromLocalFile(new Path(source.getPath()), tmpDir);
     String filePath = tmpDir + File.separator + getFileName(source);

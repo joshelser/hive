@@ -24,15 +24,16 @@ import java.util.Map;
 
 
 import org.apache.hive.service.auth.HiveAuthFactory;
+import org.apache.hive.service.cli.session.SessionType;
 
 public interface ICLIService {
 
-  SessionHandle openSession(String username, String password,
+  SessionHandle openSession(String sessionType, String username, String password,
       Map<String, String> configuration)
           throws HiveSQLException;
 
-  SessionHandle openSessionWithImpersonation(String username, String password,
-      Map<String, String> configuration, String delegationToken)
+  SessionHandle openSessionWithImpersonation(String sessionType, String username,
+      String password, Map<String, String> configuration, String delegationToken)
           throws HiveSQLException;
 
   void closeSession(SessionHandle sessionHandle)

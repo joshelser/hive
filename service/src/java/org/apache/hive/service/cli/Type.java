@@ -20,6 +20,7 @@ package org.apache.hive.service.cli;
 
 import java.sql.DatabaseMetaData;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hive.service.cli.thrift.TTypeId;
 
@@ -27,6 +28,7 @@ import org.apache.hive.service.cli.thrift.TTypeId;
  * Type.
  *
  */
+@InterfaceAudience.Public
 public enum Type {
   NULL_TYPE("VOID",
       java.sql.Types.NULL,
@@ -166,6 +168,15 @@ public enum Type {
       }
     }
     throw new IllegalArgumentException("Unrecognized type name: " + name);
+  }
+
+  public static Type getType(int javaSQLType) {
+    for (Type type : values()) {
+      if (javaSQLType == type.javaSQLType) {
+        return type;
+      }
+    }
+    throw new IllegalArgumentException("Unsupported SQL typeId: " + javaSQLType);
   }
 
   /**

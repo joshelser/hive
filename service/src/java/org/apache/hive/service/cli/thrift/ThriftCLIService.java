@@ -393,16 +393,16 @@ public abstract class ThriftCLIService extends AbstractService implements TCLISe
       throws HiveSQLException, LoginException, IOException {
     String userName = getUserName(req);
     String ipAddress = getIpAddress();
-    TProtocolVersion protocol = getMinVersion(CLIService.SERVER_VERSION,
-        req.getClient_protocol());
+    TProtocolVersion protocol = getMinVersion(CLIService.SERVER_VERSION, req.getClient_protocol());
+    String sessionType = req.getSessionType();
     SessionHandle sessionHandle;
     if (cliService.getHiveConf().getBoolVar(ConfVars.HIVE_SERVER2_ENABLE_DOAS) &&
         (userName != null)) {
       String delegationTokenStr = getDelegationToken(userName);
-      sessionHandle = cliService.openSessionWithImpersonation(protocol, userName,
+      sessionHandle = cliService.openSessionWithImpersonation(protocol, sessionType, userName,
           req.getPassword(), ipAddress, req.getConfiguration(), delegationTokenStr);
     } else {
-      sessionHandle = cliService.openSession(protocol, userName, req.getPassword(),
+      sessionHandle = cliService.openSession(protocol, sessionType, userName, req.getPassword(),
           ipAddress, req.getConfiguration());
     }
     res.setServerProtocolVersion(protocol);

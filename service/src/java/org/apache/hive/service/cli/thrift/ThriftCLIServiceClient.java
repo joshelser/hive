@@ -46,7 +46,7 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
    * @see org.apache.hive.service.cli.ICLIService#openSession(java.lang.String, java.lang.String, java.util.Map)
    */
   @Override
-  public SessionHandle openSession(String username, String password,
+  public SessionHandle openSession(String sessionType, String username, String password,
       Map<String, String> configuration)
           throws HiveSQLException {
     try {
@@ -54,6 +54,7 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
       req.setUsername(username);
       req.setPassword(password);
       req.setConfiguration(configuration);
+      req.setSessionType(sessionType);
       TOpenSessionResp resp = cliService.OpenSession(req);
       checkStatus(resp.getStatus());
       return new SessionHandle(resp.getSessionHandle(), resp.getServerProtocolVersion());
@@ -68,7 +69,7 @@ public class ThriftCLIServiceClient extends CLIServiceClient {
    * @see org.apache.hive.service.cli.ICLIService#closeSession(org.apache.hive.service.cli.SessionHandle)
    */
   @Override
-  public SessionHandle openSessionWithImpersonation(String username, String password,
+  public SessionHandle openSessionWithImpersonation(String sessionType, String username, String password,
       Map<String, String> configuration, String delegationToken) throws HiveSQLException {
     throw new HiveSQLException("open with impersonation operation is not supported in the client");
   }

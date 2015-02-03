@@ -17,21 +17,19 @@
  */
 package org.apache.hive.service.cli.operation;
 
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.hadoop.hive.ql.processors.CommandProcessor;
-import org.apache.hadoop.hive.ql.processors.CommandProcessorFactory;
-import org.apache.hive.service.cli.HiveSQLException;
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hive.service.cli.OperationType;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 
+@InterfaceAudience.Public
 public abstract class ExecuteStatementOperation extends Operation {
   protected String statement = null;
   protected Map<String, String> confOverlay = new HashMap<String, String>();
 
-  public ExecuteStatementOperation(HiveSession parentSession, String statement,
+  protected ExecuteStatementOperation(Session parentSession, String statement,
       Map<String, String> confOverlay, boolean runInBackground) {
     super(parentSession, OperationType.EXECUTE_STATEMENT, runInBackground);
     this.statement = statement;
@@ -40,22 +38,6 @@ public abstract class ExecuteStatementOperation extends Operation {
 
   public String getStatement() {
     return statement;
-  }
-
-  public static ExecuteStatementOperation newExecuteStatementOperation(
-      HiveSession parentSession, String statement, Map<String, String> confOverlay, boolean runAsync)
-          throws HiveSQLException {
-    String[] tokens = statement.trim().split("\\s+");
-    CommandProcessor processor = null;
-    try {
-      processor = CommandProcessorFactory.getForHiveCommand(tokens, parentSession.getHiveConf());
-    } catch (SQLException e) {
-      throw new HiveSQLException(e.getMessage(), e.getSQLState(), e);
-    }
-    if (processor == null) {
-      return new SQLOperation(parentSession, statement, confOverlay, runAsync);
-    }
-    return new HiveCommandOperation(parentSession, statement, processor, confOverlay);
   }
 
   protected Map<String, String> getConfOverlay() {

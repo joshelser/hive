@@ -25,7 +25,7 @@
 
   <artifactId>hive-service</artifactId>
   <packaging>jar</packaging>
-  <name>Hive Service</name>
+  <name>Hive Query Server (formerly HS2)</name>
 
   <properties>
     <hive.path.to.root>..</hive.path.to.root>

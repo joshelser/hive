@@ -564,6 +564,8 @@ struct TOpenSessionReq {
   // Configuration overlay which is applied when the session is
   // first created.
   4: optional map<string, string> configuration
+
+  5: optional string sessionType = "hive"
 }
 
 struct TOpenSessionResp {

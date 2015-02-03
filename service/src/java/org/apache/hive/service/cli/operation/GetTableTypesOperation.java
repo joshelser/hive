@@ -18,6 +18,7 @@
 
 package org.apache.hive.service.cli.operation;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.ql.security.authorization.plugin.HiveOperationType;
@@ -28,12 +29,13 @@ import org.apache.hive.service.cli.OperationType;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 
 /**
  * GetTableTypesOperation.
  *
  */
+@InterfaceAudience.Public
 public class GetTableTypesOperation extends MetadataOperation {
 
   protected static TableSchema RESULT_SET_SCHEMA = new TableSchema()
@@ -42,7 +44,7 @@ public class GetTableTypesOperation extends MetadataOperation {
   private final RowSet rowSet;
   private final TableTypeMapping tableTypeMapping;
 
-  protected GetTableTypesOperation(HiveSession parentSession) {
+  protected GetTableTypesOperation(Session parentSession) {
     super(parentSession, OperationType.GET_TABLE_TYPES);
     String tableMappingStr = getParentSession().getHiveConf().
         getVar(HiveConf.ConfVars.HIVE_SERVER2_TABLE_TYPE_MAPPING);

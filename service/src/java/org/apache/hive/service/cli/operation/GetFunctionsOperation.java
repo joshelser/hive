@@ -22,6 +22,7 @@ import java.sql.DatabaseMetaData;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.ql.exec.FunctionInfo;
@@ -38,13 +39,14 @@ import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
 import org.apache.hive.service.cli.TableSchema;
 import org.apache.hive.service.cli.Type;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 import org.apache.thrift.TException;
 
 /**
  * GetFunctionsOperation.
  *
  */
+@InterfaceAudience.Public
 public class GetFunctionsOperation extends MetadataOperation {
   private static final TableSchema RESULT_SET_SCHEMA = new TableSchema()
   .addPrimitiveColumn("FUNCTION_CAT", Type.STRING_TYPE,
@@ -66,7 +68,7 @@ public class GetFunctionsOperation extends MetadataOperation {
 
   private final RowSet rowSet;
 
-  public GetFunctionsOperation(HiveSession parentSession,
+  public GetFunctionsOperation(Session parentSession,
       String catalogName, String schemaName, String functionName) {
     super(parentSession, OperationType.GET_FUNCTIONS);
     this.catalogName = catalogName;

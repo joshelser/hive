@@ -18,6 +18,7 @@
 
 package org.apache.hive.service.cli;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hive.service.cli.thrift.TColumnDesc;
 
@@ -26,6 +27,7 @@ import org.apache.hive.service.cli.thrift.TColumnDesc;
  * ColumnDescriptor.
  *
  */
+@InterfaceAudience.Public
 public class ColumnDescriptor {
   private final String name;
   private final String comment;

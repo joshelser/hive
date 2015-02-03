@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -550,6 +551,18 @@ public class HiveConnection implements java.sql.Connection {
     return tokenStr;
   }
 
+  /**
+   * Looks for a case-insensitive match of {@code target} in {@code strings}.
+   * @return the match if found, null otherwise.
+   */
+  private static String containsIgnoreCase(Set<String> strings, String target) {
+    if (target == null || target.isEmpty()) return null;
+    for (String s : strings) {
+      if (target.equalsIgnoreCase(s)) return s;
+    }
+    return null;
+  }
+
   private void openSession() throws SQLException {
     TOpenSessionReq openReq = new TOpenSessionReq();
 
@@ -570,6 +583,10 @@ public class HiveConnection implements java.sql.Connection {
     if (sessVars.containsKey(HiveAuthFactory.HS2_PROXY_USER)) {
       openConf.put(HiveAuthFactory.HS2_PROXY_USER,
           sessVars.get(HiveAuthFactory.HS2_PROXY_USER));
+    }
+    String sessionType = containsIgnoreCase(sessVars.keySet(), "sessiontype");
+    if (sessionType != null) {
+      openReq.setSessionType(sessVars.get(sessionType));
     }
     openReq.setConfiguration(openConf);
 

@@ -38,8 +38,8 @@ import org.apache.hive.jdbc.HiveConnection;
 import org.apache.hive.jdbc.miniHS2.MiniHS2;
 import org.apache.hive.service.auth.HiveAuthFactory;
 import org.apache.hive.service.cli.HiveSQLException;
-import org.apache.hive.service.cli.session.HiveSessionHook;
-import org.apache.hive.service.cli.session.HiveSessionHookContext;
+import org.apache.hive.service.cli.session.SessionHook;
+import org.apache.hive.service.cli.session.SessionHookContext;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -51,9 +51,9 @@ public class TestJdbcWithMiniKdc {
   public static final String SESSION_USER_NAME = "proxy.test.session.user";
 
   // set current user in session conf
-  public static class SessionHookTest implements HiveSessionHook {
+  public static class SessionHookTest implements SessionHook {
     @Override
-    public void run(HiveSessionHookContext sessionHookContext) throws HiveSQLException {
+    public void run(SessionHookContext sessionHookContext) throws HiveSQLException {
       sessionHookContext.getSessionConf().set(SESSION_USER_NAME,
           sessionHookContext.getSessionUser());
     }

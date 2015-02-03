@@ -41,7 +41,7 @@ import org.apache.hive.service.cli.OperationState;
 import org.apache.hive.service.cli.RowSet;
 import org.apache.hive.service.cli.RowSetFactory;
 import org.apache.hive.service.cli.TableSchema;
-import org.apache.hive.service.cli.session.HiveSession;
+import org.apache.hive.service.cli.session.Session;
 
 /**
  * Executes a HiveCommand
@@ -57,7 +57,7 @@ public class HiveCommandOperation extends ExecuteStatementOperation {
   private BufferedReader resultReader;
 
 
-  protected HiveCommandOperation(HiveSession parentSession, String statement,
+  protected HiveCommandOperation(Session parentSession, String statement,
       CommandProcessor commandProcessor, Map<String, String> confOverlay) {
     super(parentSession, statement, confOverlay, false);
     this.commandProcessor = commandProcessor;

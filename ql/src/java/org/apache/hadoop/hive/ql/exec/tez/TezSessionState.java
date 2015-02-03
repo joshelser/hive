@@ -296,7 +296,7 @@ public class TezSessionState {
    * be used with Tez. Assumes scratchDir exists.
    */
   private Path createTezDir(String sessionId)
-    throws IOException {
+      throws IOException, LoginException {
 
     // tez needs its own scratch dir (per session)
     Path tezDir = new Path(SessionState.get().getHdfsScratchDirURIString(), TEZ_DIR);

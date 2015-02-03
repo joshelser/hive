@@ -18,11 +18,13 @@
 
 package org.apache.hive.service.cli;
 
+import org.apache.hadoop.hive.common.classification.InterfaceAudience;
 import org.apache.hive.service.cli.thrift.TProtocolVersion;
 import org.apache.hive.service.cli.thrift.TRowSet;
 
 import static org.apache.hive.service.cli.thrift.TProtocolVersion.HIVE_CLI_SERVICE_PROTOCOL_V6;
 
+@InterfaceAudience.Public
 public class RowSetFactory {
 
   public static RowSet create(TableSchema schema, TProtocolVersion version) {

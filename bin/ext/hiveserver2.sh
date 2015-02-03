@@ -21,7 +21,7 @@ hiveserver2() {
   if $cygwin; then
     HIVE_LIB=`cygpath -w "$HIVE_LIB"`
   fi
-  JAR=${HIVE_LIB}/hive-service-*.jar
+  JAR=$(ls -1 ${HIVE_LIB}/hive-service-*.jar | head -n1)
 
   exec $HADOOP jar $JAR $CLASS $HIVE_OPTS "$@"
 }

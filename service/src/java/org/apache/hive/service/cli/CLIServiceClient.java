@@ -22,7 +22,6 @@ import java.util.Collections;
 
 import org.apache.hive.service.auth.HiveAuthFactory;
 
-
 /**
  * CLIServiceClient.
  *
@@ -32,7 +31,7 @@ public abstract class CLIServiceClient implements ICLIService {
 
   public SessionHandle openSession(String username, String password)
       throws HiveSQLException {
-    return openSession(username, password, Collections.<String, String>emptyMap());
+    return openSession("HIVE", username, password, Collections.<String, String>emptyMap());
   }
 
   @Override

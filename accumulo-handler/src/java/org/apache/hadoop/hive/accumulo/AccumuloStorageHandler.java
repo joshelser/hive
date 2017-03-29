@@ -247,7 +247,9 @@ public class AccumuloStorageHandler extends DefaultStorageHandler implements Hiv
     if (null == indexTable) {
       indexTable = getIndexTableName(tableDesc);
     }
-    jobProperties.put(AccumuloIndexParameters.INDEXTABLE_NAME, indexTable);
+    if (null != indexTable) {
+      jobProperties.put(AccumuloIndexParameters.INDEXTABLE_NAME, indexTable);
+    }
 
     String indexColumns = props.getProperty(AccumuloIndexParameters.INDEXED_COLUMNS);
     jobProperties.put(AccumuloIndexParameters.INDEXED_COLUMNS,

@@ -69,7 +69,7 @@ public class TestAccumuloStorageHandler {
 
     storageHandler.configureOutputJobProperties(tableDesc, jobProperties);
 
-    Assert.assertEquals(5, jobProperties.size());
+    Assert.assertEquals(4, jobProperties.size());
     Assert.assertTrue("Job properties did not contain column mappings",
         jobProperties.containsKey(AccumuloSerDeParameters.COLUMN_MAPPINGS));
     Assert.assertEquals(props.getProperty(AccumuloSerDeParameters.COLUMN_MAPPINGS),

@@ -156,3 +156,34 @@ DROP TABLE accumulo_table_7;
 DROP TABLE accumulo_table_8;
 DROP TABLE empty_accumulo_table;
 DROP TABLE empty_normal_table;
+
+
+CREATE TABLE accumulo_table_base(
+   rowid string,
+   active boolean,
+   num_offices tinyint,
+   num_personel smallint,
+   total_manhours int,
+   num_shareholders bigint,
+   eff_rating float,
+   err_rating double,
+   yearly_production decimal,
+   start_date date,
+   address varchar(100),
+   phone char(13),
+   last_update timestamp )
+ROW FORMAT SERDE 'org.apache.hadoop.hive.accumulo.serde.AccumuloSerDe'
+STORED BY 'org.apache.hadoop.hive.accumulo.AccumuloStorageHandler'
+WITH SERDEPROPERTIES (
+   "accumulo.columns.mapping" = ":rowID,a:act,a:off,a:per,a:mhs,a:shs,a:eff,a:err,a:yp,a:sd,a:addr,a:ph,a:lu",
+   "accumulo.table.name"="accumulo_table_base",
+   "accumulo.indexed.columns"="*",
+   "accumulo.indextable.name"="accumulo_table_idx"
+                     );
+
+
+insert into accumulo_table_base values( "row1", true, 55, 107, 555555, 1223232332,
+                                 4.5, 0.8, 1232223, "2001-10-10", "123 main street",
+                                 "555-555-5555", "2016-02-22 12:45:07.000000000");
+
+select * from accumulo_table_base where err_rating < 1;
